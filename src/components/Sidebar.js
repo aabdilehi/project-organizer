@@ -10,6 +10,7 @@ const Sidebar = () => {
     <div id="sidebar">
       <SidebarObject name="Note" type={SidebarObjects.NOTE} />
       <SidebarObject name="Column" type={SidebarObjects.COLUMN} />
+      <SidebarObject name="To-do" type={SidebarObjects.TODO} />
     </div>
   );
 };

@@ -5,15 +5,23 @@ import { useState, useEffect, useRef } from "react";
 import { useDrag } from "react-dnd";
 
 import { BoardObjects } from "../enums/items";
-import ResizeObserver from "rc-resize-observer";
 
-const Note = ({ id, pX, pY, sX, sY, text, onTextChange, parent, setSize }) => {
+const ToDo = ({
+  id,
+  pX,
+  pY,
+  text,
+  onTextChange,
+  parent,
+  taskStatus,
+  setTaskStatus,
+}) => {
   const ref = useRef(null);
   const [isEditing, setEditMode] = useState(false);
   const [isInColumn, setIsInColumn] = useState(false);
   const [{ isDragging }, drag] = useDrag(() => ({
-    type: BoardObjects.NOTE,
-    item: { id: id, type: BoardObjects.NOTE, ref: ref, parent: parent },
+    type: BoardObjects.TODO,
+    item: { id: id, type: BoardObjects.TODO, ref: ref, parent: parent },
     collect: (monitor) => {
       console.log(monitor.getItem());
       return {
@@ -38,29 +46,32 @@ const Note = ({ id, pX, pY, sX, sY, text, onTextChange, parent, setSize }) => {
   };
 
   return (
-    <ResizeObserver
+    <div
       ref={ref}
-      onResize={({ width, height }) => {
-        if (!isInColumn) {
-          setSize({ id, width, height });
-        }
-      }}
+      css={css`
+        display: flex;
+        flex-direction: row;
+        background-color: #598c72;
+        color: #2e493c;
+        position: ${isInColumn ? "static" : "absolute"};
+        width: ${isInColumn ? "100%" : "250px"};
+        ${isInColumn ? "min-width: 100%;" : ""}
+        height: 85px;
+        ${isInColumn ? "" : "left: " + pX + "px;"}
+        ${isInColumn ? "" : "top: " + pY + "px;"}
+        cursor: ${isEditing ? "auto" : "pointer"};
+      `}
     >
+      <div>
+        <input
+          type="checkbox"
+          checked={taskStatus}
+          onChange={() => setTaskStatus(id)}
+        ></input>
+      </div>
       <div
         css={css`
-          background-color: #598c72;
-          color: #2e493c;
-          position: ${isInColumn ? "static" : "absolute"};
-          min-height: 75px;
           overflow: auto;
-          width: ${isInColumn ? "100%" : sX + "px"};
-          ${isInColumn ? "min-width: 100%;" : ""}
-          height: ${sY}px;
-          ${isInColumn ? "" : "left: " + pX + "px;"}
-          ${isInColumn ? "" : "top: " + pY + "px;"}
-        resize: ${isInColumn ? "vertical" : "both"};
-
-          cursor: ${isEditing ? "auto" : "pointer"};
         `}
         contentEditable={isEditing ? true : false}
         tabIndex={0}
@@ -80,8 +91,8 @@ const Note = ({ id, pX, pY, sX, sY, text, onTextChange, parent, setSize }) => {
       >
         {text}
       </div>
-    </ResizeObserver>
+    </div>
   );
 };
 
-export default Note;
+export default ToDo;

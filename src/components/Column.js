@@ -4,56 +4,90 @@ import { useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { BoardObjects, SidebarObjects } from "../enums/items";
 
-import { useDropType } from "../hooks/useDropType";
+import { v4 as uuidv4 } from "uuid";
 
-const Column = ({ id, pX, pY, title, data, setData }) => {
+import Note from "./Note";
+import ToDo from "./ToDo";
+
+const Column = ({
+  id,
+  pX,
+  pY,
+  title,
+  onTextChange,
+  data,
+  setData,
+  parent,
+  children,
+  setSize,
+  setTaskStatus,
+}) => {
   const ref = useRef(null);
   const columnRef = useRef(null);
 
-  // Use your custom hook to access or update the drop type
-  const { setDropType } = useDropType();
-
   const [{ isOver }, drop] = useDrop(() => ({
-    accept: [BoardObjects.NOTE, SidebarObjects.NOTE],
+    accept: [
+      BoardObjects.NOTE,
+      SidebarObjects.NOTE,
+      BoardObjects.TODO,
+      SidebarObjects.TODO,
+    ],
     collect: (monitor) => ({
       isOver: monitor.isOver({ shallow: true }),
     }),
     drop: (item, monitor) => {
       switch (item.type) {
         case BoardObjects.NOTE:
-          if (monitor.isOver({ shallow: true })) {
-            setDropType({
-              type: item.type,
-              ref: item.ref,
-              dropLoc: BoardObjects.COLUMN,
-            });
-
-            columnRef.current.appendChild(item.ref.current);
+        case BoardObjects.TODO:
+          if (item.parent.id !== id) {
+            if (monitor.isOver({ shallow: true })) {
+              setData((prevData) => {
+                let index = prevData.findIndex((b) => {
+                  console.log(item.id);
+                  if (b.id === item.id) {
+                    return true;
+                  }
+                });
+                if (index === -1) {
+                  return [...prevData];
+                }
+                prevData[index].parent = {
+                  id: id,
+                  type: BoardObjects.COLUMN,
+                };
+                return [...prevData];
+              });
+            }
           }
           break;
         case SidebarObjects.NOTE:
           if (monitor.isOver({ shallow: true })) {
-            setDropType({
-              type: item.type,
-              ref: item.ref,
-              dropLoc: BoardObjects.COLUMN,
+            setData((prevData) => {
+              prevData.push({
+                id: uuidv4(),
+                type: "note",
+                pos: { x: 0, y: 0 },
+                size: { x: 200, y: 200 },
+                content: "New Note",
+                parent: { id: id, type: BoardObjects.COLUMN },
+              });
+              return [...prevData];
             });
-
-            let dA = [...data.current];
-
-            dA.push({
-              id: `pl${dA.length}`,
-              type: "note",
-              pos: { x: 0, y: 0 },
-              size: { x: 200, y: 200 },
-              content: "New Note",
-              isInColumn: true,
+          }
+          break;
+        case SidebarObjects.TODO:
+          if (monitor.isOver({ shallow: true })) {
+            setData((prevData) => {
+              prevData.push({
+                id: uuidv4(),
+                type: "to-do",
+                pos: { x: 0, y: 0 },
+                content: "New Task",
+                parent: { id: id, type: BoardObjects.COLUMN },
+                taskStatus: false,
+              });
+              return [...prevData];
             });
-            setData(dA);
-
-            if (columnRef.current !== null) {
-              columnRef.current.appendChild(item.ref.current);
-            }
           }
           break;
         default:
@@ -66,6 +100,7 @@ const Column = ({ id, pX, pY, title, data, setData }) => {
     item: {
       id: id,
       type: BoardObjects.COLUMN,
+      parent: parent,
     },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
@@ -93,6 +128,7 @@ const Column = ({ id, pX, pY, title, data, setData }) => {
       `}
     >
       <h1
+        contentEditable={true}
         css={css`
           text-align: center;
           width: calc(100% - 15px);
@@ -110,8 +146,44 @@ const Column = ({ id, pX, pY, title, data, setData }) => {
           flex-direction: column;
           align-items: center;
           background-color: #3c6550;
+          gap: 3px;
         `}
-      ></div>
+      >
+        {children.map((b, index) => {
+          switch (b.type) {
+            case BoardObjects.NOTE:
+              return (
+                <Note
+                  key={b.id}
+                  onTextChange={onTextChange}
+                  id={b.id}
+                  pX={b.pos.x}
+                  pY={b.pos.y}
+                  sX={b.size.x}
+                  sY={b.size.y}
+                  text={b.content}
+                  parent={{ id: id, type: BoardObjects.COLUMN }}
+                  setSize={setSize}
+                />
+              );
+            case BoardObjects.TODO:
+              return (
+                <ToDo
+                  key={b.id}
+                  onTextChange={onTextChange}
+                  id={b.id}
+                  pX={b.pos.x}
+                  pY={b.pos.y}
+                  text={b.content}
+                  parent={{ id: id, type: BoardObjects.COLUMN }}
+                  taskStatus={b.taskStatus}
+                  setTaskStatus={setTaskStatus}
+                />
+              );
+            default:
+          }
+        })}
+      </div>
     </div>
   );
 };
