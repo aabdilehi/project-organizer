@@ -8,11 +8,22 @@ import Column from "./Column";
 import Note from "./Note";
 import React from "react";
 import ToDo from "./ToDo";
+import useBoardData from "../hooks/useBoardData";
 
 const Board = () => {
   const ref = useRef(null);
 
-  const [data, setData] = useState([]);
+  const {
+    data,
+    addNote,
+    addTodo,
+    addColumn,
+    updatePosition,
+    updateSize,
+    updateParent,
+    updateContent,
+    updateTaskStatus,
+  } = useBoardData("board");
 
   const handleDoubleClick = (e) => {
     if (e.target !== ref.current) {
@@ -20,29 +31,14 @@ const Board = () => {
     }
     const mouseX = e.clientX - ref.current.getBoundingClientRect().left - 100;
     const mouseY = e.clientY - ref.current.getBoundingClientRect().top - 20;
-
-    setData((prevData) => {
-      prevData.push({
-        id: uuidv4(),
-        type: "note",
-        pos: { x: mouseX, y: mouseY },
-        size: { x: 200, y: 200 },
-        content: "New note",
-        parent: { id: "board", type: BoardObjects.BOARD },
-      });
-      return [...prevData];
+    addNote(uuidv4(), mouseX, mouseY, "New note", {
+      id: "board",
+      type: BoardObjects.BOARD,
     });
   };
 
   const handleTextChange = (e, id) => {
-    setData((prevData) => {
-      let index = prevData.findIndex((p) => p.id === id);
-      if (index === -1) {
-        return [...prevData];
-      }
-      prevData[index].content = e.target.textContent;
-      return [...prevData];
-    });
+    updateContent(id, e.target.textContent);
   };
 
   const getChildren = useCallback(
@@ -51,29 +47,6 @@ const Board = () => {
     },
     [data]
   );
-
-  const setSize = ({ id, width, height }) => {
-    setData((prevData) => {
-      let index = prevData.findIndex((b) => b.id === id);
-      if (index === -1) {
-        return [...prevData];
-      }
-      prevData[index].size = { x: width, y: height };
-      return [...prevData];
-    });
-  };
-
-  const setTaskStatus = (id) => {
-    setData((prevData) => {
-      let index = prevData.findIndex((b) => b.id === id);
-      console.log(id);
-      if (index === -1) {
-        return [...prevData];
-      }
-      prevData[index].taskStatus = !prevData[index].taskStatus;
-      return [...prevData];
-    });
-  };
 
   const [{ isOver }, drop] = useDrop(() => ({
     accept: [
@@ -96,92 +69,73 @@ const Board = () => {
         case BoardObjects.COLUMN:
         case BoardObjects.TODO:
           if (ref != null) {
-            setData((prevData) => {
-              let index = prevData.findIndex((b) => {
-                if (b.id === item.id) {
-                  console.log(b);
-                  return true;
-                }
-              });
-
-              let mouse = monitor.getSourceClientOffset();
-              const boundingRect = ref.current.getBoundingClientRect();
-              const relPos = {
-                x: mouse?.x - boundingRect.left,
-                y: mouse?.y - boundingRect.top,
-              };
-              prevData[index].parent = {
-                id: "board",
-                type: BoardObjects.BOARD,
-              };
-              prevData[index].pos = relPos;
-              return [...prevData];
-            });
+            let mouse = monitor.getSourceClientOffset();
+            const boundingRect = ref.current.getBoundingClientRect();
+            const relPos = {
+              x: mouse?.x - boundingRect.left,
+              y: mouse?.y - boundingRect.top,
+            };
+            if (item.parent.id === "board") {
+              updatePosition(item.id, relPos.x, relPos.y);
+            } else {
+              updateParent(
+                item.id,
+                relPos.x,
+                relPos.y,
+                {
+                  id: "board",
+                  type: BoardObjects.BOARD,
+                },
+                true
+              );
+            }
           }
           break;
 
         case SidebarObjects.NOTE:
           if (ref != null) {
-            setData((prevData) => {
-              let mouse = monitor.getSourceClientOffset();
-              const boundingRect = ref.current.getBoundingClientRect();
-              const relPos = {
-                x: mouse?.x - boundingRect.left,
-                y: mouse?.y - boundingRect.top,
-              };
-              prevData.push({
-                id: uuidv4(),
-                type: "note",
-                pos: relPos,
-                size: { x: 200, y: 200 },
-                content: "New Note",
-                parent: { id: "board", type: BoardObjects.BOARD },
-              });
-              return [...prevData];
-            });
+            let mouse = monitor.getSourceClientOffset();
+            const boundingRect = ref.current.getBoundingClientRect();
+            const relPos = {
+              x: mouse?.x - boundingRect.left,
+              y: mouse?.y - boundingRect.top,
+            };
+            const parent = {
+              id: "board",
+              type: BoardObjects.BOARD,
+            };
+            addNote(uuidv4(), relPos.x, relPos.y, 200, 200, "New Note", parent);
           }
           break;
 
         case SidebarObjects.COLUMN:
           if (ref != null) {
-            setData((prevData) => {
-              let mouse = monitor.getSourceClientOffset();
-              const boundingRect = ref.current.getBoundingClientRect();
-              const relPos = {
-                x: mouse?.x - boundingRect.left,
-                y: mouse?.y - boundingRect.top,
-              };
-              prevData.push({
-                id: uuidv4(),
-                type: "column",
-                pos: relPos,
-                size: { x: 200, y: 200 },
-                content: "New Column",
-                parent: { id: "board", type: BoardObjects.BOARD },
-              });
-              return [...prevData];
-            });
+            let mouse = monitor.getSourceClientOffset();
+            const boundingRect = ref.current.getBoundingClientRect();
+            const relPos = {
+              x: mouse?.x - boundingRect.left,
+              y: mouse?.y - boundingRect.top,
+            };
+            const parent = {
+              id: "board",
+              type: BoardObjects.BOARD,
+            };
+            addColumn(uuidv4(), relPos.x, relPos.y, "New Column", parent);
           }
           break;
         case SidebarObjects.TODO:
           if (ref != null) {
-            setData((prevData) => {
-              let mouse = monitor.getSourceClientOffset();
-              const boundingRect = ref.current.getBoundingClientRect();
-              const relPos = {
-                x: mouse?.x - boundingRect.left,
-                y: mouse?.y - boundingRect.top,
-              };
-              prevData.push({
-                id: uuidv4(),
-                type: "to-do",
-                pos: relPos,
-                content: "New Task",
-                parent: { id: "board", type: BoardObjects.BOARD },
-                taskStatus: false,
-              });
-              return [...prevData];
-            });
+            let mouse = monitor.getSourceClientOffset();
+            const boundingRect = ref.current.getBoundingClientRect();
+            const relPos = {
+              x: mouse?.x - boundingRect.left,
+              y: mouse?.y - boundingRect.top,
+            };
+            const parent = {
+              id: "board",
+              type: BoardObjects.BOARD,
+            };
+            addTodo(uuidv4(), relPos.x, relPos.y, "New Task", parent);
           }
           break;
         default:
@@ -202,6 +156,7 @@ const Board = () => {
       }}
     >
       {getChildren("board").map((b, index) => {
+        console.log(b);
         switch (b.type) {
           case BoardObjects.NOTE:
             return (
@@ -215,7 +170,7 @@ const Board = () => {
                 sY={b.size.y}
                 text={b.content}
                 parent={{ id: "board", type: BoardObjects.BOARD }}
-                setSize={setSize}
+                updateSize={updateSize}
               />
             );
 
@@ -224,15 +179,17 @@ const Board = () => {
               <Column
                 key={b.id}
                 onTextChange={handleTextChange}
-                setData={setData}
                 id={b.id}
                 pX={b.pos.x}
                 pY={b.pos.y}
                 title={b.content}
                 parent={{ id: "board", type: BoardObjects.BOARD }}
                 children={getChildren(b.id)}
-                setSize={setSize}
-                setTaskStatus={setTaskStatus}
+                addNote={addNote}
+                addTodo={addTodo}
+                updateSize={updateSize}
+                updateTaskStatus={updateTaskStatus}
+                updateParent={updateParent}
               />
             );
 
@@ -247,7 +204,7 @@ const Board = () => {
                 text={b.content}
                 parent={{ id: "board", type: BoardObjects.BOARD }}
                 taskStatus={b.taskStatus}
-                setTaskStatus={setTaskStatus}
+                updateTaskStatus={updateTaskStatus}
               />
             );
         }

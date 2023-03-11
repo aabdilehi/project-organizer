@@ -15,12 +15,13 @@ const Column = ({
   pY,
   title,
   onTextChange,
-  data,
-  setData,
   parent,
   children,
-  setSize,
-  setTaskStatus,
+  addNote,
+  addTodo,
+  updateSize,
+  updateTaskStatus,
+  updateParent,
 }) => {
   const ref = useRef(null);
   const columnRef = useRef(null);
@@ -41,53 +42,30 @@ const Column = ({
         case BoardObjects.TODO:
           if (item.parent.id !== id) {
             if (monitor.isOver({ shallow: true })) {
-              setData((prevData) => {
-                let index = prevData.findIndex((b) => {
-                  console.log(item.id);
-                  if (b.id === item.id) {
-                    return true;
-                  }
-                });
-                if (index === -1) {
-                  return [...prevData];
-                }
-                prevData[index].parent = {
-                  id: id,
-                  type: BoardObjects.COLUMN,
-                };
-                return [...prevData];
-              });
+              const newParent = {
+                id: id,
+                type: BoardObjects.COLUMN,
+              };
+              updateParent(item.id, -1, -1, newParent, false);
             }
           }
           break;
         case SidebarObjects.NOTE:
           if (monitor.isOver({ shallow: true })) {
-            setData((prevData) => {
-              prevData.push({
-                id: uuidv4(),
-                type: "note",
-                pos: { x: 0, y: 0 },
-                size: { x: 200, y: 200 },
-                content: "New Note",
-                parent: { id: id, type: BoardObjects.COLUMN },
-              });
-              return [...prevData];
-            });
+            const parent = {
+              id: id,
+              type: BoardObjects.COLUMN,
+            };
+            addNote(uuidv4(), 0, 0, 200, 200, "New note", parent);
           }
           break;
         case SidebarObjects.TODO:
           if (monitor.isOver({ shallow: true })) {
-            setData((prevData) => {
-              prevData.push({
-                id: uuidv4(),
-                type: "to-do",
-                pos: { x: 0, y: 0 },
-                content: "New Task",
-                parent: { id: id, type: BoardObjects.COLUMN },
-                taskStatus: false,
-              });
-              return [...prevData];
-            });
+            const parent = {
+              id: id,
+              type: BoardObjects.COLUMN,
+            };
+            addTodo(uuidv4(), 0, 0, "New task", parent);
           }
           break;
         default:
@@ -134,6 +112,7 @@ const Column = ({
           width: calc(100% - 15px);
           padding: 10px 0;
         `}
+        onBlur={(e) => onTextChange(e, id)}
       >
         {title}
       </h1>
@@ -163,7 +142,7 @@ const Column = ({
                   sY={b.size.y}
                   text={b.content}
                   parent={{ id: id, type: BoardObjects.COLUMN }}
-                  setSize={setSize}
+                  updateSize={updateSize}
                 />
               );
             case BoardObjects.TODO:
@@ -177,7 +156,7 @@ const Column = ({
                   text={b.content}
                   parent={{ id: id, type: BoardObjects.COLUMN }}
                   taskStatus={b.taskStatus}
-                  setTaskStatus={setTaskStatus}
+                  updateTaskStatus={updateTaskStatus}
                 />
               );
             default:

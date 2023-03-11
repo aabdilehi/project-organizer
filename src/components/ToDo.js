@@ -14,7 +14,7 @@ const ToDo = ({
   onTextChange,
   parent,
   taskStatus,
-  setTaskStatus,
+  updateTaskStatus,
 }) => {
   const ref = useRef(null);
   const [isEditing, setEditMode] = useState(false);
@@ -40,9 +40,9 @@ const ToDo = ({
     e.target.focus();
   };
 
-  const endEdit = (string) => {
+  const endEdit = (e) => {
     setEditMode(false);
-    onTextChange(string, id);
+    onTextChange(e, id);
   };
 
   return (
@@ -66,7 +66,7 @@ const ToDo = ({
         <input
           type="checkbox"
           checked={taskStatus}
-          onChange={() => setTaskStatus(id)}
+          onChange={() => updateTaskStatus(id)}
         ></input>
       </div>
       <div

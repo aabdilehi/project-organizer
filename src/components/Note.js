@@ -7,7 +7,17 @@ import { useDrag } from "react-dnd";
 import { BoardObjects } from "../enums/items";
 import ResizeObserver from "rc-resize-observer";
 
-const Note = ({ id, pX, pY, sX, sY, text, onTextChange, parent, setSize }) => {
+const Note = ({
+  id,
+  pX,
+  pY,
+  sX,
+  sY,
+  text,
+  onTextChange,
+  parent,
+  updateSize,
+}) => {
   const ref = useRef(null);
   const [isEditing, setEditMode] = useState(false);
   const [isInColumn, setIsInColumn] = useState(false);
@@ -42,7 +52,7 @@ const Note = ({ id, pX, pY, sX, sY, text, onTextChange, parent, setSize }) => {
       ref={ref}
       onResize={({ width, height }) => {
         if (!isInColumn) {
-          setSize({ id, width, height });
+          updateSize(id, width, height);
         }
       }}
     >
