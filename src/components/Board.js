@@ -9,6 +9,7 @@ import Note from "./Note";
 import React from "react";
 import ToDo from "./ToDo";
 import useBoardData from "../hooks/useBoardData";
+import EditableTextThing from "./CustomEditablePreview";
 
 const Board = () => {
   const ref = useRef(null);
@@ -23,6 +24,8 @@ const Board = () => {
     updateParent,
     updateContent,
     updateTaskStatus,
+    updateDeadline,
+    updateSummary,
   } = useBoardData("board");
 
   const handleDoubleClick = (e) => {
@@ -31,7 +34,7 @@ const Board = () => {
     }
     const mouseX = e.clientX - ref.current.getBoundingClientRect().left - 100;
     const mouseY = e.clientY - ref.current.getBoundingClientRect().top - 20;
-    addNote(uuidv4(), mouseX, mouseY, "New note", {
+    addTodo(uuidv4(), mouseX, mouseY, "New Todo", {
       id: "board",
       type: BoardObjects.BOARD,
     });
@@ -156,7 +159,6 @@ const Board = () => {
       }}
     >
       {getChildren("board").map((b, index) => {
-        console.log(b);
         switch (b.type) {
           case BoardObjects.NOTE:
             return (
@@ -171,6 +173,7 @@ const Board = () => {
                 text={b.content}
                 parent={{ id: "board", type: BoardObjects.BOARD }}
                 updateSize={updateSize}
+                updateContent={updateContent}
               />
             );
 
@@ -182,6 +185,7 @@ const Board = () => {
                 id={b.id}
                 pX={b.pos.x}
                 pY={b.pos.y}
+                sX={b.size.x}
                 title={b.content}
                 parent={{ id: "board", type: BoardObjects.BOARD }}
                 children={getChildren(b.id)}
@@ -190,6 +194,9 @@ const Board = () => {
                 updateSize={updateSize}
                 updateTaskStatus={updateTaskStatus}
                 updateParent={updateParent}
+                updateContent={updateContent}
+                updateDeadline={updateDeadline}
+                updateSummary={updateSummary}
               />
             );
 
@@ -197,14 +204,18 @@ const Board = () => {
             return (
               <ToDo
                 key={b.id}
-                onTextChange={handleTextChange}
                 id={b.id}
                 pX={b.pos.x}
                 pY={b.pos.y}
                 text={b.content}
                 parent={{ id: "board", type: BoardObjects.BOARD }}
+                deadline={b.deadline}
+                summary={b.summary}
                 taskStatus={b.taskStatus}
                 updateTaskStatus={updateTaskStatus}
+                updateContent={updateContent}
+                updateDeadline={updateDeadline}
+                updateSummary={updateSummary}
               />
             );
         }

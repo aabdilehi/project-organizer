@@ -3,16 +3,28 @@ import { css } from "@emotion/react";
 import { useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { BoardObjects, SidebarObjects } from "../enums/items";
+import ResizeObserver from "rc-resize-observer";
 
 import { v4 as uuidv4 } from "uuid";
 
 import Note from "./Note";
 import ToDo from "./ToDo";
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  Stack,
+  Editable,
+  EditableInput,
+  EditablePreview,
+} from "@chakra-ui/react";
+import CustomEditablePreview from "./CustomEditablePreview";
 
 const Column = ({
   id,
   pX,
   pY,
+  sX,
   title,
   onTextChange,
   parent,
@@ -21,7 +33,10 @@ const Column = ({
   addTodo,
   updateSize,
   updateTaskStatus,
+  updateContent,
   updateParent,
+  updateDeadline,
+  updateSummary,
 }) => {
   const ref = useRef(null);
   const columnRef = useRef(null);
@@ -88,82 +103,93 @@ const Column = ({
   drop(drag(ref));
 
   return (
-    <div
+    <ResizeObserver
       ref={ref}
-      css={css`
-        position: absolute;
-        left: ${pX}px;
-        top: ${pY}px;
-        display: flex;
-        flex-direction: column;
-        padding-bottom: 10px;
-        align-items: center;
-        min-width: 300px;
-        min-height: 120px;
-        background-color: #40795d;
-        resize: horizontal;
-        overflow: auto;
-      `}
+      onResize={({ width, height }) => {
+        updateSize(id, width, height);
+      }}
     >
-      <h1
-        contentEditable={true}
-        css={css`
-          text-align: center;
-          width: calc(100% - 15px);
-          padding: 10px 0;
-        `}
-        onBlur={(e) => onTextChange(e, id)}
+      <Card
+        position="absolute"
+        left={pX + "px"}
+        top={pY + "px"}
+        w={sX}
+        direction={{ base: "column" }}
+        pb="10px"
+        alignItems="center"
+        minW="300px"
+        minH="120px"
+        resize="horizontal"
+        bg="gray.700"
+        overflow="auto"
       >
-        {title}
-      </h1>
-      <div
-        ref={columnRef}
-        css={css`
-          display: flex;
-          width: calc(100% - 15px);
-          flex: 1;
-          flex-direction: column;
-          align-items: center;
-          background-color: #3c6550;
-          gap: 3px;
-        `}
-      >
-        {children.map((b, index) => {
-          switch (b.type) {
-            case BoardObjects.NOTE:
-              return (
-                <Note
-                  key={b.id}
-                  onTextChange={onTextChange}
-                  id={b.id}
-                  pX={b.pos.x}
-                  pY={b.pos.y}
-                  sX={b.size.x}
-                  sY={b.size.y}
-                  text={b.content}
-                  parent={{ id: id, type: BoardObjects.COLUMN }}
-                  updateSize={updateSize}
-                />
-              );
-            case BoardObjects.TODO:
-              return (
-                <ToDo
-                  key={b.id}
-                  onTextChange={onTextChange}
-                  id={b.id}
-                  pX={b.pos.x}
-                  pY={b.pos.y}
-                  text={b.content}
-                  parent={{ id: id, type: BoardObjects.COLUMN }}
-                  taskStatus={b.taskStatus}
-                  updateTaskStatus={updateTaskStatus}
-                />
-              );
-            default:
-          }
-        })}
-      </div>
-    </div>
+        <CardHeader p={1.5}>
+          <Editable
+            as="h2"
+            fontSize="lg"
+            fontWeight="semibold"
+            value={title}
+            textAlign="center"
+            isPreviewFocusable={false}
+          >
+            <CustomEditablePreview fontSize="larger" fontWeight="semibold" />
+            <EditableInput
+              onChange={(e) => updateContent(id, e.target.value)}
+            ></EditableInput>
+          </Editable>
+        </CardHeader>
+        <CardBody
+          ref={columnRef}
+          w="calc(100% - 18px)"
+          alignItems="center"
+          border="2px dashed"
+          borderColor="gray.600"
+          p={0}
+          rounded="md"
+        >
+          <Stack direction="column" w="full">
+            {children.map((b, index) => {
+              switch (b.type) {
+                case BoardObjects.NOTE:
+                  return (
+                    <Note
+                      key={b.id}
+                      id={b.id}
+                      pX={b.pos.x}
+                      pY={b.pos.y}
+                      sX={b.size.x}
+                      sY={b.size.y}
+                      text={b.content}
+                      parent={{ id: id, type: BoardObjects.COLUMN }}
+                      updateSize={updateSize}
+                      updateContent={updateContent}
+                    />
+                  );
+                case BoardObjects.TODO:
+                  return (
+                    <ToDo
+                      key={b.id}
+                      id={b.id}
+                      pX={b.pos.x}
+                      pY={b.pos.y}
+                      text={b.content}
+                      parent={{ id: id, type: BoardObjects.COLUMN }}
+                      deadline={b.deadline}
+                      summary={b.summary}
+                      taskStatus={b.taskStatus}
+                      updateTaskStatus={updateTaskStatus}
+                      updateContent={updateContent}
+                      updateDeadline={updateDeadline}
+                      updateSummary={updateSummary}
+                    />
+                  );
+                default:
+              }
+            })}
+          </Stack>
+        </CardBody>
+      </Card>
+    </ResizeObserver>
   );
 };
 

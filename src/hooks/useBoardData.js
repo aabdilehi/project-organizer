@@ -4,9 +4,7 @@ import useBoardCollection from "./useBoardCollection";
 const useBoardData = (board) => {
   const [data, setData] = useBoardCollection();
 
-  useEffect(() => {
-    console.log(data);
-  }, [data]);
+  useEffect(() => {}, [data]);
 
   const addNote = (id, pX, pY, sX, sY, text, parent) => {
     setData((prevData) => {
@@ -30,6 +28,8 @@ const useBoardData = (board) => {
         pos: { x: pX, y: pY },
         content: text,
         parent: parent,
+        deadline: null,
+        summary: "",
         taskStatus: false,
       });
       return [...prevData];
@@ -121,6 +121,28 @@ const useBoardData = (board) => {
     });
   };
 
+  const updateDeadline = (id, date) => {
+    setData((prevData) => {
+      let index = prevData.findIndex((b) => b.id === id);
+      if (index === -1) {
+        return [...prevData];
+      }
+      prevData[index].deadline = date;
+      return [...prevData];
+    });
+  };
+
+  const updateSummary = (id, summary) => {
+    setData((prevData) => {
+      let index = prevData.findIndex((b) => b.id === id);
+      if (index === -1) {
+        return [...prevData];
+      }
+      prevData[index].summary = summary;
+      return [...prevData];
+    });
+  };
+
   return {
     data,
     addNote,
@@ -131,6 +153,8 @@ const useBoardData = (board) => {
     updateParent,
     updateContent,
     updateTaskStatus,
+    updateDeadline,
+    updateSummary,
   };
 };
 

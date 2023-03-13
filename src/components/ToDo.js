@@ -1,21 +1,57 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import "../App.css";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDrag } from "react-dnd";
-
+import {
+  Checkbox,
+  Card,
+  Stack,
+  Badge,
+  Tooltip,
+  Text,
+  IconButton,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  useDisclosure,
+  Box,
+  Input,
+} from "@chakra-ui/react";
 import { BoardObjects } from "../enums/items";
+import { AutoResizeTextArea } from "./AutoResizeTextarea.js";
+import { CalendarIcon, CheckIcon, CloseIcon, EditIcon } from "@chakra-ui/icons";
+import Datepicker from "./Datepicker";
+import { format } from "date-fns";
 
 const ToDo = ({
   id,
   pX,
   pY,
   text,
-  onTextChange,
+  deadline,
+  summary,
   parent,
   taskStatus,
   updateTaskStatus,
+  updateContent,
+  updateDeadline,
+  updateSummary,
 }) => {
+  const finalRef = useRef(null);
+
+  // Modal control
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  // Temporary storage for editing text. Pushes this value to data storage on submit
+  const [taskText, setTaskText] = useState(text);
+  const [taskSummary, setTaskSummary] = useState(summary);
+
+  const [date, setDate] = useState(deadline);
+
   const ref = useRef(null);
   const [isEditing, setEditMode] = useState(false);
   const [isInColumn, setIsInColumn] = useState(false);
@@ -23,7 +59,6 @@ const ToDo = ({
     type: BoardObjects.TODO,
     item: { id: id, type: BoardObjects.TODO, ref: ref, parent: parent },
     collect: (monitor) => {
-      console.log(monitor.getItem());
       return {
         isDragging: monitor.isDragging(),
       };
@@ -35,63 +70,164 @@ const ToDo = ({
     setIsInColumn(parent.type === BoardObjects.COLUMN);
   }, [parent]);
 
-  const edit = (e) => {
+  const edit = () => {
     setEditMode(true);
-    e.target.focus();
   };
 
-  const endEdit = (e) => {
+  const endEdit = () => {
     setEditMode(false);
-    onTextChange(e, id);
   };
 
   return (
-    <div
-      ref={ref}
-      css={css`
-        display: flex;
-        flex-direction: row;
-        background-color: #598c72;
-        color: #2e493c;
-        position: ${isInColumn ? "static" : "absolute"};
-        width: ${isInColumn ? "100%" : "250px"};
-        ${isInColumn ? "min-width: 100%;" : ""}
-        height: 85px;
-        ${isInColumn ? "" : "left: " + pX + "px;"}
-        ${isInColumn ? "" : "top: " + pY + "px;"}
-        cursor: ${isEditing ? "auto" : "pointer"};
-      `}
-    >
-      <div>
-        <input
-          type="checkbox"
-          checked={taskStatus}
-          onChange={() => updateTaskStatus(id)}
-        ></input>
-      </div>
-      <div
-        css={css`
-          overflow: auto;
-        `}
-        contentEditable={isEditing ? true : false}
-        tabIndex={0}
-        onClick={(e) => {
-          edit(e);
-        }}
+    <>
+      <Card
+        role="group"
+        ref={ref}
+        direction={{ base: "row" }}
+        bg="gray.800"
+        variant="outline"
+        size={"sm"}
+        alignItems="flex-start"
         draggable={!isEditing}
-        onBlur={(e) => {
-          endEdit(e);
-        }}
-        onKeyDown={(e) => {
-          if (e.key == "Enter") {
-            e.preventDefault();
-            text += "\n";
-          }
-        }}
+        pt={2}
+        pr={2}
+        w={isInColumn ? "100%" : "250px"}
+        position={isInColumn ? "relative" : "absolute"}
+        h="fit-content"
+        cursor={isEditing ? "auto" : "pointer"}
+        css={css`
+          ${isInColumn ? "min-width: 100%;" : ""}
+          ${isInColumn ? "" : "left: " + pX + "px;"}
+        ${isInColumn ? "" : "top: " + pY + "px;"}
+        `}
       >
-        {text}
-      </div>
-    </div>
+        <Checkbox
+          size={"lg"}
+          pl={5}
+          pr={5}
+          pt={1.5}
+          h="100%"
+          isChecked={taskStatus}
+          onChange={() => updateTaskStatus(id)}
+        ></Checkbox>
+        <Stack marginBottom={2} direction={{ base: "column" }}>
+          <IconButton
+            position="absolute"
+            opacity={0}
+            bgColor={"gray.500"}
+            _groupHover={{ opacity: 1 }} // add this line
+            _hover={{ bgColor: "green.500" }}
+            _active={{ bgColor: "green.200" }}
+            tabIndex={1}
+            top={1.5}
+            right={1.5}
+            aria-label="edit-button"
+            size="sm"
+            icon={<EditIcon />}
+            onClick={() => {
+              setTaskText(text);
+              setDate(deadline);
+              setTaskSummary(summary);
+              onOpen();
+            }}
+          />
+          <Text>{text}</Text>
+          <Stack direction={{ base: "row" }}>
+            {date !== null ? (
+              <Badge
+                variant={"subtle"}
+                fontSize="md"
+                letterSpacing="wide"
+                colorScheme={"messenger"}
+                px={2}
+                py={1}
+                width="fit-content"
+                fontSize={{ base: "10px" }}
+                size="lg"
+                rounded="lg"
+              >
+                Due: {format(date, "dd MMM")}
+              </Badge>
+            ) : (
+              ""
+            )}
+            <Badge
+              variant={"subtle"}
+              fontSize="md"
+              letterSpacing="wide"
+              colorScheme={"whatsapp"}
+              px={2}
+              py={1}
+              width="fit-content"
+              fontSize={{ base: "10px" }}
+              size="lg"
+              rounded="lg"
+            >
+              @ Abokor
+            </Badge>
+          </Stack>
+        </Stack>
+      </Card>
+      <Modal finalFocusRef={finalRef} isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>
+            <Text as="h2">Edit note</Text>
+          </ModalHeader>
+          <ModalBody>
+            <Stack gap={2}>
+              <Box>
+                <Text as="p">Task:</Text>
+                <Input
+                  value={taskText}
+                  onChange={(e) => setTaskText(e.target.value)}
+                />
+              </Box>
+              <Box>
+                <Text as="p">Summary:</Text>
+                <AutoResizeTextArea
+                  value={taskSummary}
+                  onChange={(e) => setTaskSummary(e.target.value)}
+                />
+              </Box>
+              <Box>
+                <Text as="p">Deadline:</Text>
+                <Stack direction={"row"}>
+                  <Datepicker
+                    selectedDate={date}
+                    onChange={(date) => setDate(date)}
+                  />
+                  <Tooltip label="Clear deadline">
+                    <IconButton
+                      icon={<CloseIcon />}
+                      aria-label="clear-date"
+                      onClick={() => setDate(null)}
+                    />
+                  </Tooltip>
+                </Stack>
+              </Box>
+            </Stack>
+          </ModalBody>
+          <ModalFooter gap={2}>
+            <IconButton
+              aria-label="submit-button"
+              onClick={() => {
+                updateContent(id, taskText);
+                updateDeadline(id, date);
+                updateSummary(id, taskSummary);
+                onClose();
+              }}
+              icon={<CheckIcon />}
+            />
+            <IconButton
+              aria-label="cancel-button"
+              onClick={onClose}
+              icon={<CloseIcon />}
+            />
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
   );
 };
 
