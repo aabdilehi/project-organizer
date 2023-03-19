@@ -18,12 +18,6 @@ export const AutoResizeTextArea = React.forwardRef((props, ref) => {
 // eslint-disable-next-line react/display-name
 export const AutoResizeEditableTextArea = React.forwardRef((props, ref) => {
   return (
-    <EditableTextarea
-      as={ResizeTextarea}
-      minH="unset"
-      maxH="unset"
-      ref={ref}
-      {...props}
-    />
+    <EditableTextarea as={ResizeTextarea} minH="unset" ref={ref} {...props} />
   );
 });

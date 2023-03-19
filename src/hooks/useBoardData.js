@@ -1,7 +1,9 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { BoardObjects } from "../enums/items";
 import useBoardCollection from "./useBoardCollection";
 
 const useBoardData = (board) => {
+  const selectedRef = useRef(null);
   const [data, setData] = useBoardCollection();
 
   useEffect(() => {}, [data]);
@@ -48,6 +50,60 @@ const useBoardData = (board) => {
       });
       return [...prevData];
     });
+  };
+
+  const addImage = (id, pX, pY, parent) => {
+    setData((prevData) => {
+      prevData.push({
+        id: id,
+        type: "image",
+        pos: { x: pX, y: pY },
+        size: { x: 300, y: 300 },
+        image: null,
+        content: "",
+        parent: parent,
+      });
+      return [...prevData];
+    });
+  };
+
+  const getChildren = useCallback(
+    (parentID) => {
+      return data.filter((item) => item.parent.id === parentID);
+    },
+    [data]
+  );
+
+  const deleteComponent = (id) => {
+    setData((prevData) => {
+      let index = prevData.findIndex((b) => b.id === id);
+      if (index === -1) {
+        return [...prevData];
+      }
+      if (prevData[index].type === BoardObjects.COLUMN) {
+        prevData.forEach((item, itemIndex) => {
+          if (item.parent.id === id) {
+            prevData[itemIndex].parent = {
+              id: "board",
+              type: BoardObjects.BOARD,
+            };
+          }
+        });
+      }
+      prevData.splice(index, 1);
+      return [...prevData];
+    });
+  };
+
+  const deleteFocusedElement = () => {
+    deleteComponent(selectedRef.current);
+    console.log(`Deleted: ${selectedRef.current}`);
+    selectedRef.current = null;
+  };
+
+  const setFocusedElement = (ref) => {
+    selectedRef.current = ref;
+    console.log(ref);
   };
 
   // const updateProperty = ({ id, property, newValue }) => {
@@ -143,11 +199,23 @@ const useBoardData = (board) => {
     });
   };
 
+  const updateImage = (id, src) => {
+    setData((prevData) => {
+      let index = prevData.findIndex((b) => b.id === id);
+      if (index === -1) {
+        return [...prevData];
+      }
+      prevData[index].image = src;
+      return [...prevData];
+    });
+  };
+
   return {
     data,
     addNote,
     addTodo,
     addColumn,
+    addImage,
     updatePosition,
     updateSize,
     updateParent,
@@ -155,6 +223,10 @@ const useBoardData = (board) => {
     updateTaskStatus,
     updateDeadline,
     updateSummary,
+    updateImage,
+    setFocusedElement,
+    deleteFocusedElement,
+    getChildren,
   };
 };
 

@@ -4,14 +4,38 @@ import { css } from "@emotion/react";
 import { useDrag } from "react-dnd";
 
 import { SidebarObjects } from "../enums/items";
+import {
+  Box,
+  Card,
+  CardBody,
+  CardFooter,
+  Drawer,
+  DrawerContent,
+  DrawerOverlay,
+  Stack,
+  Text,
+  useDisclosure,
+} from "@chakra-ui/react";
 
 const Sidebar = () => {
   return (
-    <div id="sidebar">
+    <Stack
+      bgColor="gray.800"
+      m={0}
+      p={0}
+      pl={2.5}
+      pt={3}
+      direction={"column"}
+      h="full"
+      minH="100%"
+      w={"100px"}
+      alignItems="center"
+    >
       <SidebarObject name="Note" type={SidebarObjects.NOTE} />
       <SidebarObject name="Column" type={SidebarObjects.COLUMN} />
       <SidebarObject name="To-do" type={SidebarObjects.TODO} />
-    </div>
+      <SidebarObject name="Image" type={SidebarObjects.IMAGE} />
+    </Stack>
   );
 };
 
@@ -28,26 +52,24 @@ const SidebarObject = ({ name, type }) => {
   drag(ref);
 
   return (
-    <>
-      <label
-        ref={ref}
+    <Card
+      h={"fit-content"}
+      p={2}
+      w="full"
+      ref={ref}
+      dir="column"
+      alignItems={"center"}
+      _hover={{ bgColor: "gray.600", cursor: "pointer" }}
+    >
+      <Box
         css={css`
-          text-align: center;
-          margin: 5px auto;
+          background-color: red;
+          height: 50px;
           width: 50px;
         `}
-      >
-        <div
-          css={css`
-            background-color: red;
-            height: 50px;
-            color: green;
-            cursor: ${"pointer"};
-          `}
-        ></div>
-        {name}
-      </label>
-    </>
+      ></Box>
+      <Text>{name}</Text>
+    </Card>
   );
 };
 

@@ -16,9 +16,9 @@ import {
   Stack,
   Editable,
   EditableInput,
-  EditablePreview,
 } from "@chakra-ui/react";
 import CustomEditablePreview from "./CustomEditablePreview";
+import Picture from "./Picture";
 
 const Column = ({
   id,
@@ -31,12 +31,15 @@ const Column = ({
   children,
   addNote,
   addTodo,
+  addImage,
   updateSize,
   updateTaskStatus,
   updateContent,
   updateParent,
   updateDeadline,
   updateSummary,
+  updateImage,
+  setFocusedElement,
 }) => {
   const ref = useRef(null);
   const columnRef = useRef(null);
@@ -47,6 +50,8 @@ const Column = ({
       SidebarObjects.NOTE,
       BoardObjects.TODO,
       SidebarObjects.TODO,
+      BoardObjects.IMAGE,
+      SidebarObjects.IMAGE,
     ],
     collect: (monitor) => ({
       isOver: monitor.isOver({ shallow: true }),
@@ -55,6 +60,7 @@ const Column = ({
       switch (item.type) {
         case BoardObjects.NOTE:
         case BoardObjects.TODO:
+        case BoardObjects.IMAGE:
           if (item.parent.id !== id) {
             if (monitor.isOver({ shallow: true })) {
               const newParent = {
@@ -64,6 +70,7 @@ const Column = ({
               updateParent(item.id, -1, -1, newParent, false);
             }
           }
+          console.log("Updated parent");
           break;
         case SidebarObjects.NOTE:
           if (monitor.isOver({ shallow: true })) {
@@ -81,6 +88,15 @@ const Column = ({
               type: BoardObjects.COLUMN,
             };
             addTodo(uuidv4(), 0, 0, "New task", parent);
+          }
+          break;
+        case SidebarObjects.IMAGE:
+          if (monitor.isOver({ shallow: true })) {
+            const parent = {
+              id: id,
+              type: BoardObjects.COLUMN,
+            };
+            addImage(uuidv4(), 0, 0, parent);
           }
           break;
         default:
@@ -110,6 +126,8 @@ const Column = ({
       }}
     >
       <Card
+        tabIndex={1}
+        onFocus={() => setFocusedElement(id)}
         position="absolute"
         left={pX + "px"}
         top={pY + "px"}
@@ -163,6 +181,7 @@ const Column = ({
                       parent={{ id: id, type: BoardObjects.COLUMN }}
                       updateSize={updateSize}
                       updateContent={updateContent}
+                      setFocusedElement={setFocusedElement}
                     />
                   );
                 case BoardObjects.TODO:
@@ -181,6 +200,23 @@ const Column = ({
                       updateContent={updateContent}
                       updateDeadline={updateDeadline}
                       updateSummary={updateSummary}
+                    />
+                  );
+                case BoardObjects.IMAGE:
+                  return (
+                    <Picture
+                      key={b.id}
+                      id={b.id}
+                      pX={b.pos.x}
+                      pY={b.pos.y}
+                      sX={b.size.x}
+                      sY={b.size.y}
+                      image={b.image}
+                      text={b.content}
+                      parent={{ id: id, type: BoardObjects.COLUMN }}
+                      updateImage={updateImage}
+                      updateContent={updateContent}
+                      updateSize={updateSize}
                     />
                   );
                 default:

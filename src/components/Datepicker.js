@@ -1,15 +1,18 @@
 import React from "react";
 import DatePicker from "react-datepicker";
-import { chakra, useTheme } from "@chakra-ui/react";
+import { Badge, Box, chakra, Textarea, useTheme } from "@chakra-ui/react";
 
 import "../react-datepicker.css";
 import { format } from "date-fns";
 
 const ChakraDatepicker = chakra(DatePicker);
 
-const styles = (theme) => {
+const styles = (theme, showInput) => {
   return {
     // Input styles
+    display: showInput ? undefined : "none",
+    height: theme.sizes[10],
+    width: "100%",
     color: theme.colors.white,
     fontSize: "md",
     bg: "inherit",
@@ -21,10 +24,8 @@ const styles = (theme) => {
     borderColor: "inherit",
     boxShadow: theme.shadows.sm,
     padding: theme.space[4],
-    width: "100%",
     outline: "2px solid transparent",
     outlineOffset: "2px",
-    height: theme.sizes[10],
     _focus: {
       outline: "none",
       borderColor: theme.colors.blue[500],
@@ -37,118 +38,30 @@ const styles = (theme) => {
       opacity: 0.4,
       cursor: "not-allowed",
     },
-    // Popper styles
-    "& .react-datepicker-popper": {
-      zIndex: "popover",
-    },
-    // Calendar styles
-    "& .react-datepicker": {
-      bg: "white",
-      border: "1px solid",
-      borderColor: "gray.300",
-      borderRadius: "md",
-      boxShadow: "lg",
-      fontSize: "sm",
-      fontWeight: "normal",
-      color: "gray.800",
-    },
-    // Header styles
-    "& .react-datepicker__header": {
-      bg: "gray.50",
-      borderBottom: "none",
-      borderRadius: "md",
-      p: "2",
-    },
-    // Month container styles
-    "& .react-datepicker__month-container": {
-      p: "2",
-    },
-    // Month header styles
-    "& .react-datepicker__current-month": {
-      fontSize: "lg",
-      fontWeight: "bold",
-    },
-    // Navigation styles
-    "& .react-datepicker__navigation": {
-      top: "50%",
-      transform: "translateY(-50%)",
-      outline: "none",
-      border: "none",
-      bg: "transparent",
-      _hover: {
-        bg: "transparent",
-      },
-      _focus: {
-        boxShadow: "none",
-      },
-    },
-    "& .react-datepicker__navigation--previous": {
-      left: "2",
-      _hover: {
-        color: "blue.500",
-      },
-    },
-    "& .react-datepicker__navigation--next": {
-      right: "2",
-      _hover: {
-        color: "blue.500",
-      },
-    },
-    // Month table styles
-    "& .react-datepicker__month": {
-      margin: "0",
-    },
-    // Week header styles
-    "& .react-datepicker__day-name": {
-      fontWeight: "bold",
-      color: "gray.600",
-      width: "2.5rem",
-      lineHeight: "2.5rem",
-      textAlign: "center",
-    },
-    // Day styles
-    "& .react-datepicker__day": {
-      width: "2.5rem",
-      lineHeight: "2.5rem",
-      borderRadius: "full",
-      textAlign: "center",
-      cursor: "pointer",
-      _hover: {
-        bg: "gray.200",
-      },
-    },
-    "& .react-datepicker__day--selected": {
-      bg: "blue.500",
-      color: "white",
-      _hover: {
-        bg: "blue.600",
-      },
-    },
-    "& .react-datepicker__day--disabled": {
-      color: "gray.400",
-      cursor: "not-allowed",
-      _hover: {
-        bg: "transparent",
-      },
-    },
   };
 };
 
-const Datepicker = ({ selectedDate, onChange, ...props }) => {
+const ChkrDatepicker = ({
+  selectedDate,
+  onChange,
+  urm,
+  showInput = true,
+  ...props
+}) => {
   const theme = useTheme();
   return (
     <ChakraDatepicker
+      ref={urm}
       selected={selectedDate}
       onChange={onChange}
       {...props}
-      sx={styles(theme)}
-      popperPlacement="bottom"
+      sx={styles(theme, showInput)}
       dateFormat="dd/MM/yyyy"
     />
   );
 };
 
-export default Datepicker;
+export default ChkrDatepicker;
 
 // .react-datepicker__header {
 //   text-align: center;

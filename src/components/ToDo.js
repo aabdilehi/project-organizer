@@ -20,11 +20,16 @@ import {
   useDisclosure,
   Box,
   Input,
+  Popover,
+  PopoverAnchor,
+  PopoverTrigger,
+  PopoverContent,
 } from "@chakra-ui/react";
 import { BoardObjects } from "../enums/items";
 import { AutoResizeTextArea } from "./AutoResizeTextarea.js";
 import { CalendarIcon, CheckIcon, CloseIcon, EditIcon } from "@chakra-ui/icons";
-import Datepicker from "./Datepicker";
+import ChkrDatepicker from "./Datepicker";
+import ReactDatePicker from "react-datepicker";
 import { format } from "date-fns";
 
 const ToDo = ({
@@ -51,7 +56,7 @@ const ToDo = ({
   const [taskSummary, setTaskSummary] = useState(summary);
 
   const [date, setDate] = useState(deadline);
-
+  const dpRef = useRef(null);
   const ref = useRef(null);
   const [isEditing, setEditMode] = useState(false);
   const [isInColumn, setIsInColumn] = useState(false);
@@ -78,96 +83,98 @@ const ToDo = ({
     setEditMode(false);
   };
 
+  const initialFocusRef = React.useRef();
+  const dateBadgeRef = useRef();
+
   return (
-    <>
-      <Card
-        role="group"
-        ref={ref}
-        direction={{ base: "row" }}
-        bg="gray.800"
-        variant="outline"
-        size={"sm"}
-        alignItems="flex-start"
-        draggable={!isEditing}
-        pt={2}
-        pr={2}
-        w={isInColumn ? "100%" : "250px"}
-        position={isInColumn ? "relative" : "absolute"}
-        h="fit-content"
-        cursor={isEditing ? "auto" : "pointer"}
-        css={css`
-          ${isInColumn ? "min-width: 100%;" : ""}
-          ${isInColumn ? "" : "left: " + pX + "px;"}
+    <Card
+      role="group"
+      ref={ref}
+      direction={{ base: "row" }}
+      bg="gray.800"
+      variant="outline"
+      size={"sm"}
+      alignItems="flex-start"
+      draggable={!isEditing}
+      pt={2}
+      pr={2}
+      w={isInColumn ? "100%" : "250px"}
+      position={isInColumn ? "relative" : "absolute"}
+      h="fit-content"
+      cursor={isEditing ? "auto" : "pointer"}
+      css={css`
+        ${isInColumn ? "min-width: 100%;" : ""}
+        ${isInColumn ? "" : "left: " + pX + "px;"}
         ${isInColumn ? "" : "top: " + pY + "px;"}
-        `}
-      >
-        <Checkbox
-          size={"lg"}
-          pl={5}
-          pr={5}
-          pt={1.5}
-          h="100%"
-          isChecked={taskStatus}
-          onChange={() => updateTaskStatus(id)}
-        ></Checkbox>
-        <Stack marginBottom={2} direction={{ base: "column" }}>
-          <IconButton
-            position="absolute"
-            opacity={0}
-            bgColor={"gray.500"}
-            _groupHover={{ opacity: 1 }} // add this line
-            _hover={{ bgColor: "green.500" }}
-            _active={{ bgColor: "green.200" }}
-            tabIndex={1}
-            top={1.5}
-            right={1.5}
-            aria-label="edit-button"
-            size="sm"
-            icon={<EditIcon />}
-            onClick={() => {
-              setTaskText(text);
-              setDate(deadline);
-              setTaskSummary(summary);
-              onOpen();
-            }}
-          />
-          <Text>{text}</Text>
-          <Stack direction={{ base: "row" }}>
-            {date !== null ? (
-              <Badge
-                variant={"subtle"}
-                fontSize="md"
-                letterSpacing="wide"
-                colorScheme={"messenger"}
-                px={2}
-                py={1}
-                width="fit-content"
-                fontSize={{ base: "10px" }}
-                size="lg"
-                rounded="lg"
-              >
-                Due: {format(date, "dd MMM")}
-              </Badge>
-            ) : (
-              ""
-            )}
+      `}
+    >
+      <Checkbox
+        size={"lg"}
+        pl={5}
+        pr={5}
+        pt={1.5}
+        h="100%"
+        isChecked={taskStatus}
+        onChange={() => updateTaskStatus(id)}
+      ></Checkbox>
+      <Stack marginBottom={2} direction={{ base: "column" }}>
+        <IconButton
+          position="absolute"
+          opacity={0}
+          bgColor={"gray.500"}
+          _groupHover={{ opacity: 1 }} // add this line
+          _hover={{ bgColor: "green.500" }}
+          _active={{ bgColor: "green.200" }}
+          tabIndex={1}
+          top={1.5}
+          right={1.5}
+          aria-label="edit-button"
+          size="sm"
+          icon={<EditIcon />}
+          onClick={() => {
+            setTaskText(text);
+            setDate(deadline);
+            setTaskSummary(summary);
+            onOpen();
+          }}
+        />
+        <Text>{text}</Text>
+        <Stack direction={{ base: "row" }}>
+          {date !== null ? (
             <Badge
               variant={"subtle"}
               fontSize="md"
               letterSpacing="wide"
-              colorScheme={"whatsapp"}
+              colorScheme={"messenger"}
               px={2}
               py={1}
               width="fit-content"
               fontSize={{ base: "10px" }}
               size="lg"
               rounded="lg"
+              onClick={(e) => console.log(dpRef.current.setOpen(e))}
             >
-              @ Abokor
+              Due: {format(date, "dd MMM")}
             </Badge>
-          </Stack>
+          ) : (
+            ""
+          )}
+          <Badge
+            variant={"subtle"}
+            fontSize="md"
+            letterSpacing="wide"
+            colorScheme={"whatsapp"}
+            px={2}
+            py={1}
+            width="fit-content"
+            fontSize={{ base: "10px" }}
+            size="lg"
+            rounded="lg"
+          >
+            @ Abokor
+          </Badge>
         </Stack>
-      </Card>
+      </Stack>
       <Modal finalFocusRef={finalRef} isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent>
@@ -192,8 +199,8 @@ const ToDo = ({
               </Box>
               <Box>
                 <Text as="p">Deadline:</Text>
-                <Stack direction={"row"}>
-                  <Datepicker
+                <Stack direction={"row"} w="full">
+                  <ChkrDatepicker
                     selectedDate={date}
                     onChange={(date) => setDate(date)}
                   />
@@ -227,7 +234,7 @@ const ToDo = ({
           </ModalFooter>
         </ModalContent>
       </Modal>
-    </>
+    </Card>
   );
 };
 
