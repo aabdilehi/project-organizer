@@ -1,5 +1,5 @@
 //#region Imports
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 // @ts-ignore
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -36,6 +36,8 @@ import { withRouter } from "./ComponentWithRouterProp";
 // @ts-ignore
 
 const Board = ({
+  validBoard,
+  title,
   router,
   childRefs,
   addNote,
@@ -76,6 +78,19 @@ const Board = ({
     addNote(newNote);
     addBoardChild({ boardId, childId: newNote.id, childType: newNote.type });
   };
+
+  useEffect(() => {
+    console.log(validBoard);
+    if (!validBoard) {
+      router.navigate("/");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (document.querySelector("title")) {
+      document.querySelector("title").textContent = title ? title : "Home";
+    }
+  }, [document.querySelector("title"), title]);
 
   //#region Pan and zoom behaviour
   const transformRef = useRef(null);
@@ -261,102 +276,104 @@ const Board = ({
   //#endregion
 
   //#region Render board
-  return (
-    <Box
-      ref={ref}
-      style={{
-        position: "relative",
-        width: "100vw",
-        height: "100vh",
-        overflow: "hidden",
-        margin: 0,
-      }}
-      bgColor={useColorModeValue("gray.200", "gray.900")}
-      onWheel={handleWheel}
-      onMouseDown={handleMouseDown}
-      onDoubleClick={handleDoubleClick}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        console.log("hi");
-        handleRightClick(e);
-      }}
-      onDrop={(event) => drop(event)}
-      onDragOver={(event) => {
-        allowDrop(event);
-      }}
-    >
+  if (validBoard) {
+    return (
       <Box
-        ref={transformRef}
+        ref={ref}
         style={{
-          transformOrigin: "top left",
-          width: "100%",
-          height: "100%",
+          position: "relative",
+          width: "100vw",
+          height: "100vh",
+          overflow: "hidden",
+          margin: 0,
+        }}
+        bgColor={useColorModeValue("gray.200", "gray.900")}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onDoubleClick={handleDoubleClick}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          console.log("hi");
+          handleRightClick(e);
+        }}
+        onDrop={(event) => drop(event)}
+        onDragOver={(event) => {
+          allowDrop(event);
         }}
       >
-        <ContextMenu />
-        {childRefs.map(({ childId, childType }) => {
-          switch (childType) {
-            case BoardObjects.NOTE:
-              return (
-                <Note
-                  key={childId}
-                  id={childId}
-                  boardRef={ref}
-                  offset={position}
-                  scale={scale}
-                />
-              );
-            case BoardObjects.COLUMN:
-              return (
-                <Column
-                  key={childId}
-                  boardId={boardId}
-                  columnId={childId}
-                  boardRef={ref}
-                  offset={position}
-                  scale={scale}
-                />
-              );
-            case BoardObjects.IMAGE:
-              return (
-                <Picture
-                  key={childId}
-                  boardId={boardId}
-                  id={childId}
-                  boardRef={ref}
-                  offset={position}
-                  scale={scale}
-                />
-              );
-            case BoardObjects.TODO:
-              return (
-                <ToDo
-                  key={childId}
-                  boardId={boardId}
-                  id={childId}
-                  boardRef={ref}
-                  offset={position}
-                  scale={scale}
-                />
-              );
-            case BoardObjects.BOARD:
-              return (
-                <BoardIcon
-                  key={childId}
-                  boardId={boardId}
-                  id={childId}
-                  boardRef={ref}
-                  offset={position}
-                  scale={scale}
-                />
-              );
-            default:
-              break;
-          }
-        })}
+        <Box
+          ref={transformRef}
+          style={{
+            transformOrigin: "top left",
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <ContextMenu />
+          {childRefs.map(({ childId, childType }) => {
+            switch (childType) {
+              case BoardObjects.NOTE:
+                return (
+                  <Note
+                    key={childId}
+                    id={childId}
+                    boardRef={ref}
+                    offset={position}
+                    scale={scale}
+                  />
+                );
+              case BoardObjects.COLUMN:
+                return (
+                  <Column
+                    key={childId}
+                    boardId={boardId}
+                    columnId={childId}
+                    boardRef={ref}
+                    offset={position}
+                    scale={scale}
+                  />
+                );
+              case BoardObjects.IMAGE:
+                return (
+                  <Picture
+                    key={childId}
+                    boardId={boardId}
+                    id={childId}
+                    boardRef={ref}
+                    offset={position}
+                    scale={scale}
+                  />
+                );
+              case BoardObjects.TODO:
+                return (
+                  <ToDo
+                    key={childId}
+                    boardId={boardId}
+                    id={childId}
+                    boardRef={ref}
+                    offset={position}
+                    scale={scale}
+                  />
+                );
+              case BoardObjects.BOARD:
+                return (
+                  <BoardIcon
+                    key={childId}
+                    boardId={boardId}
+                    id={childId}
+                    boardRef={ref}
+                    offset={position}
+                    scale={scale}
+                  />
+                );
+              default:
+                break;
+            }
+          })}
+        </Box>
       </Box>
-    </Box>
-  );
+    );
+  }
   //#endregion
 };
 
@@ -364,10 +381,15 @@ const mapStateToProps = (state, ownProps) => {
   const { id } = ownProps.router.params;
   const boardId = id ? id : "root";
   const board = state.boards[boardId];
-  // redirect to "/" if board is not valid
+  if (board) {
+    return {
+      validBoard: true,
+      title: board.title,
+      childRefs: board.childRefs,
+    };
+  }
   return {
-    title: board.title,
-    childRefs: board.childRefs,
+    validBoard: false,
   };
 };
 

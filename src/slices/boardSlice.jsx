@@ -7,6 +7,7 @@ const boardSlice = createSlice({
   initialState: {
     root: {
       id: "root",
+      title: "Home",
       childRefs: [],
     },
   },

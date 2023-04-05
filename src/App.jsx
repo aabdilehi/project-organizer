@@ -1,23 +1,13 @@
 import "./App.css";
-import {
-  Card,
-  ChakraProvider,
-  Stack,
-  useColorModeValue,
-} from "@chakra-ui/react";
-import { DndProvider } from "react-dnd";
-import React, { useEffect, useRef, useState } from "react";
-import { HTML5Backend } from "react-dnd-html5-backend";
+import { ChakraProvider, Stack } from "@chakra-ui/react";
+import React from "react";
 import Board from "./components/Board";
 import Sidebar from "./components/Sidebar";
-import { useDispatch, useSelector } from "react-redux";
 import theme from "./config/theme";
 import DarkModeIconButton from "./components/DarkModeIconButton";
-import { Route, useLocation, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 
 function App() {
-  const dispatch = useDispatch();
-
   return (
     <ChakraProvider theme={theme}>
       <DarkModeIconButton
