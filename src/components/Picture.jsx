@@ -4,27 +4,17 @@ import React from "react";
 import {
   Box,
   Card,
-  CardFooter,
   Editable,
   IconButton,
   Image,
-  Input,
-  Stack,
-  Text,
-  Tooltip,
   useColorModeValue,
 } from "@chakra-ui/react";
 import { useClickAndHold } from "../hooks/useClickAndHold";
 import CustomEditablePreview from "./CustomEditablePreview";
 import { AutoResizeEditableTextArea } from "./AutoResizeTextarea";
-import { useDrag } from "react-dnd";
 import { BoardObjects } from "../enums/items";
-import Board from "./Board";
-import { AddIcon, SmallAddIcon } from "@chakra-ui/icons";
+import { SmallAddIcon } from "@chakra-ui/icons";
 import { bindActionCreators } from "redux";
-import { useResizeDetector } from "react-resize-detector";
-import { fill } from "@cloudinary/url-gen/actions/resize";
-import { CloudinaryImage } from "@cloudinary/url-gen";
 import {
   updateImage,
   updateSize,
@@ -33,7 +23,6 @@ import {
 } from "../slices/pictureSlice";
 import { connect } from "react-redux";
 import { useSmoothDrag } from "../hooks/useSmoothDrag";
-import { AdvancedImage } from "@cloudinary/react";
 
 // Important thing is to keep the aspect ratio of the image
 // Aspect ratio is width to height but the numbers are unpredictable
@@ -69,6 +58,8 @@ const Picture = ({
 
   const [isInColumn, setIsInColumn] = useState(false);
 
+  //#region Drag behaviour
+
   const item = {
     id: id,
     type: BoardObjects.IMAGE,
@@ -90,6 +81,8 @@ const Picture = ({
 
   animate();
 
+  //#endregion
+
   // Read parent prop and set isInColumn
   useEffect(() => {
     if (parent !== undefined) {
@@ -98,9 +91,9 @@ const Picture = ({
     }
   }, [parent]);
 
+  // Update total size using individual values
   useEffect(() => {
     if (!isInColumn && imageWidth !== 0 && imageHeight + labelHeight !== 0) {
-      //console.log(`Width: ${imageWidth}\nHeight: ${imageHeight + labelHeight}`);
       updateSize({
         pictureId: id,
         sX: imageWidth,
@@ -119,7 +112,6 @@ const Picture = ({
 
   const handleImageHold = () => {
     // Do nothing here
-    console.log("Hold");
   };
 
   const [imageMouseDownHandler, imageMouseUpHandler] = useClickAndHold(
@@ -128,6 +120,7 @@ const Picture = ({
     500
   );
 
+  // set label height to 0 if no label
   useEffect(() => {
     if (!showLabel) {
       setLabelHeight(0);
@@ -159,9 +152,9 @@ const Picture = ({
         p={0}
         rounded="sm"
         h={isInColumn ? "auto" : sY + "px"}
-        maxW={isInColumn ? undefined : `min(${sX}px, 3000px)`}
+        maxW={isInColumn ? undefined : "1000px"}
         minH={isInColumn ? undefined : sY + "px"}
-        maxH={isInColumn ? undefined : `min(${sY}px, 2000px)`}
+        maxH={isInColumn ? undefined : sY + "px"}
         w={isInColumn ? undefined : sX + "px"}
         style={{
           minWidth: isInColumn ? "100%" : "100px",
@@ -250,6 +243,7 @@ const Picture = ({
               color={useColorModeValue("black", "white")}
             >
               <CustomEditablePreview
+                whiteSpace={"pre-wrap"}
                 color={useColorModeValue("black", "white")}
                 w="full"
               />

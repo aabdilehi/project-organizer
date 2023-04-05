@@ -3,31 +3,15 @@ import "../App.css";
 import { useState, useEffect, useRef } from "react";
 
 import { BoardObjects } from "../enums/items";
-import ResizeObserver from "rc-resize-observer";
-import {
-  Box,
-  Card,
-  CardBody,
-  CardFooter,
-  Editable,
-  Stack,
-  Text,
-  useColorModeValue,
-} from "@chakra-ui/react";
-import {
-  AutoResizeEditableInput,
-  AutoResizeEditableTextArea,
-} from "./AutoResizeTextarea";
+import { Card, CardBody, Editable, useColorModeValue } from "@chakra-ui/react";
+import { AutoResizeEditableInput } from "./AutoResizeTextarea";
 import CustomEditablePreview from "./CustomEditablePreview";
 import { updateTitle } from "../slices/boardSlice";
 import { bindActionCreators } from "redux";
-import { connect, useSelector } from "react-redux";
-import { getEmptyImage } from "react-dnd-html5-backend";
+import { connect } from "react-redux";
 import { useSmoothDrag } from "../hooks/useSmoothDrag";
-import { wrap } from "framer-motion";
-import Board from "./Board";
 import { StarIcon } from "@chakra-ui/icons";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const BoardIcon = ({
   id,
@@ -48,7 +32,7 @@ const BoardIcon = ({
   // Determines sizing and positioning based on whether in column or not
   const [isInColumn, setIsInColumn] = useState(false);
 
-  // Drag hook
+  //#region Drag hook
   const item = {
     id: id,
     type: BoardObjects.BOARD,
@@ -71,6 +55,8 @@ const BoardIcon = ({
 
   animate();
 
+  //#endregion
+
   // Read parent prop and set isInColumn
   useEffect(() => {
     if (parent !== undefined) {
@@ -83,7 +69,7 @@ const BoardIcon = ({
     <Card
       ref={dragRef}
       zIndex={2}
-      p={isInColumn ? 1 : 0}
+      p={isInColumn ? 1.5 : 0}
       draggable
       onDragStart={handleDragStart}
       onDrag={handleDrag}

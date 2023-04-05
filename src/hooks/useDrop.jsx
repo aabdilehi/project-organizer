@@ -1,4 +1,3 @@
-import Sidebar from "../components/Sidebar";
 import { BoardObjects, SidebarObjects } from "../enums/items";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -31,8 +30,7 @@ import {
   updatePictureParent,
   updatePicturePosition,
 } from "../slices/pictureSlice";
-import { connect, useDispatch } from "react-redux";
-import { bindActionCreators } from "redux";
+import { useDispatch } from "react-redux";
 
 export function useBoardDrop({
   accept,
@@ -49,7 +47,6 @@ export function useBoardDrop({
 
   const drop = (event) => {
     event.preventDefault();
-    console.log("DROPPED ON BOARD");
     let data = JSON.parse(event.dataTransfer.getData("application/json"));
 
     if (!accept.includes(data.type)) {
@@ -115,7 +112,7 @@ export function useBoardDrop({
             pY: yCoord,
             sX: 200,
             sY: 200,
-            title: "New note",
+            title: "New column",
             parent: {
               id: boardId,
               type: BoardObjects.BOARD,

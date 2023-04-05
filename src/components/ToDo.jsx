@@ -72,6 +72,7 @@ const ToDo = ({
   const dragRef = useRef(null);
   const [isInColumn, setIsInColumn] = useState(false);
 
+  //#region  Drag behaviour
   const item = {
     id: id,
     type: BoardObjects.TODO,
@@ -94,10 +95,79 @@ const ToDo = ({
 
   animate();
 
+  //#endregion
+
   useEffect(() => {
     setIsInColumn(parent.type === BoardObjects.COLUMN);
     console.log(isInColumn);
   }, [parent]);
+
+  //#region Modal menu
+  // can't make this like the context menu in board as it will re-render on every state change
+  const ModalMenu = (
+    <Modal finalFocusRef={finalRef} isOpen={isOpen} onClose={onClose}>
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>
+          <Text as="h2">Edit note</Text>
+        </ModalHeader>
+        <ModalBody>
+          <Stack gap={2}>
+            <Box>
+              <Text as="p">Task:</Text>
+              <Input
+                value={taskText}
+                onChange={(e) => setTaskText(e.target.value)}
+              />
+            </Box>
+            <Box>
+              <Text as="p">Summary:</Text>
+              <AutoResizeTextArea
+                value={taskSummary}
+                onChange={(e) => setTaskSummary(e.target.value)}
+              />
+            </Box>
+            <Box>
+              <Text as="p">Deadline:</Text>
+              <Stack direction={"row"} w="full">
+                <ChkrDatepicker
+                  selectedDate={
+                    typeof date === "string" ? parseISO(date) : date
+                  }
+                  onChange={(date) => setDate(date)}
+                />
+                <Tooltip label="Clear deadline">
+                  <IconButton
+                    icon={<CloseIcon />}
+                    aria-label="clear-date"
+                    onClick={() => setDate(null)}
+                  />
+                </Tooltip>
+              </Stack>
+            </Box>
+          </Stack>
+        </ModalBody>
+        <ModalFooter gap={2}>
+          <IconButton
+            aria-label="submit-button"
+            onClick={() => {
+              updateText({ taskId: id, text: taskText });
+              updateDeadline({ taskId: id, deadline: date });
+              updateSummary({ taskId: id, summary: taskSummary });
+              onClose();
+            }}
+            icon={<CheckIcon />}
+          />
+          <IconButton
+            aria-label="cancel-button"
+            onClick={onClose}
+            icon={<CloseIcon />}
+          />
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+  //#endregion
 
   return (
     <Card
@@ -213,67 +283,7 @@ const ToDo = ({
           </Badge>
         </Stack>
       </Stack>
-      <Modal finalFocusRef={finalRef} isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>
-            <Text as="h2">Edit note</Text>
-          </ModalHeader>
-          <ModalBody>
-            <Stack gap={2}>
-              <Box>
-                <Text as="p">Task:</Text>
-                <Input
-                  value={taskText}
-                  onChange={(e) => setTaskText(e.target.value)}
-                />
-              </Box>
-              <Box>
-                <Text as="p">Summary:</Text>
-                <AutoResizeTextArea
-                  value={taskSummary}
-                  onChange={(e) => setTaskSummary(e.target.value)}
-                />
-              </Box>
-              <Box>
-                <Text as="p">Deadline:</Text>
-                <Stack direction={"row"} w="full">
-                  <ChkrDatepicker
-                    selectedDate={
-                      typeof date === "string" ? parseISO(date) : date
-                    }
-                    onChange={(date) => setDate(date)}
-                  />
-                  <Tooltip label="Clear deadline">
-                    <IconButton
-                      icon={<CloseIcon />}
-                      aria-label="clear-date"
-                      onClick={() => setDate(null)}
-                    />
-                  </Tooltip>
-                </Stack>
-              </Box>
-            </Stack>
-          </ModalBody>
-          <ModalFooter gap={2}>
-            <IconButton
-              aria-label="submit-button"
-              onClick={() => {
-                updateText({ taskId: id, text: taskText });
-                updateDeadline({ taskId: id, deadline: date });
-                updateSummary({ taskId: id, summary: taskSummary });
-                onClose();
-              }}
-              icon={<CheckIcon />}
-            />
-            <IconButton
-              aria-label="cancel-button"
-              onClick={onClose}
-              icon={<CloseIcon />}
-            />
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      {ModalMenu}
     </Card>
   );
 };

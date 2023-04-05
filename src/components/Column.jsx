@@ -1,7 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-import { useEffect, useRef } from "react";
-import { useDrag, useDrop } from "react-dnd";
+import { useRef } from "react";
 import { BoardObjects, SidebarObjects } from "../enums/items";
 import ResizeObserver from "rc-resize-observer";
 import { addNote, updateNoteParent } from "../slices/noteSlice";
@@ -12,9 +10,7 @@ import {
   updateColumnSize,
 } from "../slices/columnSlice";
 import { bindActionCreators } from "redux";
-import { connect, useSelector } from "react-redux";
-
-import { v4 as uuidv4 } from "uuid";
+import { connect } from "react-redux";
 
 import Note from "./Note";
 import {
@@ -28,12 +24,10 @@ import {
 } from "@chakra-ui/react";
 import CustomEditablePreview from "./CustomEditablePreview";
 import { removeBoardChild } from "../slices/boardSlice";
-import Board from "./Board";
 import { addPicture, updatePictureParent } from "../slices/pictureSlice";
 import { addTask, updateTaskParent } from "../slices/taskSlice";
 import Picture from "./Picture";
 import { useSmoothDrag } from "../hooks/useSmoothDrag";
-import { getEmptyImage } from "react-dnd-html5-backend";
 import { useColumnDrop } from "../hooks/useDrop";
 import ToDo from "./ToDo";
 import BoardIcon from "./BoardIcon";
@@ -50,26 +44,20 @@ const Column = ({
   title,
   childRefs,
   parent,
-  addNote,
   updateColumnTitle,
   updateColumnSize,
-  removeBoardChild,
-  addColumnChild,
-  removeColumnChild,
-  updateNoteParent,
-  addPicture,
-  updatePictureParent,
-  addTask,
-  updateTaskParent,
 }) => {
   const dragRef = useRef(null);
   const columnRef = useRef(null);
+
+  //#region Drag behaviour
 
   const item = {
     id: columnId,
     type: BoardObjects.COLUMN,
     parent: parent,
   };
+
   const { handleDragStart, handleDrag, handleDragEnd, animate } = useSmoothDrag(
     {
       boardId,
@@ -85,6 +73,10 @@ const Column = ({
   );
 
   animate();
+
+  //#endregion
+
+  //#region Drop behaviour
 
   const { drop, allowDrop } = useColumnDrop({
     accept: [
@@ -103,6 +95,8 @@ const Column = ({
     position: offset,
     scale,
   });
+
+  //#endregion
 
   return (
     <ResizeObserver

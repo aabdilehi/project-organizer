@@ -1,7 +1,4 @@
-import React from "react";
-
 import { useRef } from "react";
-import { BoardObjects } from "../enums/items";
 
 // Still need to separate the element from column as column is a positioned element
 // Probably just get the boardId and updateParent on dragStart to board
@@ -11,19 +8,25 @@ export function useSmoothDrag({
   boardRef,
   elementRef,
   initialCoords,
-  shouldAnimate = true,
-  shouldPosition = true,
+  shouldAnimate = true, // whether to smooth drag or not
+  shouldPosition = true, // whether to use the actual position or (0,0) for coords
   item,
-  offset = { x: 0, y: 0 },
-  scale = 1,
-  lerpValue = 0.35,
+  offset = { x: 0, y: 0 }, // board's position after panning
+  scale = 1, // board's scale after zooming
+  lerpValue = 0.35, // speed at which the element should follow the mouse
 }) {
+  // offset between top left of dragged element and actual mouse position
   let initialOffsetX = useRef(0);
   let initialOffsetY = useRef(0);
+
+  // mouse position
   let mouseX = useRef(initialCoords.x);
   let mouseY = useRef(initialCoords.y);
+
+  // linearly interpolated mouse position
   let lerpedMouseX = useRef(initialCoords.x);
   let lerpedMouseY = useRef(initialCoords.y);
+
   let isDragging = useRef(false);
 
   const handleDragStart = (event) => {
@@ -37,19 +40,26 @@ export function useSmoothDrag({
     }
 
     isDragging.current = true;
+
     const elementBoundingBox = elementRef.current.getBoundingClientRect();
+
     const initialMouseX = event.clientX;
     const initialMouseY = event.clientY;
+
     initialOffsetX.current =
       (initialMouseX - elementBoundingBox.left) / scale + offset.x;
     initialOffsetY.current =
       (initialMouseY - elementBoundingBox.top) / scale + offset.y;
 
+    // send initial offset to drop zone
     item.offset = { x: initialOffsetX.current, y: initialOffsetY.current };
+
     event.dataTransfer.dropEffect = "move";
-    const clone = document.createElement("span");
-    clone.style.display = "none";
-    event.dataTransfer.setDragImage(clone, 0, 0);
+
+    // remove or hide drag preview image
+    const prev = document.createElement("span");
+    prev.style.display = "none";
+    event.dataTransfer.setDragImage(prev, 0, 0);
     event.dataTransfer.setData("application/json", JSON.stringify(item));
   };
 
@@ -63,7 +73,12 @@ export function useSmoothDrag({
       return;
     }
 
+    // prevent mouse events so that drop can function properly
+    // could not drop in columns without wonky z-index stuff before this
+    // not actually sure why this works
     elementRef.current.style.pointerEvents = "none";
+
+    // where element should go relative to board bounds, position, size and initial offset
     const boundingRect = boardRef.current.getBoundingClientRect();
     mouseX.current =
       (event.clientX - boundingRect.left) / scale - initialOffsetX.current;
@@ -72,8 +87,6 @@ export function useSmoothDrag({
   };
 
   const handleDragEnd = (event) => {
-    console.log("BYYEEE");
-
     elementRef.current.style.pointerEvents = "all";
     isDragging.current = false;
   };
@@ -85,17 +98,22 @@ export function useSmoothDrag({
       shouldAnimate
     ) {
       if (isDragging.current) {
+        // "interpolate" between current value and desired value
+        // might want to ease instead of lerp for more satisfying dragging but that can wait
         lerpedMouseX.current +=
           (mouseX.current - lerpedMouseX.current) * lerpValue;
         lerpedMouseY.current +=
           (mouseY.current - lerpedMouseY.current) * lerpValue;
 
+        // mouse and lerpedMouse pos will reset if you exit the bounds of the window
+        // so do not transform the elementRef if that is the case
+        // cannot drop outside of window anyway so it will just return to where it was pre-drag
         if (lerpedMouseX.current !== 0 && lerpedMouseY.current !== 0) {
           elementRef.current.style.position = "absolute";
           elementRef.current.style.transform = `translate(${lerpedMouseX.current}px, ${lerpedMouseY.current}px)`;
         }
       } else {
-        //position={isInColumn ? "relative" : "absolute"}
+        // shouldPosition is usually only false if the element is in a column
         elementRef.current.style.position = shouldPosition
           ? "absolute"
           : "relative";

@@ -77,10 +77,14 @@ const Board = ({
     addBoardChild({ boardId, childId: newNote.id, childType: newNote.type });
   };
 
+  //#region Pan and zoom behaviour
   const transformRef = useRef(null);
   const { handleWheel, handleMouseDown, animate, scale, position } =
     useSmoothBoardControls(transformRef, ref);
+
   animate();
+  //#endregion
+
   //#region Drop behaviour
   const { drop, allowDrop } = useBoardDrop({
     accept: [
@@ -100,7 +104,6 @@ const Board = ({
     position,
     scale,
   });
-
   //#endregion
 
   //#region Context Menu
@@ -357,14 +360,11 @@ const Board = ({
   //#endregion
 };
 
-// @ts-ignore
 const mapStateToProps = (state, ownProps) => {
-  // @ts-ignore
   const { id } = ownProps.router.params;
   const boardId = id ? id : "root";
   const board = state.boards[boardId];
   // redirect to "/" if board is not valid
-  console.log(board);
   return {
     title: board.title,
     childRefs: board.childRefs,

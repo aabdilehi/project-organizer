@@ -19,7 +19,6 @@ const Note = ({
   id,
   boardId,
   boardRef,
-  columnRef,
   offset,
   scale,
   pX,

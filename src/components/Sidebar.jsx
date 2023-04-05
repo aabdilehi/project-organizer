@@ -1,9 +1,9 @@
-/** @jsxImportSource @emotion/react */
 import { useRef } from "react";
 import { css } from "@emotion/react";
 
 import { SidebarObjects } from "../enums/items";
 import { Box, Card, Stack, Text, useColorModeValue } from "@chakra-ui/react";
+import React from "react";
 
 const Sidebar = () => {
   return (
@@ -31,8 +31,7 @@ const SidebarObject = ({ name, type }) => {
   const ref = useRef(null);
 
   const handleDragStart = (event) => {
-    // Should set this to plain text but the function reading this is
-    // expecting json
+    // Should set this to plain text but the function reading this is expecting json
     event.dataTransfer.setData("application/json", JSON.stringify({ type }));
   };
 
