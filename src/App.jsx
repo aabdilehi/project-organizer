@@ -1,0 +1,69 @@
+import "./App.css";
+import {
+  Card,
+  ChakraProvider,
+  Stack,
+  useColorModeValue,
+} from "@chakra-ui/react";
+import { DndProvider } from "react-dnd";
+import React, { useEffect, useRef, useState } from "react";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import Board from "./components/Board";
+import Sidebar from "./components/Sidebar";
+import { useDispatch, useSelector } from "react-redux";
+import theme from "./config/theme";
+import DarkModeIconButton from "./components/DarkModeIconButton";
+import { Route, useLocation, Routes } from "react-router-dom";
+
+function App() {
+  const dispatch = useDispatch();
+
+  return (
+    <ChakraProvider theme={theme}>
+      <DarkModeIconButton
+        position="absolute"
+        top={2}
+        right={2}
+        zIndex={"popover"}
+      />
+      <Routes>
+        <Route path="/*">
+          <Route
+            index
+            element={
+              <Stack
+                w={"full"}
+                m={0}
+                p={0}
+                gap={0}
+                direction="row"
+                id="container"
+              >
+                <Sidebar />
+                <Board></Board>
+              </Stack>
+            }
+          />
+          <Route
+            path=":id"
+            element={
+              <Stack
+                w={"full"}
+                m={0}
+                p={0}
+                gap={0}
+                direction="row"
+                id="container"
+              >
+                <Sidebar />
+                <Board></Board>
+              </Stack>
+            }
+          />
+        </Route>
+      </Routes>
+    </ChakraProvider>
+  );
+}
+
+export default App;
