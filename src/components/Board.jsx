@@ -54,6 +54,8 @@ const Board = ({
       return;
     }
 
+    const boundingRect = ref.current.getBoundingClientRect();
+
     const mouseX = (e.clientX - boundingRect.left) / scale - position.x;
     const mouseY = (e.clientY - boundingRect.top) / scale - position.y;
 
