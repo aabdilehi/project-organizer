@@ -1,6 +1,5 @@
 //#region Imports
 import React, { useEffect, useRef, useState } from "react";
-// @ts-ignore
 import { v4 as uuidv4 } from "uuid";
 import {
   Box,
@@ -33,7 +32,6 @@ import { useBoardDrop } from "../hooks/useDrop";
 import { useSmoothBoardControls } from "../hooks/useSmoothBoardControls";
 import BoardIcon from "./BoardIcon";
 import { withRouter } from "./ComponentWithRouterProp";
-// @ts-ignore
 
 const Board = ({
   validBoard,
@@ -48,7 +46,6 @@ const Board = ({
 }) => {
   const ref = useRef(null);
 
-  // @ts-ignore
   const { id } = router.params;
   const boardId = id ? id : "root";
 
@@ -57,9 +54,7 @@ const Board = ({
       return;
     }
 
-    // @ts-ignore
     const mouseX = (e.clientX - boundingRect.left) / scale - position.x;
-    // @ts-ignore
     const mouseY = (e.clientY - boundingRect.top) / scale - position.y;
 
     const newNote = {
@@ -130,7 +125,6 @@ const Board = ({
     if (e.target !== ref.current && e.target.parentNode !== ref.current) {
       return;
     }
-    // @ts-ignore
     const boundingRect = ref.current.getBoundingClientRect();
 
     const mouseX = (e.clientX - boundingRect.left) / scale - position.x;
@@ -158,7 +152,6 @@ const Board = ({
         >
           <MenuItem
             onClick={(e) => {
-              // @ts-ignore
               const boundingRect = ref.current.getBoundingClientRect();
               const newNote = {
                 id: uuidv4(),
@@ -185,7 +178,6 @@ const Board = ({
           </MenuItem>
           <MenuItem
             onClick={(e) => {
-              // @ts-ignore
               const boundingRect = ref.current.getBoundingClientRect();
               const newColumn = {
                 id: uuidv4(),
@@ -213,7 +205,6 @@ const Board = ({
           </MenuItem>
           <MenuItem
             onClick={(e) => {
-              // @ts-ignore
               const boundingRect = ref.current.getBoundingClientRect();
               const newPicture = {
                 id: uuidv4(),
@@ -243,7 +234,6 @@ const Board = ({
           </MenuItem>
           <MenuItem
             onClick={(e) => {
-              // @ts-ignore
               const boundingRect = ref.current.getBoundingClientRect();
               const newTask = {
                 id: uuidv4(),
