@@ -2,7 +2,7 @@
 import "../App.css";
 import { useState, useEffect, useRef } from "react";
 
-import { BoardObjects } from "../enums/items";
+import { BoardObjects, SidebarObjects } from "../enums/items";
 import { Card, CardBody, Editable, useColorModeValue } from "@chakra-ui/react";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
 import CustomEditablePreview from "./CustomEditablePreview";
@@ -12,6 +12,7 @@ import { connect } from "react-redux";
 import { useSmoothDrag } from "../hooks/useSmoothDrag";
 import { StarIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
+import { useBoardDrop } from "../hooks/useDrop";
 
 const BoardIcon = ({
   id,
@@ -57,6 +58,25 @@ const BoardIcon = ({
 
   //#endregion
 
+  //#region Drop behaviour
+  const { drop, allowDrop } = useBoardDrop({
+    accept: [
+      BoardObjects.BOARD,
+      BoardObjects.NOTE,
+      BoardObjects.COLUMN,
+      BoardObjects.TODO,
+      BoardObjects.IMAGE,
+      SidebarObjects.NOTE,
+      SidebarObjects.COLUMN,
+      SidebarObjects.IMAGE,
+      SidebarObjects.TODO,
+      SidebarObjects.BOARD,
+    ],
+    boardId: id,
+    boardRef: boardRef,
+    position: { x: 0, y: 0 },
+  });
+  //#endregion
   // Read parent prop and set isInColumn
   useEffect(() => {
     if (parent !== undefined) {
@@ -74,6 +94,10 @@ const BoardIcon = ({
       onDragStart={handleDragStart}
       onDrag={handleDrag}
       onDragEnd={handleDragEnd}
+      onDrop={(event) => drop(event)}
+      onDragOver={(event) => {
+        allowDrop(event);
+      }}
       direction={isInColumn ? "row" : "column"}
       alignItems={"center"}
       bgColor={

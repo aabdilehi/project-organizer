@@ -231,7 +231,7 @@ export function useBoardDrop({
       case BoardObjects.BOARD:
         dispatch(
           removeBoardChild({
-            boardId: data.data.parent.id,
+            boardId: data.parent.id,
             childId: data.id,
           })
         );
