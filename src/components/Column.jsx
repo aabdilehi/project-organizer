@@ -31,6 +31,7 @@ import { useSmoothDrag } from "../hooks/useSmoothDrag";
 import { useColumnDrop } from "../hooks/useDrop";
 import ToDo from "./ToDo";
 import BoardIcon from "./BoardIcon";
+import { AutoResizeEditableInput } from "./AutoResizeTextarea";
 
 const Column = ({
   boardId,
@@ -132,8 +133,9 @@ const Column = ({
         <CardHeader p={1.5}>
           <Editable
             as="h2"
-            fontSize="lg"
-            fontWeight="semibold"
+            fontSize="larger"
+            fontWeight="800"
+            color={useColorModeValue("black", "white")}
             value={title}
             textAlign="center"
             isPreviewFocusable={false}
@@ -143,11 +145,13 @@ const Column = ({
               fontSize="larger"
               fontWeight="800"
             />
-            <EditableInput
+            <AutoResizeEditableInput
+              fontSize="larger"
+              overflow={"hidden"}
               onChange={(e) =>
                 updateColumnTitle({ columnId, title: e.target.value })
               }
-            ></EditableInput>
+            />
           </Editable>
         </CardHeader>
         <CardBody

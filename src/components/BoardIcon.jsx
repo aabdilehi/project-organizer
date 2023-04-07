@@ -140,8 +140,8 @@ const BoardIcon = ({
         m={0}
         mt={isInColumn ? undefined : 1.5}
         p={0}
-        h={"30px"}
-        width={isInColumn ? "auto" : "100px"}
+        h={"full"}
+        width={isInColumn ? "100%" : "100px"}
         textAlign={"center"}
         wordBreak="break-word"
         placeholder="Board"
@@ -149,7 +149,7 @@ const BoardIcon = ({
         value={title}
         color={useColorModeValue("black", "white")}
       >
-        <CustomEditablePreview cursor={"text"} m={0} p={0} />
+        <CustomEditablePreview cursor={"text"} w={"83%"} m={0} p={0} />
         <AutoResizeEditableInput
           maxW={isInColumn ? undefined : "100px"}
           w={"unset"}
