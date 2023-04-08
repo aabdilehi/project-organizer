@@ -1,21 +1,20 @@
 import "./App.css";
-import { ChakraProvider, Stack } from "@chakra-ui/react";
+import { Box, ChakraProvider, Stack } from "@chakra-ui/react";
 import React from "react";
 import Board from "./components/Board";
 import Sidebar from "./components/Sidebar";
 import theme from "./config/theme";
 import DarkModeIconButton from "./components/DarkModeIconButton";
+import HelpIconButton from "./components/HelpIconButton";
 import { Route, Routes } from "react-router-dom";
 
 function App() {
   return (
     <ChakraProvider theme={theme}>
-      <DarkModeIconButton
-        position="absolute"
-        top={2}
-        right={2}
-        zIndex={"popover"}
-      />
+      <Box position="absolute" top={2} right={2} zIndex={"popover"}>
+        <DarkModeIconButton m={1} />
+        <HelpIconButton m={1} />
+      </Box>
       <Routes>
         <Route path="/*">
           <Route
