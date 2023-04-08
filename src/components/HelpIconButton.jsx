@@ -37,7 +37,7 @@ const HelpIconButton = (props) => {
             How to use?
           </ModalHeader>
           <ModalBody m={1.5} mt={-2}>
-            <Stack direction={"column"}>
+            <Stack alignItems={"center"} direction={"column"}>
               <Box m={1} w={"70%"}>
                 <Text p={2}>
                   Hold middle mouse button and move your mouse to pan the board.
