@@ -20,6 +20,7 @@ const Sidebar = () => {
     >
       <SidebarObject name="Board" type={SidebarObjects.BOARD} />
       <SidebarObject name="Note" type={SidebarObjects.NOTE} />
+      <SidebarObject name="Document" type={SidebarObjects.DOCUMENT} />
       <SidebarObject name="Column" type={SidebarObjects.COLUMN} />
       <SidebarObject name="To-do" type={SidebarObjects.TODO} />
       <SidebarObject name="Image" type={SidebarObjects.IMAGE} />

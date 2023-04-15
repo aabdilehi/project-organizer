@@ -32,6 +32,7 @@ import { useBoardDrop } from "../hooks/useDrop";
 import { useSmoothBoardControls } from "../hooks/useSmoothBoardControls";
 import BoardIcon from "./BoardIcon";
 import { withRouter } from "./ComponentWithRouterProp";
+import Document from "./Document";
 
 const Board = ({
   validBoard,
@@ -105,11 +106,13 @@ const Board = ({
       BoardObjects.COLUMN,
       BoardObjects.TODO,
       BoardObjects.IMAGE,
+      BoardObjects.DOCUMENT,
       SidebarObjects.NOTE,
       SidebarObjects.COLUMN,
       SidebarObjects.IMAGE,
       SidebarObjects.TODO,
       SidebarObjects.BOARD,
+      SidebarObjects.DOCUMENT,
     ],
     boardId,
     boardRef: ref,
@@ -350,6 +353,17 @@ const Board = ({
               case BoardObjects.BOARD:
                 return (
                   <BoardIcon
+                    key={childId}
+                    boardId={boardId}
+                    id={childId}
+                    boardRef={ref}
+                    offset={position}
+                    scale={scale}
+                  />
+                );
+              case BoardObjects.DOCUMENT:
+                return (
+                  <Document
                     key={childId}
                     boardId={boardId}
                     id={childId}

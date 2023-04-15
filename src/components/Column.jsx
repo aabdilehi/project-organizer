@@ -32,6 +32,7 @@ import { useColumnDrop } from "../hooks/useDrop";
 import ToDo from "./ToDo";
 import BoardIcon from "./BoardIcon";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
+import Document from "./Document";
 
 const Column = ({
   boardId,
@@ -85,10 +86,12 @@ const Column = ({
       BoardObjects.TODO,
       BoardObjects.IMAGE,
       BoardObjects.BOARD,
+      BoardObjects.DOCUMENT,
       SidebarObjects.NOTE,
       SidebarObjects.IMAGE,
       SidebarObjects.TODO,
       SidebarObjects.BOARD,
+      SidebarObjects.DOCUMENT,
     ],
     boardId,
     columnId,
@@ -203,6 +206,17 @@ const Column = ({
                 case BoardObjects.BOARD:
                   return (
                     <BoardIcon
+                      key={childId}
+                      boardId={boardId}
+                      id={childId}
+                      boardRef={boardRef}
+                      offset={offset}
+                      scale={scale}
+                    />
+                  );
+                case BoardObjects.DOCUMENT:
+                  return (
+                    <Document
                       key={childId}
                       boardId={boardId}
                       id={childId}
