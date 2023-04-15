@@ -9,11 +9,13 @@ import columnReducer from "./slices/columnSlice";
 import noteReducer from "./slices/noteSlice";
 import pictureReducer from "./slices/pictureSlice";
 import taskReducer from "./slices/taskSlice";
+import docReducer from "./slices/docSlice";
 
 const initialState = {
   boards: {},
   columns: {},
   notes: {},
+  documents: {},
   pictures: {},
   tasks: {},
 };
@@ -24,6 +26,7 @@ const rootReducer = combineReducers({
   notes: noteReducer,
   pictures: pictureReducer,
   tasks: taskReducer,
+  documents: docReducer,
 });
 
 const persistConfig = {
@@ -71,6 +74,11 @@ export const store = configureStore({
           "tasks/updateSummary",
           "tasks/updatePosition",
           "tasks/updateParent",
+          "documents/addDocument",
+          "documents/updateContent",
+          "documents/updateTitle",
+          "documents/toggleView",
+          "documents/updateParent",
         ],
       })
     ),

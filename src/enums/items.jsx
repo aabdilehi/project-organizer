@@ -4,6 +4,7 @@ export const BoardObjects = {
   BOARD: "board",
   TODO: "to-do",
   IMAGE: "image",
+  DOCUMENT: "document",
 };
 
 export const SidebarObjects = {
@@ -12,4 +13,5 @@ export const SidebarObjects = {
   TODO: "new-to-do",
   IMAGE: "new-image",
   BOARD: "new-board",
+  DOCUMENT: "new-document",
 };

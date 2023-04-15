@@ -31,6 +31,11 @@ import {
   updatePicturePosition,
 } from "../slices/pictureSlice";
 import { useDispatch } from "react-redux";
+import {
+  addDocument,
+  updateDocumentParent,
+  updateDocumentPosition,
+} from "../slices/docSlice";
 
 export function useBoardDrop({
   accept,
@@ -223,6 +228,36 @@ export function useBoardDrop({
           );
         }
         break;
+      case SidebarObjects.DOCUMENT:
+        if (boardRef != null) {
+          const boundingRect = boardRef.current.getBoundingClientRect();
+          const xCoord =
+            (event.clientX - boundingRect.left) / scale - position.x;
+          const yCoord =
+            (event.clientY - boundingRect.top) / scale - position.y;
+          const newDocument = {
+            id: uuidv4(),
+            type: BoardObjects.DOCUMENT,
+            pX: xCoord,
+            pY: yCoord,
+            title: "New Document",
+            content: `<strong>Content goes here</strong>`,
+            expanded: false,
+            parent: {
+              id: boardId,
+              type: BoardObjects.BOARD,
+            },
+          };
+          dispatch(addDocument(newDocument));
+          dispatch(
+            addBoardChild({
+              boardId,
+              childId: newDocument.id,
+              childType: newDocument.type,
+            })
+          );
+        }
+        break;
     }
   };
 
@@ -305,6 +340,15 @@ export function useBoardDrop({
           })
         );
         break;
+      case BoardObjects.DOCUMENT:
+        dispatch(
+          updateDocumentParent({
+            documentId: data.id,
+            newParentId: boardId,
+            newParentType: BoardObjects.BOARD,
+          })
+        );
+        break;
       default:
         break;
     }
@@ -355,6 +399,15 @@ export function useBoardDrop({
         dispatch(
           updateBoardPosition({
             boardId: data.id,
+            pX: xCoord,
+            pY: yCoord,
+          })
+        );
+        break;
+      case BoardObjects.DOCUMENT:
+        dispatch(
+          updateDocumentPosition({
+            documentId: data.id,
             pX: xCoord,
             pY: yCoord,
           })
@@ -521,6 +574,34 @@ export function useColumnDrop({
           );
         }
         break;
+      case SidebarObjects.DOCUMENT:
+        if (boardRef != null) {
+          const boundingRect = boardRef.current.getBoundingClientRect();
+          const xCoord = event.clientX - boundingRect.left;
+          const yCoord = event.clientY - boundingRect.top;
+          const newDocument = {
+            id: uuidv4(),
+            type: BoardObjects.DOCUMENT,
+            pX: xCoord,
+            pY: yCoord,
+            title: "New Document",
+            content: ``,
+            expanded: false,
+            parent: {
+              id: columnId,
+              type: BoardObjects.COLUMN,
+            },
+          };
+          dispatch(addDocument(newDocument));
+          dispatch(
+            addColumnChild({
+              columnId,
+              childId: newDocument.id,
+              childType: newDocument.type,
+            })
+          );
+        }
+        break;
     }
   };
 
@@ -598,6 +679,15 @@ export function useColumnDrop({
         dispatch(
           updateBoardParent({
             boardId: data.id,
+            newParentId: columnId,
+            newParentType: BoardObjects.COLUMN,
+          })
+        );
+        break;
+      case BoardObjects.DOCUMENT:
+        dispatch(
+          updateDocumentParent({
+            documentId: data.id,
             newParentId: columnId,
             newParentType: BoardObjects.COLUMN,
           })

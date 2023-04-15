@@ -33,6 +33,7 @@ function App() {
               </Stack>
             }
           />
+
           <Route
             path=":id"
             element={
