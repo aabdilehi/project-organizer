@@ -14,14 +14,14 @@ const noteSlice = createSlice({
         ...entities.notes,
       };
     },
-    updateText: (state, action) => {
-      const { noteId, text } = action.payload;
+    updateContent: (state, action) => {
+      const { noteId, content } = action.payload;
       const note = state[noteId];
       return {
         ...state,
         [noteId]: {
           ...note,
-          text,
+          content,
         },
       };
     },
@@ -66,7 +66,7 @@ const noteSlice = createSlice({
 
 export const {
   addNote,
-  updateText,
+  updateContent,
   updatePosition: updateNotePosition,
   updateSize,
   updateParent: updateNoteParent,

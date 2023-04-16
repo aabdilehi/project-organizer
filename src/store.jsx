@@ -44,7 +44,7 @@ export const store = configureStore({
       createStateSyncMiddleware({
         whitelist: [
           "notes/addNote",
-          "notes/updateText",
+          "notes/updateContent",
           "notes/updatePosition",
           "notes/updateSize",
           "notes/updateParent",

@@ -1,7 +1,7 @@
 /* Basic editor styles */
 .ProseMirror {
     padding: 15px; 
-    min-height: 70vh;
+    height: var(--chakra-sizes-full);
     outline: none;
 
     p {

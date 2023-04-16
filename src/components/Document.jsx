@@ -1,6 +1,7 @@
 import { Button } from "@chakra-ui/button";
 import { useColorModeValue } from "@chakra-ui/color-mode";
 import { useDisclosure } from "@chakra-ui/hooks";
+import "../document-editor.scss";
 import {
   Modal,
   ModalOverlay,

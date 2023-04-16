@@ -67,7 +67,7 @@ const Board = ({
       pY: mouseY,
       sX: 200,
       sY: 200,
-      text: "New note",
+      content: `<p>New note</p>`,
       parent: {
         id: boardId,
         type: BoardObjects.BOARD,
@@ -165,7 +165,7 @@ const Board = ({
                 pY: (e.clientY - boundingRect.top) / scale - position.y,
                 sX: 200,
                 sY: 200,
-                text: "New note",
+                content: `<strong>New note<strong>`,
                 parent: {
                   id: boardId,
                   type: BoardObjects.BOARD,

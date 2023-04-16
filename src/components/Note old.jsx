@@ -4,14 +4,7 @@ import { useState, useEffect, useRef } from "react";
 
 import { BoardObjects } from "../enums/items";
 import ResizeObserver from "rc-resize-observer";
-import "../note-editor.scss";
-import {
-  Box,
-  Editable,
-  ListItem,
-  Textarea,
-  useColorModeValue,
-} from "@chakra-ui/react";
+import { Box, Editable, ListItem, useColorModeValue } from "@chakra-ui/react";
 import { AutoResizeEditableTextArea } from "./AutoResizeTextarea";
 import CustomEditablePreview from "./CustomEditablePreview";
 import {
@@ -25,7 +18,7 @@ import { getEmptyImage } from "react-dnd-html5-backend";
 import { useSmoothDrag } from "../hooks/useSmoothDrag";
 import { wrap } from "framer-motion";
 import Board from "./Board";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { useEditor } from "@tiptap/react";
 import Color from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
 import Superscript from "@tiptap/extension-superscript";
@@ -34,7 +27,6 @@ import Highlight from "@tiptap/extension-highlight";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
-import { useClickAndHold } from "../hooks/useClickAndHold";
 
 const Note = ({
   id,
@@ -48,8 +40,6 @@ const Note = ({
   sY,
   content,
   parent,
-  updateContent,
-  updateSize,
 }) => {
   const dragRef = useRef(null);
 
@@ -112,37 +102,17 @@ const Note = ({
     ],
     content: content,
     onUpdate: ({ editor }) => {
-      updateContent({ noteId: id, content: editor.getHTML() });
+      updateContent({ documentId: id, content: editor.getHTML() });
     },
-    editable: false, // set to false by default then enable on single click
   });
-
-  const handleClick = (event) => {
-    if (!editor || !dragRef.current) {
-      return;
-    }
-    editor.setEditable(true);
-    editor.commands.focus();
-    dragRef.current.draggable = false;
-    dragRef.current.style.cursor = "text";
-  };
-
-  const handleHold = (event) => {};
-
-  const [mouseDownHandler, mouseUpHandler] = useClickAndHold(
-    handleClick,
-    handleHold
-  );
 
   return (
     <ResizeObserver
-      onResize={({ width, height }) => {
-        if (!editor?.isEditable) {
-          updateSize({ noteId: id, sX: width / scale, sY: height / scale });
-        }
-      }}
+      onResize={({ width, height }) =>
+        updateSize({ noteId: id, sX: width / scale, sY: height / scale })
+      }
     >
-      <Box
+      <Editable
         ref={dragRef}
         draggable={true}
         onDragStart={handleDragStart}
@@ -150,42 +120,46 @@ const Note = ({
           handleDrag(event);
         }}
         onDragEnd={handleDragEnd}
-        onMouseDown={mouseDownHandler}
-        onMouseUp={mouseUpHandler}
-        onBlur={() => {
-          editor?.setEditable(false);
-          dragRef.current.draggable = true;
-          dragRef.current.style.cursor = "grab";
-        }}
+        minW="75px"
+        minH="100px"
+        maxW="1000px"
+        maxH="1000px"
         zIndex={2}
-        h={editor?.isEditable ? "fit-content" : sY + "px"}
         w={isInColumn ? "full" : sX + "px"}
-        minH={"75px"}
-        maxH={"1000px"}
-        minW={"75px"}
-        maxW={"1000px"}
+        h={sY + "px"}
         bg={useColorModeValue("gray.400", "gray.800")}
         outline="1px solid"
         outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
         cursor={"grab"}
         resize={isInColumn ? "vertical" : "both"}
-        overflow={editor?.isEditable ? "none" : "auto"}
+        overflow="auto"
         rounded={"sm"}
         textAlign={"left"}
+        isPreviewFocusable={false}
+        value={"temp value but should be content"}
+        onChange={(value) => {
+          //updateText({ noteId: id, text: value });
+        }}
         color={useColorModeValue("black", "white")}
       >
-        <Textarea
-          rounded={"sm"}
-          roundedTop={"none"}
-          p={0}
-          m={0}
-          h={"fit-content"}
-          w={"100%"}
-          as={EditorContent}
-          border={"none"}
-          editor={editor}
+        <CustomEditablePreview
+          color={useColorModeValue("black", "white")}
+          tabIndex={-100}
+          whiteSpace={"pre-wrap"}
+          w="full"
+          h={"full"}
+          p={2.5}
         />
-      </Box>
+        <AutoResizeEditableTextArea
+          p={2.5}
+          m={0}
+          mb={-2}
+          minH={"full"}
+          maxH={"full"}
+          h={"full"}
+          w="full"
+        />
+      </Editable>
     </ResizeObserver>
   );
 };
