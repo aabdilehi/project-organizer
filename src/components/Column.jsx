@@ -2,15 +2,16 @@
 import { useRef } from "react";
 import { BoardObjects, SidebarObjects } from "../enums/items";
 import ResizeObserver from "rc-resize-observer";
-import { addNote, updateNoteParent } from "../slices/noteSlice";
+import { addNote, updateNoteParent, removeNote } from "../slices/noteSlice";
 import {
   updateColumnTitle,
   addColumnChild,
   removeColumnChild,
   updateColumnSize,
+  removeColumn,
 } from "../slices/columnSlice";
 import { bindActionCreators } from "redux";
-import { connect } from "react-redux";
+import { connect, useSelector } from "react-redux";
 
 import Note from "./Note";
 import {
@@ -21,11 +22,19 @@ import {
   Editable,
   EditableInput,
   useColorModeValue,
+  Portal,
+  MenuList,
+  MenuItem,
+  Menu,
 } from "@chakra-ui/react";
 import CustomEditablePreview from "./CustomEditablePreview";
-import { removeBoardChild } from "../slices/boardSlice";
-import { addPicture, updatePictureParent } from "../slices/pictureSlice";
-import { addTask, updateTaskParent } from "../slices/taskSlice";
+import { removeBoard, removeBoardChild } from "../slices/boardSlice";
+import {
+  addPicture,
+  removePicture,
+  updatePictureParent,
+} from "../slices/pictureSlice";
+import { addTask, removeTask, updateTaskParent } from "../slices/taskSlice";
 import Picture from "./Picture";
 import { useSmoothDrag } from "../hooks/useSmoothDrag";
 import { useColumnDrop } from "../hooks/useDrop";
@@ -33,10 +42,12 @@ import ToDo from "./ToDo";
 import BoardIcon from "./BoardIcon";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
 import Document from "./Document";
+import { useContextMenu } from "../hooks/useContextMenu";
+import { removeDocument } from "../slices/docSlice";
 
 const Column = ({
+  id,
   boardId,
-  columnId,
   boardRef,
   pX,
   pY,
@@ -48,6 +59,14 @@ const Column = ({
   parent,
   updateColumnTitle,
   updateColumnSize,
+  removeColumn,
+  removeBoardChild,
+  removeColumnChild,
+  removeNote,
+  removeDocument,
+  removeBoard,
+  removePicture,
+  removeTask,
 }) => {
   const dragRef = useRef(null);
   const columnRef = useRef(null);
@@ -55,7 +74,7 @@ const Column = ({
   //#region Drag behaviour
 
   const item = {
-    id: columnId,
+    id,
     type: BoardObjects.COLUMN,
     parent: parent,
   };
@@ -94,7 +113,7 @@ const Column = ({
       SidebarObjects.DOCUMENT,
     ],
     boardId,
-    columnId,
+    columnId: id,
     boardRef,
     position: offset,
     scale,
@@ -102,10 +121,107 @@ const Column = ({
 
   //#endregion
 
+  const boards = useSelector((state) => state.boards);
+  const deleteBoardChildren = (id) => {
+    const board = boards[id];
+    board?.childRefs.forEach(({ childId, childType }) => {
+      switch (childType) {
+        case BoardObjects.BOARD:
+          deleteBoardChildren(childId);
+          removeBoardChild({ boardId: id, childId });
+          removeBoard({ boardId: childId });
+          break;
+        case BoardObjects.COLUMN:
+          removeBoardChild({ boardId: id, childId });
+          deleteColumn(id, childId);
+          break;
+        case BoardObjects.NOTE:
+          removeBoardChild({ boardId: id, childId });
+          removeNote({ noteId: childId });
+          break;
+        case BoardObjects.DOCUMENT:
+          removeBoardChild({ boardId: id, childId });
+          removeDocument({ documentId: childId });
+          break;
+        case BoardObjects.TODO:
+          removeBoardChild({ boardId: id, childId });
+          removeTask({ taskId: childId });
+          break;
+        case BoardObjects.IMAGE:
+          removeBoardChild({ boardId: id, childId });
+          removePicture({ pictureId: childId });
+          break;
+        default:
+          break;
+      }
+    });
+  };
+
+  const deleteColumn = (boardId, colId) => {
+    childRefs.forEach(({ childId, childType }) => {
+      switch (childType) {
+        case BoardObjects.BOARD:
+          deleteBoardChildren(childId);
+          removeColumnChild({ columnId: colId, childId });
+          removeBoard({ boardId: childId });
+          break;
+        case BoardObjects.NOTE:
+          removeColumnChild({ columnId: colId, childId });
+          removeNote({ noteId: childId });
+          break;
+        case BoardObjects.DOCUMENT:
+          removeColumnChild({ columnId: colId, childId });
+          removeDocument({ documentId: childId });
+          break;
+        case BoardObjects.TODO:
+          removeColumnChild({ columnId: colId, childId });
+          removeTask({ taskId: childId });
+          break;
+        case BoardObjects.IMAGE:
+          removeColumnChild({ columnId: colId, childId });
+          removePicture({ pictureId: childId });
+          break;
+        default:
+          break;
+      }
+    });
+    removeBoardChild({ boardId, childId: colId });
+    removeColumn({ columnId: colId });
+  };
+
+  const { isOpen, onClose, mousePos, handleRightClick, menuRef } =
+    useContextMenu({ containerRef: boardRef, triggerRef: dragRef });
+
+  const ContextMenu = () => {
+    return (
+      <Menu
+        initialFocusRef={menuRef}
+        isOpen={isOpen}
+        closeOnBlur={true}
+        onClose={onClose}
+        isLazy
+      >
+        <Portal containerRef={boardRef}>
+          <MenuList
+            zIndex={"popover"}
+            position="absolute"
+            left={mousePos.x + "px"}
+            top={mousePos.y + "px"}
+            h={"fit-content"}
+          >
+            <MenuItem onClick={() => deleteColumn(boardId, id)}>
+              Delete
+            </MenuItem>
+          </MenuList>
+        </Portal>
+      </Menu>
+    );
+  };
+
   return (
     <ResizeObserver
       onResize={({ width, height }) => {
-        updateColumnSize({ columnId, sX: width, sY: height });
+        updateColumnSize({ columnId: id, sX: width, sY: height });
       }}
     >
       <Card
@@ -116,6 +232,7 @@ const Column = ({
         onDragEnd={handleDragEnd}
         onDragOver={allowDrop}
         onDrop={drop}
+        onContextMenu={handleRightClick}
         zIndex={1}
         w={sX + "px"}
         direction={{ base: "column" }}
@@ -133,6 +250,7 @@ const Column = ({
         outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
         cursor={"grab"}
       >
+        <ContextMenu />
         <CardHeader p={1.5}>
           <Editable
             as="h2"
@@ -152,7 +270,7 @@ const Column = ({
               fontSize="larger"
               overflow={"hidden"}
               onChange={(e) =>
-                updateColumnTitle({ columnId, title: e.target.value })
+                updateColumnTitle({ columnId: id, title: e.target.value })
               }
             />
           </Editable>
@@ -237,8 +355,8 @@ const Column = ({
 };
 
 const mapStateToProps = (state, ownProps) => {
-  const { columnId } = ownProps;
-  const column = state.columns[columnId];
+  const { id } = ownProps;
+  const column = state.columns[id];
   return {
     title: column.title,
     childRefs: column.childRefs,
@@ -264,6 +382,12 @@ const mapDispatchToProps = (dispatch) => {
       addPicture,
       addTask,
       updateTaskParent,
+      removeColumn,
+      removeNote,
+      removeDocument,
+      removeBoard,
+      removePicture,
+      removeTask,
     },
     dispatch
   );

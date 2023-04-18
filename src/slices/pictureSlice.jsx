@@ -84,6 +84,10 @@ const pictureSlice = createSlice({
         },
       };
     },
+    removePicture: (state, action) => {
+      const { pictureId } = action.payload;
+      delete state[pictureId];
+    },
   },
 });
 
@@ -95,6 +99,7 @@ export const {
   updateSize,
   updateParent: updatePictureParent,
   updateLabelVisibility,
+  removePicture,
 } = pictureSlice.actions;
 
 export default pictureSlice.reducer;

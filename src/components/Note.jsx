@@ -9,8 +9,13 @@ import {
   Box,
   Editable,
   ListItem,
+  Menu,
+  MenuItem,
+  MenuList,
+  Portal,
   Textarea,
   useColorModeValue,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { AutoResizeEditableTextArea } from "./AutoResizeTextarea";
 import CustomEditablePreview from "./CustomEditablePreview";
@@ -18,7 +23,10 @@ import {
   updateContent,
   updateSize,
   updateNoteParent,
+  removeNote,
 } from "../slices/noteSlice";
+import { removeBoardChild } from "../slices/boardSlice";
+import { removeColumnChild } from "../slices/columnSlice";
 import { bindActionCreators } from "redux";
 import { connect, useSelector } from "react-redux";
 import { getEmptyImage } from "react-dnd-html5-backend";
@@ -35,6 +43,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import { useClickAndHold } from "../hooks/useClickAndHold";
+import { useContextMenu } from "../hooks/useContextMenu";
 
 const Note = ({
   id,
@@ -50,6 +59,9 @@ const Note = ({
   parent,
   updateContent,
   updateSize,
+  removeNote,
+  removeBoardChild,
+  removeColumnChild,
 }) => {
   const dragRef = useRef(null);
 
@@ -118,21 +130,74 @@ const Note = ({
   });
 
   const handleClick = (event) => {
-    if (!editor || !dragRef.current) {
-      return;
+    if (event.button === 0) {
+      if (!editor || !dragRef.current) {
+        return;
+      }
+      editor.setEditable(true);
+      editor.commands.focus();
+      dragRef.current.draggable = false;
+      dragRef.current.style.cursor = "text";
     }
-    editor.setEditable(true);
-    editor.commands.focus();
-    dragRef.current.draggable = false;
-    dragRef.current.style.cursor = "text";
   };
 
-  const handleHold = (event) => {};
+  useEffect(() => {
+    if (!editor) return;
+    let { from, to } = editor.state.selection;
+    editor.commands.setContent(content, false, {
+      preserveWhitespace: "full",
+    });
+    editor.commands.setTextSelection({ from, to });
+  }, [content, editor]);
+
+  const handleHold = (event) => {
+    event.stopPropagation();
+  };
 
   const [mouseDownHandler, mouseUpHandler] = useClickAndHold(
     handleClick,
     handleHold
   );
+
+  const deleteNote = () => {
+    switch (parent.type) {
+      case BoardObjects.BOARD:
+        removeBoardChild({ boardId: parent.id, childId: id });
+        removeNote({ noteId: id });
+        break;
+      case BoardObjects.COLUMN:
+        removeColumnChild({ columnId: parent.id, childId: id });
+        removeNote({ noteId: id });
+        break;
+    }
+  };
+
+  const { isOpen, onClose, mousePos, menuRef, handleRightClick } =
+    useContextMenu({ containerRef: boardRef, triggerRef: dragRef });
+
+  const ContextMenu = () => {
+    return (
+      <Menu
+        initialFocusRef={menuRef}
+        isOpen={isOpen}
+        closeOnBlur={true}
+        onClose={onClose}
+        isLazy
+      >
+        <Portal containerRef={boardRef}>
+          <MenuList
+            zIndex={"popover"}
+            position="absolute"
+            left={mousePos.x + "px"}
+            top={mousePos.y + "px"}
+            h={"fit-content"}
+          >
+            <MenuItem onClick={deleteNote}>Delete</MenuItem>
+          </MenuList>
+        </Portal>
+      </Menu>
+    );
+  };
 
   return (
     <ResizeObserver
@@ -173,15 +238,17 @@ const Note = ({
         rounded={"sm"}
         textAlign={"left"}
         color={useColorModeValue("black", "white")}
+        onContextMenu={handleRightClick}
       >
-        <Textarea
+        <ContextMenu />
+        <EditorContent
           rounded={"sm"}
           roundedTop={"none"}
           p={0}
           m={0}
+          pointerEvents={editor?.isEditable ? "unset" : "none"}
           h={"fit-content"}
           w={"100%"}
-          as={EditorContent}
           border={"none"}
           editor={editor}
         />
@@ -205,7 +272,14 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = (dispatch) => {
   return bindActionCreators(
-    { updateContent, updateSize, updateNoteParent },
+    {
+      updateContent,
+      updateSize,
+      updateNoteParent,
+      removeNote,
+      removeBoardChild,
+      removeColumnChild,
+    },
     dispatch
   );
 };

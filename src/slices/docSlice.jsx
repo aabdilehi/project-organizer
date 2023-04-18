@@ -71,6 +71,10 @@ const docSlice = createSlice({
         },
       };
     },
+    removeDocument: (state, action) => {
+      const { documentId } = action.payload;
+      delete state[documentId];
+    },
   },
 });
 
@@ -81,6 +85,7 @@ export const {
   updatePosition: updateDocumentPosition,
   toggleExpanded,
   updateParent: updateDocumentParent,
+  removeDocument,
 } = docSlice.actions;
 
 export default docSlice.reducer;

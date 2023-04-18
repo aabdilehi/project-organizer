@@ -82,6 +82,10 @@ const columnSlice = createSlice({
         },
       };
     },
+    removeColumn: (state, action) => {
+      const { columnId } = action.payload;
+      delete state[columnId];
+    },
   },
 });
 
@@ -93,6 +97,7 @@ export const {
   updatePosition: updateColumnPosition,
   updateSize: updateColumnSize,
   updateParent: updateColumnParent,
+  removeColumn,
 } = columnSlice.actions;
 
 export default columnSlice.reducer;

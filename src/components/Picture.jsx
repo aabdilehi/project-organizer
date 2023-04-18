@@ -7,6 +7,10 @@ import {
   Editable,
   IconButton,
   Image,
+  Menu,
+  MenuItem,
+  MenuList,
+  Portal,
   useColorModeValue,
 } from "@chakra-ui/react";
 import { useClickAndHold } from "../hooks/useClickAndHold";
@@ -20,9 +24,13 @@ import {
   updateSize,
   updateLabel,
   updateLabelVisibility,
+  removePicture,
 } from "../slices/pictureSlice";
 import { connect } from "react-redux";
 import { useSmoothDrag } from "../hooks/useSmoothDrag";
+import { useContextMenu } from "../hooks/useContextMenu";
+import { removeBoardChild } from "../slices/boardSlice";
+import { removeColumnChild } from "../slices/columnSlice";
 
 // Important thing is to keep the aspect ratio of the image
 // Aspect ratio is width to height but the numbers are unpredictable
@@ -47,6 +55,9 @@ const Picture = ({
   updateLabelVisibility,
   updateImage,
   updateSize,
+  removeBoardChild,
+  removeColumnChild,
+  removePicture,
 }) => {
   const [labelHeight, setLabelHeight] = useState(0);
   const [imageHeight, setImageHeight] = useState(0);
@@ -114,11 +125,51 @@ const Picture = ({
     // Do nothing here
   };
 
+  const deletePicture = () => {
+    switch (parent.type) {
+      case BoardObjects.BOARD:
+        removeBoardChild({ boardId: parent.id, childId: id });
+        removePicture({ pictureId: id });
+        break;
+      case BoardObjects.COLUMN:
+        removeColumnChild({ columnId: parent.id, childId: id });
+        removePicture({ pictureId: id });
+        break;
+    }
+  };
+
   const [imageMouseDownHandler, imageMouseUpHandler] = useClickAndHold(
     handleImageClick,
     handleImageHold,
     500
   );
+
+  const { isOpen, onClose, mousePos, menuRef, handleRightClick } =
+    useContextMenu({ containerRef: boardRef, triggerRef: dragRef });
+
+  const ContextMenu = () => {
+    return (
+      <Menu
+        initialFocusRef={menuRef}
+        isOpen={isOpen}
+        closeOnBlur={true}
+        onClose={onClose}
+        isLazy
+      >
+        <Portal containerRef={boardRef}>
+          <MenuList
+            zIndex={"popover"}
+            position="absolute"
+            left={mousePos.x + "px"}
+            top={mousePos.y + "px"}
+            h={"fit-content"}
+          >
+            <MenuItem onClick={deletePicture}>Delete</MenuItem>
+          </MenuList>
+        </Portal>
+      </Menu>
+    );
+  };
 
   // set label height to 0 if no label
   useEffect(() => {
@@ -142,6 +193,7 @@ const Picture = ({
         onDragStart={handleDragStart}
         onDrag={handleDrag}
         onDragEnd={handleDragEnd}
+        onContextMenu={handleRightClick}
         bgColor="gray.800"
         direction={"column"}
         outline="1px solid"
@@ -161,6 +213,7 @@ const Picture = ({
         }}
         zIndex={2}
       >
+        <ContextMenu />
         <label style={{ display: "none" }} htmlFor="blang">
           <input
             ref={uploadRef}
@@ -274,7 +327,15 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = (dispatch) => {
   return bindActionCreators(
-    { updateImage, updateLabel, updateSize, updateLabelVisibility },
+    {
+      updateImage,
+      updateLabel,
+      updateSize,
+      updateLabelVisibility,
+      removeBoardChild,
+      removeColumnChild,
+      removePicture,
+    },
     dispatch
   );
 };

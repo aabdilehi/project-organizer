@@ -21,6 +21,10 @@ import {
   Input,
   Editable,
   useColorModeValue,
+  Menu,
+  Portal,
+  MenuList,
+  MenuItem,
 } from "@chakra-ui/react";
 import { BoardObjects } from "../enums/items";
 import {
@@ -36,10 +40,14 @@ import {
   updateSummary,
   updateDeadline,
   updateTaskStatus,
+  removeTask,
 } from "../slices/taskSlice";
 import { connect } from "react-redux";
 import CustomEditablePreview from "./CustomEditablePreview";
 import { useSmoothDrag } from "../hooks/useSmoothDrag";
+import { useContextMenu } from "../hooks/useContextMenu";
+import { removeBoardChild } from "../slices/boardSlice";
+import { removeColumnChild } from "../slices/columnSlice";
 
 const ToDo = ({
   id,
@@ -58,6 +66,9 @@ const ToDo = ({
   updateText,
   updateDeadline,
   updateSummary,
+  removeBoardChild,
+  removeColumnChild,
+  removeTask,
 }) => {
   const finalRef = useRef(null);
 
@@ -101,6 +112,52 @@ const ToDo = ({
     setIsInColumn(parent.type === BoardObjects.COLUMN);
     console.log(isInColumn);
   }, [parent]);
+
+  const deleteTask = () => {
+    console.log("deleting note");
+    switch (parent.type) {
+      case BoardObjects.BOARD:
+        removeBoardChild({ boardId: parent.id, childId: id });
+        removeTask({ taskId: id });
+        break;
+      case BoardObjects.COLUMN:
+        removeColumnChild({ columnId: parent.id, childId: id });
+        removeTask({ taskId: id });
+        break;
+    }
+  };
+
+  const {
+    isOpen: isMenuOpen,
+    onClose: onMenuClose,
+    mousePos,
+    handleRightClick,
+    menuRef,
+  } = useContextMenu({ containerRef: boardRef, triggerRef: dragRef });
+
+  const ContextMenu = () => {
+    return (
+      <Menu
+        initialFocusRef={menuRef}
+        isOpen={isMenuOpen}
+        closeOnBlur={true}
+        onClose={onMenuClose}
+        isLazy
+      >
+        <Portal containerRef={boardRef}>
+          <MenuList
+            zIndex={"popover"}
+            position="absolute"
+            left={mousePos.x + "px"}
+            top={mousePos.y + "px"}
+            h={"fit-content"}
+          >
+            <MenuItem onClick={deleteTask}>Delete</MenuItem>
+          </MenuList>
+        </Portal>
+      </Menu>
+    );
+  };
 
   //#region Modal menu
   // can't make this like the context menu in board as it will re-render on every state change
@@ -175,6 +232,10 @@ const ToDo = ({
       onDragStart={handleDragStart}
       onDrag={handleDrag}
       onDragEnd={handleDragEnd}
+      onContextMenu={(e) => {
+        console.log(e.target);
+        handleRightClick(e);
+      }}
       zIndex={2}
       role="group"
       ref={dragRef}
@@ -194,6 +255,7 @@ const ToDo = ({
       cursor={"grab"}
       minW={isInColumn ? "100%;" : ""}
     >
+      <ContextMenu />
       <Checkbox
         size={"lg"}
         pl={5}
@@ -309,6 +371,9 @@ const mapDispatchToProps = (dispatch) => {
       updateSummary,
       updateDeadline,
       updateTaskStatus,
+      removeBoardChild,
+      removeColumnChild,
+      removeTask,
     },
     dispatch
   );

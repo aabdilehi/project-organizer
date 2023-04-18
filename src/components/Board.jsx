@@ -6,13 +6,20 @@ import {
   Menu,
   MenuItem,
   MenuList,
+  Portal,
   useColorModeValue,
   useDisclosure,
 } from "@chakra-ui/react";
 import { connect } from "react-redux";
 
 import { BoardObjects, SidebarObjects } from "../enums/items";
-import { addBoardChild, removeBoardChild } from "../slices/boardSlice";
+
+import BoardIcon from "./BoardIcon";
+import {
+  addBoard,
+  addBoardChild,
+  removeBoardChild,
+} from "../slices/boardSlice";
 
 import Note from "./Note";
 import { addNote } from "../slices/noteSlice";
@@ -26,13 +33,15 @@ import { addPicture } from "../slices/pictureSlice";
 
 import ToDo from "./ToDo";
 import { addTask } from "../slices/taskSlice";
-import { useBoardDrop } from "../hooks/useDrop";
-//#endregion
 
-import { useSmoothBoardControls } from "../hooks/useSmoothBoardControls";
-import BoardIcon from "./BoardIcon";
-import { withRouter } from "./ComponentWithRouterProp";
 import Document from "./Document";
+import { addDocument } from "../slices/docSlice";
+
+import { useBoardDrop } from "../hooks/useDrop";
+import { useSmoothBoardControls } from "../hooks/useSmoothBoardControls";
+import { withRouter } from "./ComponentWithRouterProp";
+import { useContextMenu } from "../hooks/useContextMenu";
+//#endregion
 
 const Board = ({
   validBoard,
@@ -44,6 +53,8 @@ const Board = ({
   addColumn,
   addTask,
   addPicture,
+  addBoard,
+  addDocument,
 }) => {
   const ref = useRef(null);
 
@@ -122,149 +133,199 @@ const Board = ({
   //#endregion
 
   //#region Context Menu
-  const initialRef = useRef(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  // const initialRef = useRef(null);
+  // const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  // const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const handleRightClick = (e) => {
-    if (e.target !== ref.current && e.target.parentNode !== ref.current) {
-      return;
-    }
-    const boundingRect = ref.current.getBoundingClientRect();
+  // const handleRightClick = (e) => {
+  //   if (e.target !== ref.current && e.target.parentNode !== ref.current) {
+  //     return;
+  //   }
+  //   const boundingRect = ref.current.getBoundingClientRect();
 
-    const mouseX = (e.clientX - boundingRect.left) / scale - position.x;
-    const mouseY = (e.clientY - boundingRect.top) / scale - position.y;
+  //   const mouseX = e.clientX - boundingRect.left;
+  //   const mouseY = e.clientY - boundingRect.top;
 
-    setMousePos({ x: mouseX, y: mouseY });
-    onOpen();
-  };
+  //   setMousePos({ x: mouseX, y: mouseY });
+  //   onOpen();
+  // };
+
+  const { isOpen, onClose, mousePos, handleRightClick, menuRef } =
+    useContextMenu({ containerRef: ref, triggerRef: ref });
 
   const ContextMenu = () => {
     return (
       <Menu
-        initialFocusRef={initialRef}
+        initialFocusRef={menuRef}
         isOpen={isOpen}
         closeOnBlur={true}
         onClose={onClose}
         isLazy
       >
-        <MenuList
-          zIndex={"popover"}
-          position="absolute"
-          left={mousePos.x + "px"}
-          top={mousePos.y + "px"}
-          h={"fit-content"}
-        >
-          <MenuItem
-            onClick={(e) => {
-              const boundingRect = ref.current.getBoundingClientRect();
-              const newNote = {
-                id: uuidv4(),
-                type: BoardObjects.NOTE,
-                pX: (e.clientX - boundingRect.left) / scale - position.x,
-                pY: (e.clientY - boundingRect.top) / scale - position.y,
-                sX: 200,
-                sY: 200,
-                content: `<strong>New note<strong>`,
-                parent: {
-                  id: boardId,
-                  type: BoardObjects.BOARD,
-                },
-              };
-              addNote(newNote);
-              addBoardChild({
-                boardId,
-                childId: newNote.id,
-                childType: newNote.type,
-              });
-            }}
+        <Portal containerRef={ref}>
+          <MenuList
+            zIndex={"popover"}
+            position="absolute"
+            left={mousePos.x + "px"}
+            top={mousePos.y + "px"}
+            h={"fit-content"}
           >
-            New Note
-          </MenuItem>
-          <MenuItem
-            onClick={(e) => {
-              const boundingRect = ref.current.getBoundingClientRect();
-              const newColumn = {
-                id: uuidv4(),
-                type: BoardObjects.COLUMN,
-                pX: (e.clientX - boundingRect.left) / scale - position.x,
-                pY: (e.clientY - boundingRect.top) / scale - position.y,
-                sX: 200,
-                sY: 200,
-                title: "New note",
-                parent: {
-                  id: boardId,
+            <MenuItem
+              onClick={() => {
+                const newNote = {
+                  id: uuidv4(),
+                  type: BoardObjects.NOTE,
+                  pX: mousePos.x / scale - position.x,
+                  pY: mousePos.y / scale - position.y,
+                  sX: 200,
+                  sY: 200,
+                  content: `<strong>New note<strong>`,
+                  parent: {
+                    id: boardId,
+                    type: BoardObjects.BOARD,
+                  },
+                };
+                addNote(newNote);
+                addBoardChild({
+                  boardId,
+                  childId: newNote.id,
+                  childType: newNote.type,
+                });
+              }}
+            >
+              New Note
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                const newDocument = {
+                  id: uuidv4(),
+                  type: BoardObjects.DOCUMENT,
+                  pX: mousePos.x / scale - position.x,
+                  pY: mousePos.y / scale - position.y,
+                  title: "New Document",
+                  content: `<strong>New note<strong>`,
+                  expanded: false,
+                  parent: {
+                    id: boardId,
+                    type: BoardObjects.BOARD,
+                  },
+                };
+                addDocument(newDocument);
+                addBoardChild({
+                  boardId,
+                  childId: newDocument.id,
+                  childType: newDocument.type,
+                });
+              }}
+            >
+              New Document
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                const newTask = {
+                  id: uuidv4(),
+                  type: BoardObjects.TODO,
+                  pX: mousePos.x / scale - position.x,
+                  pY: mousePos.y / scale - position.y,
+                  text: "New task",
+                  taskStatus: false,
+                  summary: "",
+                  deadline: null,
+                  parent: {
+                    id: boardId,
+                    type: BoardObjects.BOARD,
+                  },
+                };
+                addTask(newTask);
+                addBoardChild({
+                  boardId,
+                  childId: newTask.id,
+                  childType: newTask.type,
+                });
+              }}
+            >
+              New Task
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                const newColumn = {
+                  id: uuidv4(),
+                  type: BoardObjects.COLUMN,
+                  pX: mousePos.x / scale - position.x,
+                  pY: mousePos.y / scale - position.y,
+                  sX: 200,
+                  sY: 200,
+                  title: "New note",
+                  parent: {
+                    id: boardId,
+                    type: BoardObjects.BOARD,
+                  },
+                  childRefs: [],
+                };
+                addColumn(newColumn);
+                addBoardChild({
+                  boardId,
+                  childId: newColumn.id,
+                  childType: newColumn.type,
+                });
+              }}
+            >
+              New Column
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                const newBoard = {
+                  id: uuidv4(),
                   type: BoardObjects.BOARD,
-                },
-                childRefs: [],
-              };
-              addColumn(newColumn);
-              addBoardChild({
-                boardId,
-                childId: newColumn.id,
-                childType: newColumn.type,
-              });
-            }}
-          >
-            New Column
-          </MenuItem>
-          <MenuItem
-            onClick={(e) => {
-              const boundingRect = ref.current.getBoundingClientRect();
-              const newPicture = {
-                id: uuidv4(),
-                type: BoardObjects.IMAGE,
-                pX: (e.clientX - boundingRect.left) / scale - position.x,
-                pY: (e.clientY - boundingRect.top) / scale - position.y,
-                sX: 200,
-                sY: 200,
-                image: "",
-                label: "Label",
-                showLabel: false,
-                parent: {
-                  id: boardId,
-                  type: BoardObjects.BOARD,
-                },
-              };
-              addPicture(newPicture);
+                  pX: mousePos.x / scale - position.x,
+                  pY: mousePos.y / scale - position.y,
+                  title: "New Board",
+                  parent: {
+                    id: boardId,
+                    type: BoardObjects.BOARD,
+                  },
+                  childRefs: [],
+                };
+                addBoard(newBoard);
+                addBoardChild({
+                  boardId,
+                  childId: newBoard.id,
+                  childType: newBoard.type,
+                });
+              }}
+            >
+              New Board
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                const newPicture = {
+                  id: uuidv4(),
+                  type: BoardObjects.IMAGE,
+                  pX: mousePos.x / scale - position.x,
+                  pY: mousePos.y / scale - position.y,
+                  sX: 200,
+                  sY: 200,
+                  image: "",
+                  label: "Label",
+                  showLabel: false,
+                  parent: {
+                    id: boardId,
+                    type: BoardObjects.BOARD,
+                  },
+                };
+                addPicture(newPicture);
 
-              addBoardChild({
-                boardId,
-                childId: newPicture.id,
-                childType: newPicture.type,
-              });
-            }}
-          >
-            New Image
-          </MenuItem>
-          <MenuItem
-            onClick={(e) => {
-              const boundingRect = ref.current.getBoundingClientRect();
-              const newTask = {
-                id: uuidv4(),
-                type: BoardObjects.TODO,
-                pX: (e.clientX - boundingRect.left) / scale - position.x,
-                pY: (e.clientY - boundingRect.top) / scale - position.y,
-                text: "New task",
-                taskStatus: false,
-                summary: "",
-                deadline: null,
-                parent: {
-                  id: boardId,
-                  type: BoardObjects.BOARD,
-                },
-              };
-              addTask(newTask);
-              addBoardChild({
-                boardId,
-                childId: newTask.id,
-                childType: newTask.type,
-              });
-            }}
-          >
-            New To-Do
-          </MenuItem>
-        </MenuList>
+                addBoardChild({
+                  boardId,
+                  childId: newPicture.id,
+                  childType: newPicture.type,
+                });
+              }}
+            >
+              New Image
+            </MenuItem>
+          </MenuList>
+        </Portal>
       </Menu>
     );
   };
@@ -322,7 +383,7 @@ const Board = ({
                   <Column
                     key={childId}
                     boardId={boardId}
-                    columnId={childId}
+                    id={childId}
                     boardRef={ref}
                     offset={position}
                     scale={scale}
@@ -408,6 +469,8 @@ const mapDispatchToProps = (dispatch) => {
       addColumn,
       addPicture,
       addTask,
+      addBoard,
+      addDocument,
     },
     dispatch
   );

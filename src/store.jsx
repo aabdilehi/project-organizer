@@ -76,6 +76,7 @@ export const store = configureStore({
           "tasks/updateParent",
           "documents/addDocument",
           "documents/updateContent",
+          "documents/updatePosition",
           "documents/updateTitle",
           "documents/toggleView",
           "documents/updateParent",

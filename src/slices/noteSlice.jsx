@@ -61,6 +61,10 @@ const noteSlice = createSlice({
         },
       };
     },
+    removeNote: (state, action) => {
+      const { noteId } = action.payload;
+      delete state[noteId];
+    },
   },
 });
 
@@ -70,6 +74,7 @@ export const {
   updatePosition: updateNotePosition,
   updateSize,
   updateParent: updateNoteParent,
+  removeNote,
 } = noteSlice.actions;
 
 export default noteSlice.reducer;

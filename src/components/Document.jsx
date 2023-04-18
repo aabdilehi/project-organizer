@@ -27,6 +27,7 @@ import {
   updateTitle,
   updateDocumentParent,
   toggleExpanded,
+  removeDocument,
 } from "../slices/docSlice";
 import { MenuBar } from "./Editor";
 import { connect } from "react-redux";
@@ -37,6 +38,10 @@ import { IconFileText } from "@tabler/icons-react";
 import { Editable } from "@chakra-ui/editable";
 import CustomEditablePreview from "./CustomEditablePreview";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
+import { Menu, MenuItem, MenuList, Portal } from "@chakra-ui/react";
+import { useContextMenu } from "../hooks/useContextMenu";
+import { removeBoardChild } from "../slices/boardSlice";
+import { removeColumnChild } from "../slices/columnSlice";
 
 const Document = ({
   id,
@@ -52,6 +57,9 @@ const Document = ({
   parent,
   updateContent,
   updateTitle,
+  removeBoardChild,
+  removeColumnChild,
+  removeDocument,
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isInColumn, setIsInColumn] = useState(false);
@@ -127,6 +135,52 @@ const Document = ({
     editor.commands.setTextSelection({ from, to });
   }, [content, editor]);
 
+  const deleteDocument = () => {
+    console.log("deleting note");
+    switch (parent.type) {
+      case BoardObjects.BOARD:
+        removeBoardChild({ boardId: parent.id, childId: id });
+        removeDocument({ documentId: id });
+        break;
+      case BoardObjects.COLUMN:
+        removeColumnChild({ columnId: parent.id, childId: id });
+        removeDocument({ documentId: id });
+        break;
+    }
+  };
+
+  const {
+    isOpen: isMenuOpen,
+    onClose: onMenuClose,
+    mousePos,
+    handleRightClick,
+    menuRef,
+  } = useContextMenu({ containerRef: boardRef, triggerRef: dragRef });
+
+  const ContextMenu = () => {
+    return (
+      <Menu
+        initialFocusRef={menuRef}
+        isOpen={isMenuOpen}
+        closeOnBlur={true}
+        onClose={onMenuClose}
+        isLazy
+      >
+        <Portal containerRef={boardRef}>
+          <MenuList
+            zIndex={"popover"}
+            position="absolute"
+            left={mousePos.x + "px"}
+            top={mousePos.y + "px"}
+            h={"fit-content"}
+          >
+            <MenuItem onClick={deleteDocument}>Delete</MenuItem>
+          </MenuList>
+        </Portal>
+      </Menu>
+    );
+  };
+
   return (
     <>
       <Card
@@ -154,9 +208,11 @@ const Document = ({
         w={isInColumn ? "full" : undefined}
         minW={isInColumn ? "100%" : undefined}
       >
+        <ContextMenu />
         <CardBody
           flex={isInColumn ? 0.12 : undefined}
           cursor={"grab"}
+          onContextMenu={handleRightClick}
           onDoubleClick={onOpen}
           h={"65px"}
           w={"65px"}
@@ -169,7 +225,7 @@ const Document = ({
           outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
           rounded={"md"}
         >
-          <IconFileText w={"100%"} h={"100%"} />
+          <IconFileText pointerEvents={"none"} w={"100%"} h={"100%"} />
         </CardBody>
         <Editable
           flex={isInColumn ? 1 : undefined}
@@ -250,7 +306,15 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = (dispatch) => {
   return bindActionCreators(
-    { updateContent, updateTitle, toggleExpanded, updateDocumentParent },
+    {
+      updateContent,
+      updateTitle,
+      toggleExpanded,
+      updateDocumentParent,
+      removeBoardChild,
+      removeColumnChild,
+      removeDocument,
+    },
     dispatch
   );
 };
