@@ -87,7 +87,7 @@ export function useBoardDrop({
             pY: yCoord,
             sX: 200,
             sY: 200,
-            content: `<p>New note<p>`,
+            content: `<p>New note</p>`,
             parent: {
               id: boardId,
               type: BoardObjects.BOARD,

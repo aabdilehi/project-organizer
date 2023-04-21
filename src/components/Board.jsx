@@ -1,9 +1,10 @@
 //#region Imports
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import {
   Box,
   Menu,
+  MenuDivider,
   MenuItem,
   MenuList,
   Portal,
@@ -40,7 +41,7 @@ import { addDocument } from "../slices/docSlice";
 import { useBoardDrop } from "../hooks/useDrop";
 import { useSmoothBoardControls } from "../hooks/useSmoothBoardControls";
 import { withRouter } from "./ComponentWithRouterProp";
-import { useContextMenu } from "../hooks/useContextMenu";
+import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
 //#endregion
 
 const Board = ({
@@ -150,185 +151,294 @@ const Board = ({
   //   onOpen();
   // };
 
-  const { isOpen, onClose, mousePos, handleRightClick, menuRef } =
-    useContextMenu({ containerRef: ref, triggerRef: ref });
+  const { handleRightClick, ContextMenu } = useContextMenu({
+    containerRef: ref,
+  });
 
-  const ContextMenu = () => {
-    return (
-      <Menu
-        initialFocusRef={menuRef}
-        isOpen={isOpen}
-        closeOnBlur={true}
-        onClose={onClose}
-        isLazy
-      >
-        <Portal containerRef={ref}>
-          <MenuList
-            zIndex={"popover"}
-            position="absolute"
-            left={mousePos.x + "px"}
-            top={mousePos.y + "px"}
-            h={"fit-content"}
-          >
-            <MenuItem
-              onClick={() => {
-                const newNote = {
-                  id: uuidv4(),
-                  type: BoardObjects.NOTE,
-                  pX: mousePos.x / scale - position.x,
-                  pY: mousePos.y / scale - position.y,
-                  sX: 200,
-                  sY: 200,
-                  content: `<strong>New note<strong>`,
-                  parent: {
-                    id: boardId,
-                    type: BoardObjects.BOARD,
-                  },
-                };
-                addNote(newNote);
-                addBoardChild({
-                  boardId,
-                  childId: newNote.id,
-                  childType: newNote.type,
-                });
-              }}
-            >
-              New Note
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                const newDocument = {
-                  id: uuidv4(),
-                  type: BoardObjects.DOCUMENT,
-                  pX: mousePos.x / scale - position.x,
-                  pY: mousePos.y / scale - position.y,
-                  title: "New Document",
-                  content: `<strong>New note<strong>`,
-                  expanded: false,
-                  parent: {
-                    id: boardId,
-                    type: BoardObjects.BOARD,
-                  },
-                };
-                addDocument(newDocument);
-                addBoardChild({
-                  boardId,
-                  childId: newDocument.id,
-                  childType: newDocument.type,
-                });
-              }}
-            >
-              New Document
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                const newTask = {
-                  id: uuidv4(),
-                  type: BoardObjects.TODO,
-                  pX: mousePos.x / scale - position.x,
-                  pY: mousePos.y / scale - position.y,
-                  text: "New task",
-                  taskStatus: false,
-                  summary: "",
-                  deadline: null,
-                  parent: {
-                    id: boardId,
-                    type: BoardObjects.BOARD,
-                  },
-                };
-                addTask(newTask);
-                addBoardChild({
-                  boardId,
-                  childId: newTask.id,
-                  childType: newTask.type,
-                });
-              }}
-            >
-              New Task
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                const newColumn = {
-                  id: uuidv4(),
-                  type: BoardObjects.COLUMN,
-                  pX: mousePos.x / scale - position.x,
-                  pY: mousePos.y / scale - position.y,
-                  sX: 200,
-                  sY: 200,
-                  title: "New note",
-                  parent: {
-                    id: boardId,
-                    type: BoardObjects.BOARD,
-                  },
-                  childRefs: [],
-                };
-                addColumn(newColumn);
-                addBoardChild({
-                  boardId,
-                  childId: newColumn.id,
-                  childType: newColumn.type,
-                });
-              }}
-            >
-              New Column
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                const newBoard = {
-                  id: uuidv4(),
-                  type: BoardObjects.BOARD,
-                  pX: mousePos.x / scale - position.x,
-                  pY: mousePos.y / scale - position.y,
-                  title: "New Board",
-                  parent: {
-                    id: boardId,
-                    type: BoardObjects.BOARD,
-                  },
-                  childRefs: [],
-                };
-                addBoard(newBoard);
-                addBoardChild({
-                  boardId,
-                  childId: newBoard.id,
-                  childType: newBoard.type,
-                });
-              }}
-            >
-              New Board
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                const newPicture = {
-                  id: uuidv4(),
-                  type: BoardObjects.IMAGE,
-                  pX: mousePos.x / scale - position.x,
-                  pY: mousePos.y / scale - position.y,
-                  sX: 200,
-                  sY: 200,
-                  image: "",
-                  label: "Label",
-                  showLabel: false,
-                  parent: {
-                    id: boardId,
-                    type: BoardObjects.BOARD,
-                  },
-                };
-                addPicture(newPicture);
+  const { setMenuItems, mousePos, copiedNodes } =
+    useContext(ContextMenuContext);
 
-                addBoardChild({
-                  boardId,
-                  childId: newPicture.id,
-                  childType: newPicture.type,
-                });
-              }}
-            >
-              New Image
-            </MenuItem>
-          </MenuList>
-        </Portal>
-      </Menu>
-    );
+  const pasteNodes = (mouseX, mouseY) => {
+    copiedNodes.forEach((node) => {
+      switch (node.type) {
+        case BoardObjects.NOTE:
+          const copiedNote = {
+            ...node,
+            id: uuidv4(),
+            pX: mouseX,
+            pY: mouseY,
+            parent: { id: boardId, type: BoardObjects.BOARD },
+          };
+          addNote(copiedNote);
+          addBoardChild({
+            boardId,
+            childId: copiedNote.id,
+            childType: copiedNote.type,
+          });
+          break;
+        case BoardObjects.DOCUMENT:
+          const copiedDocument = {
+            ...node,
+            id: uuidv4(),
+            pX: mouseX,
+            pY: mouseY,
+            parent: {
+              id: boardId,
+              type: BoardObjects.BOARD,
+            },
+          };
+          addDocument(copiedDocument);
+          addBoardChild({
+            boardId,
+            childId: copiedDocument.id,
+            childType: copiedDocument.type,
+          });
+          break;
+        case BoardObjects.IMAGE:
+          const newPicture = {
+            ...node,
+            id: uuidv4(),
+            pX: mouseX,
+            pY: mouseY,
+            parent: {
+              id: boardId,
+              type: BoardObjects.BOARD,
+            },
+          };
+          addPicture(newPicture);
+          addBoardChild({
+            boardId,
+            childId: newPicture.id,
+            childType: newPicture.type,
+          });
+          break;
+        case BoardObjects.TODO:
+          const copiedTask = {
+            ...node,
+            id: uuidv4(),
+            pX: mouseX,
+            pY: mouseY,
+            parent: {
+              id: boardId,
+              type: BoardObjects.BOARD,
+            },
+          };
+          addTask(copiedTask);
+          addBoardChild({
+            boardId,
+            childId: copiedTask.id,
+            childType: copiedTask.type,
+          });
+          break;
+        case BoardObjects.COLUMN:
+          // Need to copy the contents of the column and assign new Ids to them
+          const copiedColumn = {
+            ...node,
+            id: uuidv4(),
+            pX: mouseX,
+            pY: mouseY,
+            parent: {
+              id: boardId,
+              type: BoardObjects.BOARD,
+            },
+            childRefs: [],
+          };
+          addColumn(copiedColumn);
+          addBoardChild({
+            boardId,
+            childId: copiedColumn.id,
+            childType: copiedColumn.type,
+          });
+          break;
+        case BoardObjects.BOARD:
+          const copiedBoard = {
+            ...node,
+            id: uuidv4(),
+            pX: mouseX,
+            pY: mouseY,
+            parent: {
+              id: boardId,
+              type: BoardObjects.BOARD,
+            },
+            childRefs: [],
+          };
+          addBoard(copiedBoard);
+          addBoardChild({
+            boardId,
+            childId: copiedBoard.id,
+            childType: copiedBoard.type,
+          });
+          break;
+        default:
+          break;
+      }
+    });
   };
+
+  const updateContextMenu = (e) => {
+    const boundingRect = ref.current.getBoundingClientRect();
+    const mouseX = (e.clientX - boundingRect.left) / scale - position.x;
+    const mouseY = (e.clientY - boundingRect.top) / scale - position.y;
+    setMenuItems([
+      <MenuItem onClick={() => pasteNodes(mouseX, mouseY)}>Paste</MenuItem>,
+      <MenuDivider />,
+      <MenuItem
+        onClick={() => {
+          console.log(scale);
+          const newNote = {
+            id: uuidv4(),
+            type: BoardObjects.NOTE,
+            pX: mouseX,
+            pY: mouseY,
+            sX: 200,
+            sY: 200,
+            content: `<strong>New note<strong>`,
+            parent: {
+              id: boardId,
+              type: BoardObjects.BOARD,
+            },
+          };
+          addNote(newNote);
+          addBoardChild({
+            boardId,
+            childId: newNote.id,
+            childType: newNote.type,
+          });
+        }}
+      >
+        New Note
+      </MenuItem>,
+      <MenuItem
+        onClick={() => {
+          const newDocument = {
+            id: uuidv4(),
+            type: BoardObjects.DOCUMENT,
+            pX: mouseX,
+            pY: mouseY,
+            title: "New Document",
+            content: `<strong>New note<strong>`,
+            expanded: false,
+            parent: {
+              id: boardId,
+              type: BoardObjects.BOARD,
+            },
+          };
+          addDocument(newDocument);
+          addBoardChild({
+            boardId,
+            childId: newDocument.id,
+            childType: newDocument.type,
+          });
+        }}
+      >
+        New Document
+      </MenuItem>,
+      <MenuItem
+        onClick={() => {
+          const newTask = {
+            id: uuidv4(),
+            type: BoardObjects.TODO,
+            pX: mouseX,
+            pY: mouseY,
+            text: "New task",
+            taskStatus: false,
+            summary: "",
+            deadline: null,
+            parent: {
+              id: boardId,
+              type: BoardObjects.BOARD,
+            },
+          };
+          addTask(newTask);
+          addBoardChild({
+            boardId,
+            childId: newTask.id,
+            childType: newTask.type,
+          });
+        }}
+      >
+        New Task
+      </MenuItem>,
+      <MenuItem
+        onClick={() => {
+          const newColumn = {
+            id: uuidv4(),
+            type: BoardObjects.COLUMN,
+            pX: mouseX,
+            pY: mouseY,
+            sX: 200,
+            sY: 200,
+            title: "New note",
+            parent: {
+              id: boardId,
+              type: BoardObjects.BOARD,
+            },
+            childRefs: [],
+          };
+          addColumn(newColumn);
+          addBoardChild({
+            boardId,
+            childId: newColumn.id,
+            childType: newColumn.type,
+          });
+        }}
+      >
+        New Column
+      </MenuItem>,
+      <MenuItem
+        onClick={() => {
+          const newBoard = {
+            id: uuidv4(),
+            type: BoardObjects.BOARD,
+            pX: mouseX,
+            pY: mouseY,
+            title: "New Board",
+            parent: {
+              id: boardId,
+              type: BoardObjects.BOARD,
+            },
+            childRefs: [],
+          };
+          addBoard(newBoard);
+          addBoardChild({
+            boardId,
+            childId: newBoard.id,
+            childType: newBoard.type,
+          });
+        }}
+      >
+        New Board
+      </MenuItem>,
+      <MenuItem
+        onClick={() => {
+          const newPicture = {
+            id: uuidv4(),
+            type: BoardObjects.IMAGE,
+            pX: mouseX,
+            pY: mouseY,
+            sX: 200,
+            sY: 200,
+            image: "",
+            label: "Label",
+            showLabel: false,
+            parent: {
+              id: boardId,
+              type: BoardObjects.BOARD,
+            },
+          };
+          addPicture(newPicture);
+          addBoardChild({
+            boardId,
+            childId: newPicture.id,
+            childType: newPicture.type,
+          });
+        }}
+      >
+        New Image
+      </MenuItem>,
+    ]);
+  };
+
   //#endregion
 
   //#region Render board
@@ -349,7 +459,7 @@ const Board = ({
         onDoubleClick={handleDoubleClick}
         onContextMenu={(e) => {
           e.preventDefault();
-          console.log("hi");
+          updateContextMenu(e);
           handleRightClick(e);
         }}
         onDrop={(event) => drop(event)}
@@ -357,6 +467,7 @@ const Board = ({
           allowDrop(event);
         }}
       >
+        <ContextMenu />
         <Box
           ref={transformRef}
           style={{
@@ -365,7 +476,6 @@ const Board = ({
             height: "100%",
           }}
         >
-          <ContextMenu />
           {childRefs.map(({ childId, childType }) => {
             switch (childType) {
               case BoardObjects.NOTE:
@@ -376,6 +486,7 @@ const Board = ({
                     boardRef={ref}
                     offset={position}
                     scale={scale}
+                    openContextMenu={handleRightClick}
                   />
                 );
               case BoardObjects.COLUMN:
@@ -387,6 +498,7 @@ const Board = ({
                     boardRef={ref}
                     offset={position}
                     scale={scale}
+                    openContextMenu={handleRightClick}
                   />
                 );
               case BoardObjects.IMAGE:
@@ -398,6 +510,7 @@ const Board = ({
                     boardRef={ref}
                     offset={position}
                     scale={scale}
+                    openContextMenu={handleRightClick}
                   />
                 );
               case BoardObjects.TODO:
@@ -409,6 +522,7 @@ const Board = ({
                     boardRef={ref}
                     offset={position}
                     scale={scale}
+                    openContextMenu={handleRightClick}
                   />
                 );
               case BoardObjects.BOARD:
@@ -420,6 +534,7 @@ const Board = ({
                     boardRef={ref}
                     offset={position}
                     scale={scale}
+                    openContextMenu={handleRightClick}
                   />
                 );
               case BoardObjects.DOCUMENT:
@@ -431,6 +546,7 @@ const Board = ({
                     boardRef={ref}
                     offset={position}
                     scale={scale}
+                    openContextMenu={handleRightClick}
                   />
                 );
               default:

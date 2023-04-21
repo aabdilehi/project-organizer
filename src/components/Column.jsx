@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useRef } from "react";
+import { useContext, useRef } from "react";
 import { BoardObjects, SidebarObjects } from "../enums/items";
 import ResizeObserver from "rc-resize-observer";
 import { addNote, updateNoteParent, removeNote } from "../slices/noteSlice";
@@ -42,7 +42,7 @@ import ToDo from "./ToDo";
 import BoardIcon from "./BoardIcon";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
 import Document from "./Document";
-import { useContextMenu } from "../hooks/useContextMenu";
+import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
 import { removeDocument } from "../slices/docSlice";
 
 const Column = ({
@@ -54,9 +54,11 @@ const Column = ({
   offset,
   scale,
   sX,
+  sY,
   title,
   childRefs,
   parent,
+  openContextMenu,
   updateColumnTitle,
   updateColumnSize,
   removeColumn,
@@ -189,33 +191,33 @@ const Column = ({
     removeColumn({ columnId: colId });
   };
 
-  const { isOpen, onClose, mousePos, handleRightClick, menuRef } =
-    useContextMenu({ containerRef: boardRef, triggerRef: dragRef });
+  const { setMenuItems, copyNodes } = useContext(ContextMenuContext);
 
-  const ContextMenu = () => {
-    return (
-      <Menu
-        initialFocusRef={menuRef}
-        isOpen={isOpen}
-        closeOnBlur={true}
-        onClose={onClose}
-        isLazy
-      >
-        <Portal containerRef={boardRef}>
-          <MenuList
-            zIndex={"popover"}
-            position="absolute"
-            left={mousePos.x + "px"}
-            top={mousePos.y + "px"}
-            h={"fit-content"}
-          >
-            <MenuItem onClick={() => deleteColumn(boardId, id)}>
-              Delete
-            </MenuItem>
-          </MenuList>
-        </Portal>
-      </Menu>
-    );
+  const copyColumn = () => {
+    const column = {
+      // new Id will be assigned
+      type: BoardObjects.COLUMN,
+      pX, // need position in case user uses keyboard shortcut
+      pY,
+      sX,
+      sY,
+      title,
+      // parent does not have to be the same
+    };
+    copyNodes([column]);
+  };
+
+  const cutColumn = () => {
+    copyColumn();
+    deleteColumn(boardId, id);
+  };
+
+  const updateContextMenu = () => {
+    setMenuItems([
+      <MenuItem onClick={cutColumn}>Cut</MenuItem>,
+      <MenuItem onClick={copyColumn}>Copy</MenuItem>,
+      <MenuItem onClick={() => deleteColumn(boardId, id)}>Delete</MenuItem>,
+    ]);
   };
 
   return (
@@ -232,7 +234,12 @@ const Column = ({
         onDragEnd={handleDragEnd}
         onDragOver={allowDrop}
         onDrop={drop}
-        onContextMenu={handleRightClick}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          updateContextMenu();
+          openContextMenu(e);
+        }}
         zIndex={1}
         w={sX + "px"}
         direction={{ base: "column" }}
@@ -250,7 +257,6 @@ const Column = ({
         outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
         cursor={"grab"}
       >
-        <ContextMenu />
         <CardHeader p={1.5}>
           <Editable
             as="h2"
@@ -297,6 +303,7 @@ const Column = ({
                       columnRef={dragRef}
                       offset={offset}
                       scale={scale}
+                      openContextMenu={openContextMenu}
                     />
                   );
                 case BoardObjects.IMAGE:
@@ -308,6 +315,7 @@ const Column = ({
                       boardRef={boardRef}
                       offset={offset}
                       scale={scale}
+                      openContextMenu={openContextMenu}
                     />
                   );
                 case BoardObjects.TODO:
@@ -319,6 +327,7 @@ const Column = ({
                       boardRef={boardRef}
                       offset={offset}
                       scale={scale}
+                      openContextMenu={openContextMenu}
                     />
                   );
                 case BoardObjects.BOARD:
@@ -330,6 +339,7 @@ const Column = ({
                       boardRef={boardRef}
                       offset={offset}
                       scale={scale}
+                      openContextMenu={openContextMenu}
                     />
                   );
                 case BoardObjects.DOCUMENT:
@@ -341,6 +351,7 @@ const Column = ({
                       boardRef={boardRef}
                       offset={offset}
                       scale={scale}
+                      openContextMenu={openContextMenu}
                     />
                   );
                 default:

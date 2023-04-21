@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import "../App.css";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import {
   Checkbox,
   Card,
@@ -45,7 +45,7 @@ import {
 import { connect } from "react-redux";
 import CustomEditablePreview from "./CustomEditablePreview";
 import { useSmoothDrag } from "../hooks/useSmoothDrag";
-import { useContextMenu } from "../hooks/useContextMenu";
+import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
 import { removeBoardChild } from "../slices/boardSlice";
 import { removeColumnChild } from "../slices/columnSlice";
 
@@ -61,6 +61,8 @@ const ToDo = ({
   deadline,
   summary,
   parent,
+  setContextMenu,
+  openContextMenu,
   taskStatus,
   updateTaskStatus,
   updateText,
@@ -127,36 +129,34 @@ const ToDo = ({
     }
   };
 
-  const {
-    isOpen: isMenuOpen,
-    onClose: onMenuClose,
-    mousePos,
-    handleRightClick,
-    menuRef,
-  } = useContextMenu({ containerRef: boardRef, triggerRef: dragRef });
+  const { setMenuItems, copyNodes } = useContext(ContextMenuContext);
 
-  const ContextMenu = () => {
-    return (
-      <Menu
-        initialFocusRef={menuRef}
-        isOpen={isMenuOpen}
-        closeOnBlur={true}
-        onClose={onMenuClose}
-        isLazy
-      >
-        <Portal containerRef={boardRef}>
-          <MenuList
-            zIndex={"popover"}
-            position="absolute"
-            left={mousePos.x + "px"}
-            top={mousePos.y + "px"}
-            h={"fit-content"}
-          >
-            <MenuItem onClick={deleteTask}>Delete</MenuItem>
-          </MenuList>
-        </Portal>
-      </Menu>
-    );
+  const copyTask = () => {
+    const task = {
+      // new Id will be assigned
+      type: BoardObjects.TODO,
+      pX, // need position in case user uses keyboard shortcut
+      pY,
+      text,
+      deadline,
+      summary,
+      taskStatus,
+      // parent does not have to be the same
+    };
+    copyNodes([task]);
+  };
+
+  const cutTask = () => {
+    copyTask();
+    deleteTask();
+  };
+
+  const updateContextMenu = () => {
+    setMenuItems([
+      <MenuItem onClick={cutTask}>Cut</MenuItem>,
+      <MenuItem onClick={copyTask}>Copy</MenuItem>,
+      <MenuItem onClick={deleteTask}>Delete</MenuItem>,
+    ]);
   };
 
   //#region Modal menu
@@ -233,8 +233,10 @@ const ToDo = ({
       onDrag={handleDrag}
       onDragEnd={handleDragEnd}
       onContextMenu={(e) => {
-        console.log(e.target);
-        handleRightClick(e);
+        e.preventDefault();
+        e.stopPropagation();
+        updateContextMenu();
+        openContextMenu(e);
       }}
       zIndex={2}
       role="group"
@@ -255,7 +257,6 @@ const ToDo = ({
       cursor={"grab"}
       minW={isInColumn ? "100%;" : ""}
     >
-      <ContextMenu />
       <Checkbox
         size={"lg"}
         pl={5}

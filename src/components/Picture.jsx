@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import ResizeObserver from "rc-resize-observer";
 import React from "react";
 import {
@@ -28,7 +28,7 @@ import {
 } from "../slices/pictureSlice";
 import { connect } from "react-redux";
 import { useSmoothDrag } from "../hooks/useSmoothDrag";
-import { useContextMenu } from "../hooks/useContextMenu";
+import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
 import { removeBoardChild } from "../slices/boardSlice";
 import { removeColumnChild } from "../slices/columnSlice";
 
@@ -50,6 +50,8 @@ const Picture = ({
   sY,
   label,
   parent,
+  setContextMenu,
+  openContextMenu,
   showLabel,
   updateLabel,
   updateLabelVisibility,
@@ -144,31 +146,35 @@ const Picture = ({
     500
   );
 
-  const { isOpen, onClose, mousePos, menuRef, handleRightClick } =
-    useContextMenu({ containerRef: boardRef, triggerRef: dragRef });
+  const { setMenuItems, copyNodes } = useContext(ContextMenuContext);
 
-  const ContextMenu = () => {
-    return (
-      <Menu
-        initialFocusRef={menuRef}
-        isOpen={isOpen}
-        closeOnBlur={true}
-        onClose={onClose}
-        isLazy
-      >
-        <Portal containerRef={boardRef}>
-          <MenuList
-            zIndex={"popover"}
-            position="absolute"
-            left={mousePos.x + "px"}
-            top={mousePos.y + "px"}
-            h={"fit-content"}
-          >
-            <MenuItem onClick={deletePicture}>Delete</MenuItem>
-          </MenuList>
-        </Portal>
-      </Menu>
-    );
+  const copyPicture = () => {
+    const picture = {
+      // new Id will be assigned
+      type: BoardObjects.IMAGE,
+      pX, // need position in case user uses keyboard shortcut
+      pY,
+      sX,
+      sY,
+      image,
+      label,
+      showLabel,
+      // parent does not have to be the same
+    };
+    copyNodes([picture]);
+  };
+
+  const cutPicture = () => {
+    copyPicture();
+    deletePicture();
+  };
+
+  const updateContextMenu = () => {
+    setMenuItems([
+      <MenuItem onClick={cutPicture}>Cut</MenuItem>,
+      <MenuItem onClick={copyPicture}>Copy</MenuItem>,
+      <MenuItem onClick={deletePicture}>Delete</MenuItem>,
+    ]);
   };
 
   // set label height to 0 if no label
@@ -193,7 +199,12 @@ const Picture = ({
         onDragStart={handleDragStart}
         onDrag={handleDrag}
         onDragEnd={handleDragEnd}
-        onContextMenu={handleRightClick}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          updateContextMenu();
+          openContextMenu(e);
+        }}
         bgColor="gray.800"
         direction={"column"}
         outline="1px solid"
@@ -213,7 +224,6 @@ const Picture = ({
         }}
         zIndex={2}
       >
-        <ContextMenu />
         <label style={{ display: "none" }} htmlFor="blang">
           <input
             ref={uploadRef}

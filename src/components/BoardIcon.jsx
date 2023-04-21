@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import "../App.css";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 
 import { BoardObjects, SidebarObjects } from "../enums/items";
 import {
@@ -30,7 +30,7 @@ import { removeNote } from "../slices/noteSlice";
 import { removeDocument } from "../slices/docSlice";
 import { removeTask } from "../slices/taskSlice";
 import { removePicture } from "../slices/pictureSlice";
-import { useContextMenu } from "../hooks/useContextMenu";
+import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
 import { removeColumn, removeColumnChild } from "../slices/columnSlice";
 
 const BoardIcon = ({
@@ -44,6 +44,7 @@ const BoardIcon = ({
   pX,
   pY,
   parent,
+  openContextMenu,
   title,
   updateTitle,
   removeBoard,
@@ -220,31 +221,32 @@ const BoardIcon = ({
     removeBoard({ boardId: id });
   };
 
-  const { isOpen, onClose, mousePos, handleRightClick, menuRef } =
-    useContextMenu({ containerRef: boardRef, triggerRef: dragRef });
+  const { setMenuItems, copyNodes } = useContext(ContextMenuContext);
 
-  const ContextMenu = () => {
-    return (
-      <Menu
-        initialFocusRef={menuRef}
-        isOpen={isOpen}
-        closeOnBlur={true}
-        onClose={onClose}
-        isLazy
-      >
-        <Portal containerRef={boardRef}>
-          <MenuList
-            zIndex={"popover"}
-            position="absolute"
-            left={mousePos.x + "px"}
-            top={mousePos.y + "px"}
-            h={"fit-content"}
-          >
-            <MenuItem onClick={deleteBoard}>Delete</MenuItem>
-          </MenuList>
-        </Portal>
-      </Menu>
-    );
+  const copyBoard = () => {
+    const board = {
+      // new Id will be assigned
+      type: BoardObjects.BOARD,
+      pX, // need position in case user uses keyboard shortcut
+      pY,
+      title,
+      childRefs: [],
+      // parent does not have to be the same
+    };
+    copyNodes([board]);
+  };
+
+  const cutBoard = () => {
+    copyBoard();
+    deleteBoard();
+  };
+
+  const updateContextMenu = () => {
+    setMenuItems([
+      <MenuItem onClick={cutBoard}>Cut</MenuItem>,
+      <MenuItem onClick={copyBoard}>Copy</MenuItem>,
+      <MenuItem onClick={deleteBoard}>Delete</MenuItem>,
+    ]);
   };
 
   return (
@@ -277,9 +279,13 @@ const BoardIcon = ({
       w={isInColumn ? "full" : undefined}
       minW={isInColumn ? "100%" : undefined}
     >
-      <ContextMenu />
       <CardBody
-        onContextMenu={handleRightClick}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          updateContextMenu();
+          openContextMenu(e);
+        }}
         flex={isInColumn ? 0.12 : undefined}
         cursor={"grab"}
         onDoubleClick={() => {
