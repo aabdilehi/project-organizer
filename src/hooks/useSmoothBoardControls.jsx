@@ -40,14 +40,17 @@ export function useSmoothBoardControls(transformRef, boardRef) {
         }
       };
 
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", () => {
+      const handleMouseUp = () => {
         setPosition({
           x: currentPositionX.current,
           y: currentPositionY.current,
         });
         document.removeEventListener("mousemove", handleMouseMove);
-      });
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
     }
   };
 

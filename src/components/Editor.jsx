@@ -1,5 +1,4 @@
 import { Textarea } from "@chakra-ui/textarea";
-import "../editor.scss";
 
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";

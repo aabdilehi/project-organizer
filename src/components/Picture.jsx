@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import ResizeObserver from "rc-resize-observer";
 import React from "react";
 import {
@@ -7,6 +7,10 @@ import {
   Editable,
   IconButton,
   Image,
+  Menu,
+  MenuItem,
+  MenuList,
+  Portal,
   useColorModeValue,
 } from "@chakra-ui/react";
 import { useClickAndHold } from "../hooks/useClickAndHold";
@@ -20,9 +24,13 @@ import {
   updateSize,
   updateLabel,
   updateLabelVisibility,
+  removePicture,
 } from "../slices/pictureSlice";
 import { connect } from "react-redux";
 import { useSmoothDrag } from "../hooks/useSmoothDrag";
+import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
+import { removeBoardChild } from "../slices/boardSlice";
+import { removeColumnChild } from "../slices/columnSlice";
 
 // Important thing is to keep the aspect ratio of the image
 // Aspect ratio is width to height but the numbers are unpredictable
@@ -42,11 +50,16 @@ const Picture = ({
   sY,
   label,
   parent,
+  setContextMenu,
+  openContextMenu,
   showLabel,
   updateLabel,
   updateLabelVisibility,
   updateImage,
   updateSize,
+  removeBoardChild,
+  removeColumnChild,
+  removePicture,
 }) => {
   const [labelHeight, setLabelHeight] = useState(0);
   const [imageHeight, setImageHeight] = useState(0);
@@ -114,11 +127,55 @@ const Picture = ({
     // Do nothing here
   };
 
+  const deletePicture = () => {
+    switch (parent.type) {
+      case BoardObjects.BOARD:
+        removeBoardChild({ boardId: parent.id, childId: id });
+        removePicture({ pictureId: id });
+        break;
+      case BoardObjects.COLUMN:
+        removeColumnChild({ columnId: parent.id, childId: id });
+        removePicture({ pictureId: id });
+        break;
+    }
+  };
+
   const [imageMouseDownHandler, imageMouseUpHandler] = useClickAndHold(
     handleImageClick,
     handleImageHold,
     500
   );
+
+  const { setMenuItems, copyNodes } = useContext(ContextMenuContext);
+
+  const copyPicture = () => {
+    const picture = {
+      // new Id will be assigned
+      type: BoardObjects.IMAGE,
+      pX, // need position in case user uses keyboard shortcut
+      pY,
+      sX,
+      sY,
+      image,
+      label,
+      showLabel,
+      // parent does not have to be the same
+    };
+    copyNodes([picture]);
+  };
+
+  const cutPicture = () => {
+    copyPicture();
+    deletePicture();
+  };
+
+  const updateContextMenu = () => {
+    setMenuItems([
+      <MenuItem onClick={cutPicture}>Cut</MenuItem>,
+      <MenuItem onClick={copyPicture}>Copy</MenuItem>,
+      <MenuItem onClick={deletePicture}>Delete</MenuItem>,
+    ]);
+  };
 
   // set label height to 0 if no label
   useEffect(() => {
@@ -142,6 +199,12 @@ const Picture = ({
         onDragStart={handleDragStart}
         onDrag={handleDrag}
         onDragEnd={handleDragEnd}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          updateContextMenu();
+          openContextMenu(e);
+        }}
         bgColor="gray.800"
         direction={"column"}
         outline="1px solid"
@@ -274,7 +337,15 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = (dispatch) => {
   return bindActionCreators(
-    { updateImage, updateLabel, updateSize, updateLabelVisibility },
+    {
+      updateImage,
+      updateLabel,
+      updateSize,
+      updateLabelVisibility,
+      removeBoardChild,
+      removeColumnChild,
+      removePicture,
+    },
     dispatch
   );
 };

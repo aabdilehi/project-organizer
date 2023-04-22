@@ -79,6 +79,10 @@ const boardSlice = createSlice({
         },
       };
     },
+    removeBoard: (state, action) => {
+      const { boardId } = action.payload;
+      delete state[boardId];
+    },
   },
 });
 
@@ -89,6 +93,7 @@ export const {
   updateTitle,
   updatePosition: updateBoardPosition,
   updateParent: updateBoardParent,
+  removeBoard,
 } = boardSlice.actions;
 
 export default boardSlice.reducer;

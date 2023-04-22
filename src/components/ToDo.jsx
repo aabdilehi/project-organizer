@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import "../App.css";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import {
   Checkbox,
   Card,
@@ -21,6 +21,10 @@ import {
   Input,
   Editable,
   useColorModeValue,
+  Menu,
+  Portal,
+  MenuList,
+  MenuItem,
 } from "@chakra-ui/react";
 import { BoardObjects } from "../enums/items";
 import {
@@ -36,10 +40,14 @@ import {
   updateSummary,
   updateDeadline,
   updateTaskStatus,
+  removeTask,
 } from "../slices/taskSlice";
 import { connect } from "react-redux";
 import CustomEditablePreview from "./CustomEditablePreview";
 import { useSmoothDrag } from "../hooks/useSmoothDrag";
+import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
+import { removeBoardChild } from "../slices/boardSlice";
+import { removeColumnChild } from "../slices/columnSlice";
 
 const ToDo = ({
   id,
@@ -53,11 +61,16 @@ const ToDo = ({
   deadline,
   summary,
   parent,
+  setContextMenu,
+  openContextMenu,
   taskStatus,
   updateTaskStatus,
   updateText,
   updateDeadline,
   updateSummary,
+  removeBoardChild,
+  removeColumnChild,
+  removeTask,
 }) => {
   const finalRef = useRef(null);
 
@@ -101,6 +114,50 @@ const ToDo = ({
     setIsInColumn(parent.type === BoardObjects.COLUMN);
     console.log(isInColumn);
   }, [parent]);
+
+  const deleteTask = () => {
+    console.log("deleting note");
+    switch (parent.type) {
+      case BoardObjects.BOARD:
+        removeBoardChild({ boardId: parent.id, childId: id });
+        removeTask({ taskId: id });
+        break;
+      case BoardObjects.COLUMN:
+        removeColumnChild({ columnId: parent.id, childId: id });
+        removeTask({ taskId: id });
+        break;
+    }
+  };
+
+  const { setMenuItems, copyNodes } = useContext(ContextMenuContext);
+
+  const copyTask = () => {
+    const task = {
+      // new Id will be assigned
+      type: BoardObjects.TODO,
+      pX, // need position in case user uses keyboard shortcut
+      pY,
+      text,
+      deadline,
+      summary,
+      taskStatus,
+      // parent does not have to be the same
+    };
+    copyNodes([task]);
+  };
+
+  const cutTask = () => {
+    copyTask();
+    deleteTask();
+  };
+
+  const updateContextMenu = () => {
+    setMenuItems([
+      <MenuItem onClick={cutTask}>Cut</MenuItem>,
+      <MenuItem onClick={copyTask}>Copy</MenuItem>,
+      <MenuItem onClick={deleteTask}>Delete</MenuItem>,
+    ]);
+  };
 
   //#region Modal menu
   // can't make this like the context menu in board as it will re-render on every state change
@@ -175,6 +232,12 @@ const ToDo = ({
       onDragStart={handleDragStart}
       onDrag={handleDrag}
       onDragEnd={handleDragEnd}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        updateContextMenu();
+        openContextMenu(e);
+      }}
       zIndex={2}
       role="group"
       ref={dragRef}
@@ -309,6 +372,9 @@ const mapDispatchToProps = (dispatch) => {
       updateSummary,
       updateDeadline,
       updateTaskStatus,
+      removeBoardChild,
+      removeColumnChild,
+      removeTask,
     },
     dispatch
   );

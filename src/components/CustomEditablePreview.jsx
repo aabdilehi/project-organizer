@@ -10,7 +10,9 @@ function CustomEditablePreview(props) {
   const { getEditButtonProps } = useEditableControls();
   const startEdit = getEditButtonProps().onClick;
   const handleClick = (event) => {
-    startEdit();
+    if (event.button === 0) {
+      startEdit();
+    }
   };
 
   const handleHold = (event) => {

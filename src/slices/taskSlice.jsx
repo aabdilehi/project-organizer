@@ -94,6 +94,10 @@ const taskSlice = createSlice({
         },
       };
     },
+    removeTask: (state, action) => {
+      const { taskId } = action.payload;
+      delete state[taskId];
+    },
   },
 });
 
@@ -106,6 +110,7 @@ export const {
   updateDeadline,
   updateTaskStatus,
   updateParent: updateTaskParent,
+  removeTask,
 } = taskSlice.actions;
 
 export default taskSlice.reducer;

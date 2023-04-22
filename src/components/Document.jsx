@@ -1,6 +1,7 @@
 import { Button } from "@chakra-ui/button";
 import { useColorModeValue } from "@chakra-ui/color-mode";
 import { useDisclosure } from "@chakra-ui/hooks";
+import "../editor.scss";
 import {
   Modal,
   ModalOverlay,
@@ -19,13 +20,20 @@ import Highlight from "@tiptap/extension-highlight";
 import ListItem from "@tiptap/extension-list-item";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { bindActionCreators } from "redux";
 import {
   updateContent,
   updateTitle,
   updateDocumentParent,
   toggleExpanded,
+  removeDocument,
 } from "../slices/docSlice";
 import { MenuBar } from "./Editor";
 import { connect } from "react-redux";
@@ -36,6 +44,17 @@ import { IconFileText } from "@tabler/icons-react";
 import { Editable } from "@chakra-ui/editable";
 import CustomEditablePreview from "./CustomEditablePreview";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
+import {
+  Menu,
+  MenuDivider,
+  MenuItem,
+  MenuList,
+  Portal,
+} from "@chakra-ui/react";
+import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
+import { addBoardChild, removeBoardChild } from "../slices/boardSlice";
+import { addColumnChild, removeColumnChild } from "../slices/columnSlice";
+import { addNote } from "../slices/noteSlice";
 
 const Document = ({
   id,
@@ -49,8 +68,16 @@ const Document = ({
   title,
   content,
   parent,
+  setContextMenu,
+  openContextMenu,
   updateContent,
   updateTitle,
+  addBoardChild,
+  removeBoardChild,
+  addColumnChild,
+  removeColumnChild,
+  addNote,
+  removeDocument,
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isInColumn, setIsInColumn] = useState(false);
@@ -126,10 +153,99 @@ const Document = ({
     editor.commands.setTextSelection({ from, to });
   }, [content, editor]);
 
+  const deleteDocument = () => {
+    console.log("deleting note");
+    switch (parent.type) {
+      case BoardObjects.BOARD:
+        removeBoardChild({ boardId: parent.id, childId: id });
+        removeDocument({ documentId: id });
+        break;
+      case BoardObjects.COLUMN:
+        removeColumnChild({ columnId: parent.id, childId: id });
+        removeDocument({ documentId: id });
+        break;
+    }
+  };
+
+  const convertDocument = () => {
+    console.log("HIII");
+    const newNote = {
+      id: id,
+      type: BoardObjects.NOTE,
+      pX: pX ? pX : 0,
+      pY: pY ? pY : 0,
+      sX: 200,
+      sY: 200,
+      content,
+      parent,
+    };
+    switch (parent.type) {
+      case BoardObjects.BOARD:
+        removeBoardChild({ boardId: parent.id, childId: id });
+        removeDocument({ documentId: id });
+        addNote(newNote);
+        addBoardChild({
+          boardId: parent.id,
+          childId: id,
+          childType: BoardObjects.NOTE,
+        });
+        break;
+      case BoardObjects.COLUMN:
+        removeColumnChild({ columnId: parent.id, childId: id });
+        removeDocument({ documentId: id });
+        addNote(newNote);
+        addColumnChild({
+          columnId: parent.id,
+          childId: id,
+          childType: BoardObjects.NOTE,
+        });
+        break;
+      default:
+        break;
+    }
+  };
+
+  const { setMenuItems, copyNodes } = useContext(ContextMenuContext);
+
+  const copyDocument = () => {
+    const document = {
+      // new Id will be assigned
+      type: BoardObjects.DOCUMENT,
+      pX, // need position in case user uses keyboard shortcut
+      pY,
+      title,
+      content,
+      expanded,
+      // parent does not have to be the same
+    };
+    copyNodes([document]);
+  };
+
+  const cutDocument = () => {
+    copyDocument();
+    deleteDocument();
+  };
+
+  const updateContextMenu = () => {
+    setMenuItems([
+      <MenuItem onClick={cutDocument}>Cut</MenuItem>,
+      <MenuItem onClick={copyDocument}>Copy</MenuItem>,
+      <MenuItem onClick={deleteDocument}>Delete</MenuItem>,
+      <MenuDivider />,
+      <MenuItem onClick={convertDocument}>Convert to note</MenuItem>,
+    ]);
+  };
+
   return (
     <>
       <Card
         ref={dragRef}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          updateContextMenu();
+          openContextMenu(e);
+        }}
         zIndex={2}
         p={isInColumn ? 1.5 : 0}
         draggable
@@ -168,7 +284,7 @@ const Document = ({
           outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
           rounded={"md"}
         >
-          <IconFileText w={"100%"} h={"100%"} />
+          <IconFileText pointerEvents={"none"} w={"100%"} h={"100%"} />
         </CardBody>
         <Editable
           flex={isInColumn ? 1 : undefined}
@@ -216,15 +332,15 @@ const Document = ({
             <MenuBar editor={editor} />
           </ModalHeader>
           <ModalBody rounded={"sm"} roundedTop={"none"} p={0} m={0}>
-            <Textarea
-              rounded={"sm"}
-              roundedTop={"none"}
-              h={"fit-content"}
-              minH={"100%"}
-              p={0}
-              m={0}
-              as={EditorContent}
-              border={"none"}
+            <EditorContent
+              style={{
+                height: "fit-content",
+                minHeight: "70vh",
+                padding: 0,
+                margin: 0,
+                border: "none",
+                outline: "none",
+              }}
               editor={editor}
             />
           </ModalBody>
@@ -249,7 +365,18 @@ const mapStateToProps = (state, ownProps) => {
 
 const mapDispatchToProps = (dispatch) => {
   return bindActionCreators(
-    { updateContent, updateTitle, toggleExpanded, updateDocumentParent },
+    {
+      updateContent,
+      updateTitle,
+      toggleExpanded,
+      updateDocumentParent,
+      addBoardChild,
+      removeBoardChild,
+      addColumnChild,
+      removeColumnChild,
+      addNote,
+      removeDocument,
+    },
     dispatch
   );
 };
