@@ -134,29 +134,11 @@ const Board = ({
   //#endregion
 
   //#region Context Menu
-  // const initialRef = useRef(null);
-  // const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  // const { isOpen, onOpen, onClose } = useDisclosure();
-
-  // const handleRightClick = (e) => {
-  //   if (e.target !== ref.current && e.target.parentNode !== ref.current) {
-  //     return;
-  //   }
-  //   const boundingRect = ref.current.getBoundingClientRect();
-
-  //   const mouseX = e.clientX - boundingRect.left;
-  //   const mouseY = e.clientY - boundingRect.top;
-
-  //   setMousePos({ x: mouseX, y: mouseY });
-  //   onOpen();
-  // };
-
   const { handleRightClick, ContextMenu } = useContextMenu({
     containerRef: ref,
   });
 
-  const { setMenuItems, mousePos, copiedNodes } =
-    useContext(ContextMenuContext);
+  const { setMenuItems, copiedNodes } = useContext(ContextMenuContext);
 
   const pasteNodes = (mouseX, mouseY) => {
     copiedNodes.forEach((node) => {

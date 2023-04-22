@@ -1,7 +1,7 @@
 import { Button } from "@chakra-ui/button";
 import { useColorModeValue } from "@chakra-ui/color-mode";
 import { useDisclosure } from "@chakra-ui/hooks";
-import "../document-editor.scss";
+import "../editor.scss";
 import {
   Modal,
   ModalOverlay,
@@ -172,8 +172,8 @@ const Document = ({
     const newNote = {
       id: id,
       type: BoardObjects.NOTE,
-      pX,
-      pY,
+      pX: pX ? pX : 0,
+      pY: pY ? pY : 0,
       sX: 200,
       sY: 200,
       content,
@@ -208,7 +208,7 @@ const Document = ({
   const { setMenuItems, copyNodes } = useContext(ContextMenuContext);
 
   const copyDocument = () => {
-    const note = {
+    const document = {
       // new Id will be assigned
       type: BoardObjects.DOCUMENT,
       pX, // need position in case user uses keyboard shortcut
@@ -218,7 +218,7 @@ const Document = ({
       expanded,
       // parent does not have to be the same
     };
-    copyNodes([note]);
+    copyNodes([document]);
   };
 
   const cutDocument = () => {
@@ -240,6 +240,12 @@ const Document = ({
     <>
       <Card
         ref={dragRef}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          updateContextMenu();
+          openContextMenu(e);
+        }}
         zIndex={2}
         p={isInColumn ? 1.5 : 0}
         draggable
@@ -266,12 +272,6 @@ const Document = ({
         <CardBody
           flex={isInColumn ? 0.12 : undefined}
           cursor={"grab"}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            updateContextMenu();
-            openContextMenu(e);
-          }}
           onDoubleClick={onOpen}
           h={"65px"}
           w={"65px"}
@@ -332,15 +332,15 @@ const Document = ({
             <MenuBar editor={editor} />
           </ModalHeader>
           <ModalBody rounded={"sm"} roundedTop={"none"} p={0} m={0}>
-            <Textarea
-              rounded={"sm"}
-              roundedTop={"none"}
-              h={"fit-content"}
-              minH={"100%"}
-              p={0}
-              m={0}
-              as={EditorContent}
-              border={"none"}
+            <EditorContent
+              style={{
+                height: "fit-content",
+                minHeight: "70vh",
+                padding: 0,
+                margin: 0,
+                border: "none",
+                outline: "none",
+              }}
               editor={editor}
             />
           </ModalBody>

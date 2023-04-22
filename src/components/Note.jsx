@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 
 import { BoardObjects } from "../enums/items";
 import ResizeObserver from "rc-resize-observer";
-import "../note-editor.scss";
+import "../editor.scss";
 import {
   Box,
   Editable,
@@ -206,8 +206,8 @@ const Note = ({
         });
         break;
       case BoardObjects.COLUMN:
-        removeNote({ noteId: id });
         removeColumnChild({ columnId: parent.id, childId: id });
+        removeNote({ noteId: id });
         addDocument(newDocument);
         addColumnChild({
           columnId: parent.id,
@@ -279,7 +279,7 @@ const Note = ({
             dragRef.current.style.cursor = "grab";
           }}
           zIndex={2}
-          h={editor?.isEditable ? "fit-content" : sY + "px"}
+          h={editor?.isEditable ? "unset" : sY + "px"}
           w={isInColumn ? "full" : sX + "px"}
           minH={"75px"}
           maxH={"1000px"}
@@ -302,14 +302,15 @@ const Note = ({
           }}
         >
           <EditorContent
-            rounded={"sm"}
-            roundedTop={"none"}
-            p={0}
-            m={0}
-            pointerEvents={editor?.isEditable ? "unset" : "none"}
-            h={"fit-content"}
-            w={"100%"}
-            border={"none"}
+            style={{
+              padding: 0,
+              margin: 0,
+              width: "100%",
+              height: "fit-content",
+              overflow: "none",
+              border: "none",
+              pointerEvents: editor?.isEditable ? "unset" : "none",
+            }}
             editor={editor}
           />
         </Box>
