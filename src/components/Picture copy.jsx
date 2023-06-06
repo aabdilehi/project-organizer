@@ -34,8 +34,6 @@ import {
 } from "../utils/hooks/useContextMenu";
 import { removeBoardChild } from "../utils/slices/boardSlice";
 import { removeColumnChild } from "../utils/slices/columnSlice";
-import { fill } from "@cloudinary/url-gen/actions/resize";
-import { CloudinaryImage } from "@cloudinary/url-gen";
 
 // Important thing is to keep the aspect ratio of the image
 // Aspect ratio is width to height but the numbers are unpredictable

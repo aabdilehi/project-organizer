@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import "../App.css";
 import React, { useState, useEffect, useRef, useContext } from "react";
 import {
   Checkbox,
@@ -26,7 +25,7 @@ import {
   MenuList,
   MenuItem,
 } from "@chakra-ui/react";
-import { BoardObjects } from "../enums/items";
+import { BoardObjects } from "../utils/enums/items";
 import {
   AutoResizeEditableInput,
   AutoResizeTextArea,
@@ -41,13 +40,16 @@ import {
   updateDeadline,
   updateTaskStatus,
   removeTask,
-} from "../slices/taskSlice";
+} from "../utils/slices/taskSlice";
 import { connect } from "react-redux";
 import CustomEditablePreview from "./CustomEditablePreview";
-import { useSmoothDrag } from "../hooks/useSmoothDrag";
-import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
-import { removeBoardChild } from "../slices/boardSlice";
-import { removeColumnChild } from "../slices/columnSlice";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
+import {
+  ContextMenuContext,
+  useContextMenu,
+} from "../utils/hooks/useContextMenu";
+import { removeBoardChild } from "../utils/slices/boardSlice";
+import { removeColumnChild } from "../utils/slices/columnSlice";
 
 const ToDo = ({
   id,

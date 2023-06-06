@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { css } from "@emotion/react";
 
-import { SidebarObjects } from "../enums/items";
+import { SidebarObjects } from "../utils/enums/items";
 import { Box, Card, Stack, Text, useColorModeValue } from "@chakra-ui/react";
 import React from "react";
 

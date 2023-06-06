@@ -44,7 +44,7 @@ import {
 import { useColorModeValue } from "@chakra-ui/color-mode";
 import { IconHighlightOff } from "@tabler/icons-react";
 import { Tooltip } from "@chakra-ui/tooltip";
-import { useClickAndHold } from "../hooks/useClickAndHold";
+import { useClickAndHold } from "../utils/hooks/useClickAndHold";
 import {
   Modal,
   ModalBody,
@@ -53,7 +53,7 @@ import {
   ModalOverlay,
 } from "@chakra-ui/modal";
 import { useDisclosure } from "@chakra-ui/hooks";
-import { useDebounce } from "../hooks/useDebounced";
+import { useDebounce } from "../utils/hooks/useDebounced";
 import { debounce } from "lodash";
 
 export const MenuBar = ({ editor }) => {

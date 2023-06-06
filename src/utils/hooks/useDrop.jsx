@@ -36,6 +36,7 @@ import {
   updateDocumentParent,
   updateDocumentPosition,
 } from "../slices/docSlice";
+import mongoose from "mongoose";
 
 export function useBoardDrop({
   accept,
@@ -81,7 +82,7 @@ export function useBoardDrop({
           const yCoord =
             (event.clientY - boundingRect.top) / scale - position.y;
           const newNote = {
-            id: uuidv4(),
+            pubId: uuidv4(),
             type: BoardObjects.NOTE,
             pX: xCoord,
             pY: yCoord,
@@ -97,7 +98,7 @@ export function useBoardDrop({
           dispatch(
             addBoardChild({
               boardId,
-              childId: newNote.id,
+              childId: newNote.pubId,
               childType: newNote.type,
             })
           );
@@ -111,7 +112,7 @@ export function useBoardDrop({
           const yCoord =
             (event.clientY - boundingRect.top) / scale - position.y;
           const newColumn = {
-            id: uuidv4(),
+            pubId: uuidv4(),
             type: BoardObjects.COLUMN,
             pX: xCoord,
             pY: yCoord,
@@ -122,13 +123,13 @@ export function useBoardDrop({
               id: boardId,
               type: BoardObjects.BOARD,
             },
-            childRefs: [],
+            children: [],
           };
           dispatch(addColumn(newColumn));
           dispatch(
             addBoardChild({
               boardId,
-              childId: newColumn.id,
+              childId: newColumn.pubId,
               childType: newColumn.type,
             })
           );
@@ -143,7 +144,7 @@ export function useBoardDrop({
           const yCoord =
             (event.clientY - boundingRect.top) / scale - position.y;
           const newPicture = {
-            id: uuidv4(),
+            pubId: uuidv4(),
             type: BoardObjects.IMAGE,
             pX: xCoord,
             pY: yCoord,
@@ -161,7 +162,7 @@ export function useBoardDrop({
           dispatch(
             addBoardChild({
               boardId,
-              childId: newPicture.id,
+              childId: newPicture.pubId,
               childType: newPicture.type,
             })
           );
@@ -176,7 +177,7 @@ export function useBoardDrop({
           const yCoord =
             (event.clientY - boundingRect.top) / scale - position.y;
           const newTask = {
-            id: uuidv4(),
+            pubId: uuidv4(),
             type: BoardObjects.TODO,
             pX: xCoord,
             pY: yCoord,
@@ -193,7 +194,7 @@ export function useBoardDrop({
           dispatch(
             addBoardChild({
               boardId,
-              childId: newTask.id,
+              childId: newTask.pubId,
               childType: newTask.type,
             })
           );
@@ -207,7 +208,7 @@ export function useBoardDrop({
           const yCoord =
             (event.clientY - boundingRect.top) / scale - position.y;
           const newBoard = {
-            id: uuidv4(),
+            pubId: uuidv4(),
             type: BoardObjects.BOARD,
             pX: xCoord,
             pY: yCoord,
@@ -216,13 +217,13 @@ export function useBoardDrop({
               id: boardId,
               type: BoardObjects.BOARD,
             },
-            childRefs: [],
+            children: [],
           };
           dispatch(addBoard(newBoard));
           dispatch(
             addBoardChild({
               boardId,
-              childId: newBoard.id,
+              childId: newBoard.pubId,
               childType: newBoard.type,
             })
           );
@@ -236,7 +237,7 @@ export function useBoardDrop({
           const yCoord =
             (event.clientY - boundingRect.top) / scale - position.y;
           const newDocument = {
-            id: uuidv4(),
+            pubId: uuidv4(),
             type: BoardObjects.DOCUMENT,
             pX: xCoord,
             pY: yCoord,
@@ -252,7 +253,7 @@ export function useBoardDrop({
           dispatch(
             addBoardChild({
               boardId,
-              childId: newDocument.id,
+              childId: newDocument.pubId,
               childType: newDocument.type,
             })
           );
@@ -562,7 +563,7 @@ export function useColumnDrop({
               id: columnId,
               type: BoardObjects.COLUMN,
             },
-            childRefs: [],
+            children: [],
           };
           dispatch(addBoard(newBoard));
           dispatch(

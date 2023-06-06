@@ -1,7 +1,6 @@
 import { Button } from "@chakra-ui/button";
 import { useColorModeValue } from "@chakra-ui/color-mode";
 import { useDisclosure } from "@chakra-ui/hooks";
-import "../editor.scss";
 import {
   Modal,
   ModalOverlay,
@@ -34,11 +33,11 @@ import {
   updateDocumentParent,
   toggleExpanded,
   removeDocument,
-} from "../slices/docSlice";
+} from "../utils/slices/docSlice";
 import { MenuBar } from "./Editor";
 import { connect } from "react-redux";
-import { BoardObjects } from "../enums/items";
-import { useSmoothDrag } from "../hooks/useSmoothDrag";
+import { BoardObjects } from "../utils/enums/items";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { Card, CardBody } from "@chakra-ui/card";
 import { IconFileText } from "@tabler/icons-react";
 import { Editable } from "@chakra-ui/editable";
@@ -51,10 +50,14 @@ import {
   MenuList,
   Portal,
 } from "@chakra-ui/react";
-import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
-import { addBoardChild, removeBoardChild } from "../slices/boardSlice";
-import { addColumnChild, removeColumnChild } from "../slices/columnSlice";
-import { addNote } from "../slices/noteSlice";
+import {
+  ContextMenuContext,
+  useContextMenu,
+} from "../utils/hooks/useContextMenu";
+import { addBoardChild, removeBoardChild } from "../utils/slices/boardSlice";
+import { addColumnChild, removeColumnChild } from "../utils/slices/columnSlice";
+import { addNote } from "../utils/slices/noteSlice";
+import { debounce } from "lodash";
 
 const Document = ({
   id,
@@ -82,6 +85,44 @@ const Document = ({
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isInColumn, setIsInColumn] = useState(false);
   const dragRef = useRef(null);
+
+  //#region  Debounce content
+  const [contentS, setContent] = useState(content);
+
+  const updateContentData = () => {
+    updateContent({ documentId: id, content: contentS });
+  };
+
+  const updateContentCallback = useCallback(debounce(updateContentData, 250), [
+    contentS,
+  ]);
+
+  useEffect(() => {
+    updateContentCallback();
+
+    return updateContentCallback.cancel;
+  }, [contentS, updateContentCallback]);
+
+  //#endregion
+
+  //#region  Debounce title
+  const [titleS, setTitle] = useState(title);
+
+  const updateTitleData = () => {
+    updateTitle({ documentId: id, title: titleS });
+  };
+
+  const updateTitleCallback = useCallback(debounce(updateTitleData, 250), [
+    titleS,
+  ]);
+
+  useEffect(() => {
+    updateTitleCallback();
+
+    return updateTitleCallback.cancel;
+  }, [titleS, updateTitleCallback]);
+
+  //#endregion
 
   //#region Drag hook
   const item = {
@@ -140,7 +181,7 @@ const Document = ({
     ],
     content: content,
     onUpdate: ({ editor }) => {
-      updateContent({ documentId: id, content: editor.getHTML() });
+      setContent(editor.getHTML());
     },
   });
 
@@ -288,7 +329,7 @@ const Document = ({
         </CardBody>
         <Editable
           flex={isInColumn ? 1 : undefined}
-          onChange={(value) => updateTitle({ documentId: id, title: value })}
+          onChange={(value) => setTitle(value)}
           m={0}
           mt={isInColumn ? undefined : 1.5}
           p={0}
@@ -298,7 +339,7 @@ const Document = ({
           wordBreak="break-word"
           placeholder="Board"
           isPreviewFocusable={false}
-          value={title}
+          value={titleS}
           color={useColorModeValue("black", "white")}
         >
           <CustomEditablePreview cursor={"text"} w={"83%"} m={0} p={0} />

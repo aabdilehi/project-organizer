@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { normalize } from "normalizr";
-import { taskSchema } from "../schema";
+import { taskSchema } from "../../schema";
 
 const taskSlice = createSlice({
   name: "tasks",

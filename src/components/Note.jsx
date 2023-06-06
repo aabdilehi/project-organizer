@@ -1,40 +1,27 @@
 /** @jsxImportSource @emotion/react */
-import "../App.css";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
-import { BoardObjects } from "../enums/items";
+import { BoardObjects } from "../utils/enums/items";
 import ResizeObserver from "rc-resize-observer";
-import "../editor.scss";
 import {
   Box,
-  Editable,
   ListItem,
-  Menu,
   MenuDivider,
   MenuItem,
-  MenuList,
-  Portal,
-  Textarea,
   useColorModeValue,
-  useDisclosure,
 } from "@chakra-ui/react";
-import { AutoResizeEditableTextArea } from "./AutoResizeTextarea";
-import CustomEditablePreview from "./CustomEditablePreview";
 import {
   updateContent,
   updateSize,
   updateNoteParent,
   removeNote,
-} from "../slices/noteSlice";
-import { addBoardChild, removeBoardChild } from "../slices/boardSlice";
-import { addColumnChild, removeColumnChild } from "../slices/columnSlice";
-import { addDocument } from "../slices/docSlice";
+} from "../utils/slices/noteSlice";
+import { addBoardChild, removeBoardChild } from "../utils/slices/boardSlice";
+import { addColumnChild, removeColumnChild } from "../utils/slices/columnSlice";
+import { addDocument } from "../utils/slices/docSlice";
 import { bindActionCreators } from "redux";
-import { connect, useSelector } from "react-redux";
-import { getEmptyImage } from "react-dnd-html5-backend";
-import { useSmoothDrag } from "../hooks/useSmoothDrag";
-import { wrap } from "framer-motion";
-import Board from "./Board";
+import { connect } from "react-redux";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Color from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
@@ -44,9 +31,10 @@ import Highlight from "@tiptap/extension-highlight";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
-import { useClickAndHold } from "../hooks/useClickAndHold";
-import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
+import { useClickAndHold } from "../utils/hooks/useClickAndHold";
+import { ContextMenuContext } from "../utils/hooks/useContextMenu";
 import { useContext } from "react";
+import { debounce } from "lodash";
 
 const Note = ({
   id,
@@ -71,6 +59,46 @@ const Note = ({
   removeColumnChild,
 }) => {
   const dragRef = useRef(null);
+  const [contentS, setContent] = useState(content);
+  const [sizeS, setSize] = useState({ x: sX, y: sY });
+
+  //#region  Debounce content
+  const updateContentData = () => {
+    updateContent({ noteId: id, content: contentS });
+  };
+
+  const updateContentCallback = useCallback(debounce(updateContentData, 250), [
+    contentS,
+  ]);
+
+  useEffect(() => {
+    updateContentCallback();
+
+    return updateContentCallback.cancel;
+  }, [contentS, updateContentCallback]);
+
+  //#endregion
+
+  //#region  Debounce size
+  const updateSizeData = () => {
+    updateSize({
+      noteId: id,
+      sX: sizeS.x / scale,
+      sY: sizeS.y / scale,
+    });
+  };
+
+  const updateSizeCallback = useCallback(debounce(updateSizeData, 500), [
+    sizeS,
+  ]);
+
+  useEffect(() => {
+    updateSizeCallback();
+
+    return updateSizeCallback.cancel;
+  }, [sizeS, updateSizeCallback]);
+
+  //#endregion
 
   // Determines sizing and positioning based on whether in column or not
   const [isInColumn, setIsInColumn] = useState(false);
@@ -131,7 +159,7 @@ const Note = ({
     ],
     content: content,
     onUpdate: ({ editor }) => {
-      updateContent({ noteId: id, content: editor.getHTML() });
+      setContent(editor.getHTML());
     },
     editable: false, // set to false by default then enable on single click
   });
@@ -259,7 +287,7 @@ const Note = ({
       <ResizeObserver
         onResize={({ width, height }) => {
           if (!editor?.isEditable) {
-            updateSize({ noteId: id, sX: width / scale, sY: height / scale });
+            setSize({ x: width, y: height });
           }
         }}
       >

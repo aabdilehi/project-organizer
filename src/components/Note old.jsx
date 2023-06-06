@@ -2,7 +2,7 @@
 import "../App.css";
 import { useState, useEffect, useRef } from "react";
 
-import { BoardObjects } from "../enums/items";
+import { BoardObjects } from "../utils/enums/items";
 import ResizeObserver from "rc-resize-observer";
 import { Box, Editable, ListItem, useColorModeValue } from "@chakra-ui/react";
 import { AutoResizeEditableTextArea } from "./AutoResizeTextarea";
@@ -11,11 +11,11 @@ import {
   updateContent,
   updateSize,
   updateNoteParent,
-} from "../slices/noteSlice";
+} from "../utils/slices/noteSlice";
 import { bindActionCreators } from "redux";
 import { connect, useSelector } from "react-redux";
 import { getEmptyImage } from "react-dnd-html5-backend";
-import { useSmoothDrag } from "../hooks/useSmoothDrag";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { wrap } from "framer-motion";
 import Board from "./Board";
 import { useEditor } from "@tiptap/react";

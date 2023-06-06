@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
-import "../App.css";
 import { useState, useEffect, useRef, useContext } from "react";
 
-import { BoardObjects, SidebarObjects } from "../enums/items";
+import { BoardObjects, SidebarObjects } from "../utils/enums/items";
 import {
   Card,
   CardBody,
@@ -19,26 +18,29 @@ import {
   removeBoard,
   removeBoardChild,
   updateTitle,
-} from "../slices/boardSlice";
+} from "../utils/slices/boardSlice";
 import { bindActionCreators } from "redux";
 import { connect, useSelector } from "react-redux";
-import { useSmoothDrag } from "../hooks/useSmoothDrag";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { StarIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
-import { useBoardDrop } from "../hooks/useDrop";
-import { removeNote } from "../slices/noteSlice";
-import { removeDocument } from "../slices/docSlice";
-import { removeTask } from "../slices/taskSlice";
-import { removePicture } from "../slices/pictureSlice";
-import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
-import { removeColumn, removeColumnChild } from "../slices/columnSlice";
+import { useBoardDrop } from "../utils/hooks/useDrop";
+import { removeNote } from "../utils/slices/noteSlice";
+import { removeDocument } from "../utils/slices/docSlice";
+import { removeTask } from "../utils/slices/taskSlice";
+import { removePicture } from "../utils/slices/pictureSlice";
+import {
+  ContextMenuContext,
+  useContextMenu,
+} from "../utils/hooks/useContextMenu";
+import { removeColumn, removeColumnChild } from "../utils/slices/columnSlice";
 
 const BoardIcon = ({
   id,
   boardId,
   boardRef,
   columnRef,
-  childRefs,
+  children,
   offset,
   scale,
   pX,
@@ -57,7 +59,6 @@ const BoardIcon = ({
   removePicture,
 }) => {
   const dragRef = useRef(null);
-  const navigate = useNavigate();
 
   // Determines sizing and positioning based on whether in column or not
   const [isInColumn, setIsInColumn] = useState(false);
@@ -119,7 +120,7 @@ const BoardIcon = ({
   const boards = useSelector((state) => state.boards);
   const deleteBoardChildren = (id) => {
     const board = boards[id];
-    board?.childRefs.forEach(({ childId, childType }) => {
+    board?.children.forEach(({ childId, childType }) => {
       switch (childType) {
         case BoardObjects.BOARD:
           deleteBoardChildren(childId);
@@ -155,7 +156,7 @@ const BoardIcon = ({
   const columns = useSelector((state) => state.columns);
   const deleteColumn = (boardId, colId) => {
     const column = columns[colId];
-    column.childRefs.forEach(({ childId, childType }) => {
+    column.children.forEach(({ childId, childType }) => {
       switch (childType) {
         case BoardObjects.BOARD:
           deleteBoardChildren(childId);
@@ -187,37 +188,41 @@ const BoardIcon = ({
   };
 
   const deleteBoard = () => {
-    childRefs.forEach(({ childId, childType }) => {
+    children.forEach(({ childId, childType }) => {
       switch (childType) {
         case BoardObjects.BOARD:
           deleteBoardChildren(childId);
-          removeBoardChild({ boardId: id, childId });
+          removeBoardChild({ boardId: id, childId, childType });
           removeBoard({ boardId: childId });
           break;
         case BoardObjects.COLUMN:
           deleteColumn(id, childId);
           break;
         case BoardObjects.NOTE:
-          removeBoardChild({ boardId: id, childId });
+          removeBoardChild({ boardId: id, childId, childType });
           removeNote({ noteId: childId });
           break;
         case BoardObjects.DOCUMENT:
-          removeBoardChild({ boardId: id, childId });
+          removeBoardChild({ boardId: id, childId, childType });
           removeDocument({ documentId: childId });
           break;
         case BoardObjects.TODO:
-          removeBoardChild({ boardId: id, childId });
+          removeBoardChild({ boardId: id, childId, childType });
           removeTask({ taskId: childId });
           break;
         case BoardObjects.IMAGE:
-          removeBoardChild({ boardId: id, childId });
+          removeBoardChild({ boardId: id, childId, childType });
           removePicture({ pictureId: childId });
           break;
         default:
           break;
       }
     });
-    removeBoardChild({ boardId: boardId, childId: id });
+    removeBoardChild({
+      boardId: boardId,
+      childId: id,
+      childType: BoardObjects.BOARD,
+    });
     removeBoard({ boardId: id });
   };
 
@@ -230,7 +235,7 @@ const BoardIcon = ({
       pX, // need position in case user uses keyboard shortcut
       pY,
       title,
-      childRefs: [],
+      children: [],
       // parent does not have to be the same
     };
     copyNodes([board]);
@@ -288,9 +293,6 @@ const BoardIcon = ({
         }}
         flex={isInColumn ? 0.12 : undefined}
         cursor={"grab"}
-        onDoubleClick={() => {
-          navigate(`/${id}`);
-        }}
         h={"65px"}
         w={"65px"}
         bg={
@@ -342,7 +344,7 @@ const mapStateToProps = (state, ownProps) => {
     pY: board.pY,
     title: board.title,
     parent: board.parent,
-    childRefs: board.childRefs,
+    children: board.children,
   };
 };
 

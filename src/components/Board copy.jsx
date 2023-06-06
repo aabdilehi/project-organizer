@@ -47,7 +47,6 @@ import {
 //#endregion
 
 const Board = ({
-  boardId,
   title,
   children,
   addNote,
@@ -59,6 +58,7 @@ const Board = ({
   addDocument,
 }) => {
   const ref = useRef(null);
+  const boardId = "root";
 
   const handleDoubleClick = (e) => {
     if (e.target !== ref.current && e.target.parentNode !== ref.current) {
@@ -450,13 +450,13 @@ const Board = ({
           height: "100%",
         }}
       >
-        {children.map(({ id, type }) => {
-          switch (type) {
+        {children.map(({ childId, childType }) => {
+          switch (childType) {
             case BoardObjects.NOTE:
               return (
                 <Note
-                  key={id}
-                  id={id}
+                  key={childId}
+                  id={childId}
                   boardRef={ref}
                   offset={position}
                   scale={scale}
@@ -466,9 +466,9 @@ const Board = ({
             case BoardObjects.COLUMN:
               return (
                 <Column
-                  key={id}
+                  key={childId}
                   boardId={boardId}
-                  id={id}
+                  id={childId}
                   boardRef={ref}
                   offset={position}
                   scale={scale}
@@ -478,9 +478,9 @@ const Board = ({
             case BoardObjects.IMAGE:
               return (
                 <Picture
-                  key={id}
+                  key={childId}
                   boardId={boardId}
-                  id={id}
+                  id={childId}
                   boardRef={ref}
                   offset={position}
                   scale={scale}
@@ -490,9 +490,9 @@ const Board = ({
             case BoardObjects.TODO:
               return (
                 <ToDo
-                  key={id}
+                  key={childId}
                   boardId={boardId}
-                  id={id}
+                  id={childId}
                   boardRef={ref}
                   offset={position}
                   scale={scale}
@@ -502,9 +502,9 @@ const Board = ({
             case BoardObjects.BOARD:
               return (
                 <BoardIcon
-                  key={id}
+                  key={childId}
                   boardId={boardId}
-                  id={id}
+                  id={childId}
                   boardRef={ref}
                   offset={position}
                   scale={scale}
@@ -514,9 +514,9 @@ const Board = ({
             case BoardObjects.DOCUMENT:
               return (
                 <Document
-                  key={id}
+                  key={childId}
                   boardId={boardId}
-                  id={id}
+                  id={childId}
                   boardRef={ref}
                   offset={position}
                   scale={scale}
@@ -534,14 +534,20 @@ const Board = ({
 //#endregion
 
 const mapStateToProps = (state, ownProps) => {
-  const boardId = ownProps.boardId;
+  const boardId = /*id ? id :*/ "root";
   const board = state.boards[boardId];
-
+  if (board) {
+    return {
+      validBoard: true,
+      title: board.title,
+      children: board.children,
+    };
+  }
   return {
-    title: board.title,
-    children: board.children,
+    validBoard: false,
   };
 };
+
 const mapDispatchToProps = (dispatch) => {
   return bindActionCreators(
     {

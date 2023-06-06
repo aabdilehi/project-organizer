@@ -9,7 +9,6 @@ import {
   useTheme,
 } from "@chakra-ui/react";
 
-import "../react-datepicker.css";
 import { format } from "date-fns";
 
 const ChakraDatepicker = chakra(DatePicker);
