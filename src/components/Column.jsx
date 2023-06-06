@@ -21,12 +21,8 @@ import {
   CardBody,
   Stack,
   Editable,
-  EditableInput,
   useColorModeValue,
-  Portal,
-  MenuList,
   MenuItem,
-  Menu,
 } from "@chakra-ui/react";
 import CustomEditablePreview from "./CustomEditablePreview";
 import { removeBoard, removeBoardChild } from "../slices/boardSlice";
@@ -43,7 +39,7 @@ import ToDo from "./ToDo";
 import BoardIcon from "./BoardIcon";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
 import Document from "./Document";
-import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
+import { ContextMenuContext } from "../hooks/useContextMenu";
 import { addBoard } from "../slices/boardSlice";
 import { addDocument, removeDocument } from "../slices/docSlice";
 

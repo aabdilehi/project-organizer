@@ -1,15 +1,11 @@
 //#region Imports
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import {
   Box,
-  Menu,
   MenuDivider,
   MenuItem,
-  MenuList,
-  Portal,
   useColorModeValue,
-  useDisclosure,
 } from "@chakra-ui/react";
 import { connect } from "react-redux";
 
@@ -104,8 +100,14 @@ const Board = ({
 
   //#region Pan and zoom behaviour
   const transformRef = useRef(null);
-  const { handleWheel, handleMouseDown, animate, scale, position } =
-    useSmoothBoardControls(transformRef, ref);
+  const {
+    handleWheel,
+    handleMouseDown,
+    handleTouchStart,
+    animate,
+    scale,
+    position,
+  } = useSmoothBoardControls(transformRef, ref);
 
   animate();
   //#endregion
@@ -438,6 +440,7 @@ const Board = ({
         bgColor={useColorModeValue("gray.200", "gray.900")}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         onDoubleClick={handleDoubleClick}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -456,6 +459,11 @@ const Board = ({
             transformOrigin: "top left",
             width: "100%",
             height: "100%",
+          }}
+          onPaste={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            pasteNodes(0, 0);
           }}
         >
           {childRefs.map(({ childId, childType }) => {
@@ -551,6 +559,7 @@ const mapStateToProps = (state, ownProps) => {
       validBoard: true,
       title: board.title,
       childRefs: board.childRefs,
+      parent: board.parent,
     };
   }
   return {

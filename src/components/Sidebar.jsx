@@ -1,11 +1,41 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 
 import { SidebarObjects } from "../enums/items";
-import { Box, Card, Stack, Text, useColorModeValue } from "@chakra-ui/react";
+import {
+  Button,
+  Card,
+  Center,
+  Stack,
+  Text,
+  useColorModeValue,
+} from "@chakra-ui/react";
 import React from "react";
+import {
+  IconArrowBack,
+  IconArrowLeft,
+  IconCheckbox,
+  IconFileText,
+  IconHome,
+  IconLayoutDashboard,
+  IconNote,
+  IconPhoto,
+  IconStack2,
+} from "@tabler/icons-react";
+import { withRouter } from "./ComponentWithRouterProp";
+import { useSelector } from "react-redux";
 
-const Sidebar = () => {
+const Sidebar = ({ router }) => {
+  const { id } = router.params;
+  const [board, setBoard] = useState();
+  const bruh = useSelector((state) => state.boards[!!id ? id : "root"]);
+  useEffect(() => {
+    console.log(bruh);
+    setBoard(bruh);
+  }, [id]);
+
+  useEffect(() => {}, []);
+
   return (
     <Stack
       bgColor={useColorModeValue("gray.300", "gray.700")}
@@ -18,17 +48,65 @@ const Sidebar = () => {
       w={"100px"}
       alignItems="center"
     >
-      <SidebarObject name="Board" type={SidebarObjects.BOARD} />
-      <SidebarObject name="Note" type={SidebarObjects.NOTE} />
-      <SidebarObject name="Document" type={SidebarObjects.DOCUMENT} />
-      <SidebarObject name="Column" type={SidebarObjects.COLUMN} />
-      <SidebarObject name="To-do" type={SidebarObjects.TODO} />
-      <SidebarObject name="Image" type={SidebarObjects.IMAGE} />
+      <Button
+        w={"full"}
+        h={"1.6em"}
+        onClick={() => {
+          console.log(board);
+          router.navigate(`/`);
+        }}
+        isDisabled={board.id === "root"}
+      >
+        <IconHome />
+      </Button>
+      <Button
+        w={"full"}
+        h={"1.6em"}
+        onClick={() => {
+          router.navigate(
+            board.parent.id === "root" ? `/` : `/${board.parent.id}`
+          );
+        }}
+        isDisabled={!board || !board.parent}
+      >
+        <IconArrowLeft />
+      </Button>
+
+      <SidebarObject
+        name="Board"
+        type={SidebarObjects.BOARD}
+        icon={<IconLayoutDashboard />}
+      />
+      <SidebarObject
+        name="Note"
+        type={SidebarObjects.NOTE}
+        icon={<IconNote />}
+      />
+      <SidebarObject
+        name="Document"
+        type={SidebarObjects.DOCUMENT}
+        icon={<IconFileText />}
+      />
+      <SidebarObject
+        name="Column"
+        type={SidebarObjects.COLUMN}
+        icon={<IconStack2 />}
+      />
+      <SidebarObject
+        name="To-do"
+        type={SidebarObjects.TODO}
+        icon={<IconCheckbox />}
+      />
+      <SidebarObject
+        name="Image"
+        type={SidebarObjects.IMAGE}
+        icon={<IconPhoto />}
+      />
     </Stack>
   );
 };
 
-const SidebarObject = ({ name, type }) => {
+const SidebarObject = ({ name, type, icon }) => {
   const ref = useRef(null);
 
   const handleDragStart = (event) => {
@@ -53,16 +131,17 @@ const SidebarObject = ({ name, type }) => {
         { bgColor: "gray.500", cursor: "pointer" }
       )}
     >
-      <Box
+      <Center
         css={css`
-          background-color: red;
-          height: 40px;
-          width: 40px;
+          height: auto;
+          width: auto;
         `}
-      ></Box>
+      >
+        {icon}
+      </Center>
       <Text>{name}</Text>
     </Card>
   );
 };
 
-export default Sidebar;
+export default withRouter(Sidebar);

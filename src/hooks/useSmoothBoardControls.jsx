@@ -54,13 +54,46 @@ export function useSmoothBoardControls(transformRef, boardRef) {
     }
   };
 
+  const handleTouchStart = (event) => {
+    event.preventDefault();
+    const startX = event.pageX - position.x;
+    const startY = event.pageY - position.y;
+
+    const handleTouchMove = (event) => {
+      event.preventDefault();
+      if (transformRef.current !== null) {
+        currentPositionX.current = event.pageX - startX;
+        currentPositionY.current = event.pageY - startY;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      setPosition({
+        x: currentPositionX.current,
+        y: currentPositionY.current,
+      });
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
+
+    document.addEventListener("touchmove", handleTouchMove);
+    document.addEventListener("touchend", handleTouchEnd);
+  };
+
   const animate = () => {
     if (transformRef.current !== null) {
       transformRef.current.style.transform = `scale(${lerpedScale.current}) translate(${currentPositionX.current}px, ${currentPositionY.current}px)`;
     }
     requestAnimationFrame(animate);
   };
-  return { handleWheel, handleMouseDown, animate, scale, position };
+  return {
+    handleWheel,
+    handleMouseDown,
+    handleTouchStart,
+    animate,
+    scale,
+    position,
+  };
 }
 
 // Same thing as drag. Only update internally until panning is over and THEN set state

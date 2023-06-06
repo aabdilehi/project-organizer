@@ -1,6 +1,6 @@
 import "./App.css";
 import { Box, ChakraProvider, Stack } from "@chakra-ui/react";
-import React from "react";
+import React, { useMemo, useState } from "react";
 import Board from "./components/Board";
 import Sidebar from "./components/Sidebar";
 import theme from "./config/theme";
@@ -10,6 +10,12 @@ import { Route, Routes } from "react-router-dom";
 import { ContextMenuProvider } from "./hooks/useContextMenu";
 
 function App() {
+  // const [currentBoard, setCurrentBoard] = useState(null);
+  // const boardData = useMemo(
+  //   () => ({ currentBoard, setCurrentBoard }),
+  //   [currentBoard, setCurrentBoard]
+  // );
+
   return (
     <ContextMenuProvider>
       <ChakraProvider theme={theme}>
