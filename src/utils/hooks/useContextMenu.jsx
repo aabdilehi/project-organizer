@@ -1,13 +1,7 @@
-import {
-  Menu,
-  MenuItem,
-  MenuList,
-  Portal,
-  useDisclosure,
-} from "@chakra-ui/react";
-import React, { useEffect, createContext, useMemo } from "react";
+import { Menu, MenuItem, MenuList, useDisclosure } from "@chakra-ui/react";
+import React, { useMemo } from "react";
 import { useContext } from "react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 export const ContextMenuContext = React.createContext(); // stupid name I know
 
@@ -77,9 +71,7 @@ export function useContextMenu({ containerRef }) {
           rounded={"sm"}
         >
           {React.Children.map(menuItems, (item) =>
-            item.type === MenuItem
-              ? React.cloneElement(item, styleProps)
-              : React.cloneElement(item)
+            item.type === MenuItem ? React.cloneElement(item, styleProps) : item
           )}
         </MenuList>
       </Menu>

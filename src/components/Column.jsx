@@ -1,16 +1,20 @@
 /** @jsxImportSource @emotion/react */
 import { useContext, useRef } from "react";
-import { BoardObjects, SidebarObjects } from "../enums/items";
+import { BoardObjects, SidebarObjects } from "../utils/enums/items";
 import { v4 as uuidv4 } from "uuid";
 import ResizeObserver from "rc-resize-observer";
-import { addNote, updateNoteParent, removeNote } from "../slices/noteSlice";
+import {
+  addNote,
+  updateNoteParent,
+  removeNote,
+} from "../utils/slices/noteSlice";
 import {
   updateColumnTitle,
   addColumnChild,
   removeColumnChild,
   updateColumnSize,
   removeColumn,
-} from "../slices/columnSlice";
+} from "../utils/slices/columnSlice";
 import { bindActionCreators } from "redux";
 import { connect, useSelector } from "react-redux";
 
@@ -25,23 +29,28 @@ import {
   MenuItem,
 } from "@chakra-ui/react";
 import CustomEditablePreview from "./CustomEditablePreview";
-import { removeBoard, removeBoardChild } from "../slices/boardSlice";
+import { removeBoard, removeBoardChild } from "../utils/slices/boardSlice";
 import {
   addPicture,
   removePicture,
   updatePictureParent,
-} from "../slices/pictureSlice";
-import { addTask, removeTask, updateTaskParent } from "../slices/taskSlice";
+} from "../utils/slices/pictureSlice";
+import {
+  addTask,
+  removeTask,
+  updateTaskParent,
+} from "../utils/slices/taskSlice";
 import Picture from "./Picture";
-import { useSmoothDrag } from "../hooks/useSmoothDrag";
-import { useColumnDrop } from "../hooks/useDrop";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
+import { useColumnDrop } from "../utils/hooks/useDrop";
 import ToDo from "./ToDo";
 import BoardIcon from "./BoardIcon";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
 import Document from "./Document";
-import { ContextMenuContext } from "../hooks/useContextMenu";
-import { addBoard } from "../slices/boardSlice";
-import { addDocument, removeDocument } from "../slices/docSlice";
+import { ContextMenuContext } from "../utils/hooks/useContextMenu";
+import { addBoard } from "../utils/slices/boardSlice";
+import { addDocument, removeDocument } from "../utils/slices/docSlice";
+import { SelectedNodeContext } from "../App";
 
 const Column = ({
   id,
@@ -84,6 +93,8 @@ const Column = ({
     type: BoardObjects.COLUMN,
     parent: parent,
   };
+
+  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
 
   const { handleDragStart, handleDrag, handleDragEnd, animate } = useSmoothDrag(
     {
@@ -334,7 +345,11 @@ const Column = ({
           updateContextMenu();
           openContextMenu(e);
         }}
-        zIndex={1}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          handleSelectNode(e, id);
+        }}
+        zIndex={2}
         w={sX + "px"}
         direction={{ base: "column" }}
         alignItems="center"
@@ -347,12 +362,13 @@ const Column = ({
         overflow="hidden"
         rounded={"sm"}
         bgColor={useColorModeValue("gray.300", "gray.700")}
-        outline="1px solid"
+        outline={selectedNode?.includes(id) ? "3px solid" : "1px solid"}
         outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
         cursor={"grab"}
       >
-        <CardHeader p={1.5}>
+        <CardHeader draggable={false} p={1.5}>
           <Editable
+            draggable={false}
             as="h2"
             fontSize="larger"
             fontWeight="800"
@@ -362,11 +378,13 @@ const Column = ({
             isPreviewFocusable={false}
           >
             <CustomEditablePreview
+              draggable={false}
               color={useColorModeValue("black", "white")}
               fontSize="larger"
               fontWeight="800"
             />
             <AutoResizeEditableInput
+              draggable={false}
               fontSize="larger"
               overflow={"hidden"}
               onChange={(e) =>
@@ -376,6 +394,7 @@ const Column = ({
           </Editable>
         </CardHeader>
         <CardBody
+          draggable={false}
           ref={columnRef}
           w="calc(100%)"
           alignItems="center"

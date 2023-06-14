@@ -13,10 +13,10 @@ import {
   Portal,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { useClickAndHold } from "../hooks/useClickAndHold";
+import { useClickAndHold } from "../utils/hooks/useClickAndHold";
 import CustomEditablePreview from "./CustomEditablePreview";
 import { AutoResizeEditableTextArea } from "./AutoResizeTextarea";
-import { BoardObjects } from "../enums/items";
+import { BoardObjects } from "../utils/enums/items";
 import { SmallAddIcon } from "@chakra-ui/icons";
 import { bindActionCreators } from "redux";
 import {
@@ -25,12 +25,15 @@ import {
   updateLabel,
   updateLabelVisibility,
   removePicture,
-} from "../slices/pictureSlice";
+} from "../utils/slices/pictureSlice";
 import { connect } from "react-redux";
-import { useSmoothDrag } from "../hooks/useSmoothDrag";
-import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
-import { removeBoardChild } from "../slices/boardSlice";
-import { removeColumnChild } from "../slices/columnSlice";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
+import {
+  ContextMenuContext,
+  useContextMenu,
+} from "../utils/hooks/useContextMenu";
+import { removeBoardChild } from "../utils/slices/boardSlice";
+import { removeColumnChild } from "../utils/slices/columnSlice";
 
 // Important thing is to keep the aspect ratio of the image
 // Aspect ratio is width to height but the numbers are unpredictable

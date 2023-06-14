@@ -9,35 +9,38 @@ import {
 } from "@chakra-ui/react";
 import { connect } from "react-redux";
 
-import { BoardObjects, SidebarObjects } from "../enums/items";
+import { BoardObjects, SidebarObjects } from "../utils/enums/items";
 
 import BoardIcon from "./BoardIcon";
 import {
   addBoard,
   addBoardChild,
   removeBoardChild,
-} from "../slices/boardSlice";
+} from "../utils/slices/boardSlice";
 
 import Note from "./Note";
-import { addNote } from "../slices/noteSlice";
+import { addNote } from "../utils/slices/noteSlice";
 import { bindActionCreators } from "redux";
 
 import Column from "./Column";
-import { addColumn } from "../slices/columnSlice";
+import { addColumn } from "../utils/slices/columnSlice";
 
 import Picture from "./Picture";
-import { addPicture } from "../slices/pictureSlice";
+import { addPicture } from "../utils/slices/pictureSlice";
 
 import ToDo from "./ToDo";
-import { addTask } from "../slices/taskSlice";
+import { addTask } from "../utils/slices/taskSlice";
 
 import Document from "./Document";
-import { addDocument } from "../slices/docSlice";
+import { addDocument } from "../utils/slices/docSlice";
 
-import { useBoardDrop } from "../hooks/useDrop";
-import { useSmoothBoardControls } from "../hooks/useSmoothBoardControls";
+import { useBoardDrop } from "../utils/hooks/useDrop";
+import { useSmoothBoardControls } from "../utils/hooks/useSmoothBoardControls";
 import { withRouter } from "./ComponentWithRouterProp";
-import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
+import {
+  ContextMenuContext,
+  useContextMenu,
+} from "../utils/hooks/useContextMenu";
 //#endregion
 
 const Board = ({
@@ -86,7 +89,6 @@ const Board = ({
   };
 
   useEffect(() => {
-    console.log(validBoard);
     if (!validBoard) {
       router.navigate("/");
     }
@@ -268,7 +270,6 @@ const Board = ({
       <MenuDivider />,
       <MenuItem
         onClick={() => {
-          console.log(scale);
           const newNote = {
             id: uuidv4(),
             type: BoardObjects.NOTE,
@@ -440,7 +441,7 @@ const Board = ({
         bgColor={useColorModeValue("gray.200", "gray.900")}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
+        // onTouchStart={handleTouchStart}
         onDoubleClick={handleDoubleClick}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -451,6 +452,7 @@ const Board = ({
         onDragOver={(event) => {
           allowDrop(event);
         }}
+        onResize={(e) => e.preventDefault()}
       >
         <ContextMenu />
         <Box

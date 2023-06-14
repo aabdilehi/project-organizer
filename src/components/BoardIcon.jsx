@@ -2,15 +2,12 @@
 import "../App.css";
 import { useState, useEffect, useRef, useContext } from "react";
 
-import { BoardObjects, SidebarObjects } from "../enums/items";
+import { BoardObjects, SidebarObjects } from "../utils/enums/items";
 import {
   Card,
   CardBody,
   Editable,
-  Menu,
   MenuItem,
-  MenuList,
-  Portal,
   useColorModeValue,
 } from "@chakra-ui/react";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
@@ -19,19 +16,20 @@ import {
   removeBoard,
   removeBoardChild,
   updateTitle,
-} from "../slices/boardSlice";
+} from "../utils/slices/boardSlice";
 import { bindActionCreators } from "redux";
 import { connect, useSelector } from "react-redux";
-import { useSmoothDrag } from "../hooks/useSmoothDrag";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { StarIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
-import { useBoardDrop } from "../hooks/useDrop";
-import { removeNote } from "../slices/noteSlice";
-import { removeDocument } from "../slices/docSlice";
-import { removeTask } from "../slices/taskSlice";
-import { removePicture } from "../slices/pictureSlice";
-import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
-import { removeColumn, removeColumnChild } from "../slices/columnSlice";
+import { useBoardDrop } from "../utils/hooks/useDrop";
+import { removeNote } from "../utils/slices/noteSlice";
+import { removeDocument } from "../utils/slices/docSlice";
+import { removeTask } from "../utils/slices/taskSlice";
+import { removePicture } from "../utils/slices/pictureSlice";
+import { ContextMenuContext } from "../utils/hooks/useContextMenu";
+import { removeColumn, removeColumnChild } from "../utils/slices/columnSlice";
+import { SelectedNodeContext } from "../App";
 
 const BoardIcon = ({
   id,
@@ -112,7 +110,6 @@ const BoardIcon = ({
   useEffect(() => {
     if (parent !== undefined) {
       setIsInColumn(parent.type === BoardObjects.COLUMN);
-      console.log(isInColumn);
     }
   }, [parent]);
 
@@ -248,6 +245,7 @@ const BoardIcon = ({
       <MenuItem onClick={deleteBoard}>Delete</MenuItem>,
     ]);
   };
+  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
 
   return (
     <Card
@@ -261,6 +259,10 @@ const BoardIcon = ({
       onDrop={(event) => drop(event)}
       onDragOver={(event) => {
         allowDrop(event);
+      }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        handleSelectNode(e, id);
       }}
       direction={isInColumn ? "row" : "column"}
       alignItems={"center"}
@@ -298,7 +300,7 @@ const BoardIcon = ({
             ? useColorModeValue("gray.300", "gray.700")
             : useColorModeValue("gray.400", "gray.800")
         }
-        outline="1px solid"
+        outline={selectedNode?.includes(id) ? "3px solid" : "1px solid"}
         outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
         rounded={"md"}
       >
@@ -336,7 +338,6 @@ const BoardIcon = ({
 const mapStateToProps = (state, ownProps) => {
   const { id } = ownProps;
   const board = state.boards[id];
-  console.log(board);
   return {
     pX: board.pX,
     pY: board.pY,

@@ -1,4 +1,6 @@
+import { useContext } from "react";
 import { useRef, useState } from "react";
+import { SelectedNodeContext } from "../../App";
 
 export function useSmoothBoardControls(transformRef, boardRef) {
   const offX = useRef(0);
@@ -25,8 +27,19 @@ export function useSmoothBoardControls(transformRef, boardRef) {
       });
     }
   };
-
+  const { handleSelectNode } = useContext(SelectedNodeContext);
   const handleMouseDown = (event) => {
+    if (event.type !== "mousedown") return;
+    if (
+      event.target !== boardRef.current &&
+      event.target !== transformRef.current
+    )
+      return;
+    if (event.button === 0) {
+      console.log("Clicking on board");
+      handleSelectNode(event, undefined);
+    }
+
     if (event.button === 1) {
       event.preventDefault();
       const startX = event.pageX - position.x;
@@ -56,14 +69,14 @@ export function useSmoothBoardControls(transformRef, boardRef) {
 
   const handleTouchStart = (event) => {
     event.preventDefault();
-    const startX = event.pageX - position.x;
-    const startY = event.pageY - position.y;
+    const startX = event.touches[0].pageX - position.x;
+    const startY = event.touches[0].pageY - position.y;
 
     const handleTouchMove = (event) => {
       event.preventDefault();
       if (transformRef.current !== null) {
-        currentPositionX.current = event.pageX - startX;
-        currentPositionY.current = event.pageY - startY;
+        currentPositionX.current = event.touches[0].pageX - startX;
+        currentPositionY.current = event.touches[0].pageY - startY;
       }
     };
 

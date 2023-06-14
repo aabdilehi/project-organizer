@@ -1,4 +1,3 @@
-import { Button } from "@chakra-ui/button";
 import { useColorModeValue } from "@chakra-ui/color-mode";
 import { useDisclosure } from "@chakra-ui/hooks";
 import "../editor.scss";
@@ -9,7 +8,6 @@ import {
   ModalHeader,
   ModalBody,
 } from "@chakra-ui/modal";
-import { Textarea } from "@chakra-ui/textarea";
 import Color from "@tiptap/extension-color";
 import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
@@ -20,13 +18,7 @@ import Highlight from "@tiptap/extension-highlight";
 import ListItem from "@tiptap/extension-list-item";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { bindActionCreators } from "redux";
 import {
   updateContent,
@@ -34,27 +26,22 @@ import {
   updateDocumentParent,
   toggleExpanded,
   removeDocument,
-} from "../slices/docSlice";
+} from "../utils/slices/docSlice";
 import { MenuBar } from "./Editor";
 import { connect } from "react-redux";
-import { BoardObjects } from "../enums/items";
-import { useSmoothDrag } from "../hooks/useSmoothDrag";
+import { BoardObjects } from "../utils/enums/items";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { Card, CardBody } from "@chakra-ui/card";
 import { IconFileText } from "@tabler/icons-react";
 import { Editable } from "@chakra-ui/editable";
 import CustomEditablePreview from "./CustomEditablePreview";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
-import {
-  Menu,
-  MenuDivider,
-  MenuItem,
-  MenuList,
-  Portal,
-} from "@chakra-ui/react";
-import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
-import { addBoardChild, removeBoardChild } from "../slices/boardSlice";
-import { addColumnChild, removeColumnChild } from "../slices/columnSlice";
-import { addNote } from "../slices/noteSlice";
+import { MenuDivider, MenuItem } from "@chakra-ui/react";
+import { ContextMenuContext } from "../utils/hooks/useContextMenu";
+import { addBoardChild, removeBoardChild } from "../utils/slices/boardSlice";
+import { addColumnChild, removeColumnChild } from "../utils/slices/columnSlice";
+import { addNote } from "../utils/slices/noteSlice";
+import { SelectedNodeContext } from "../App";
 
 const Document = ({
   id,
@@ -235,6 +222,7 @@ const Document = ({
       <MenuItem onClick={convertDocument}>Convert to note</MenuItem>,
     ]);
   };
+  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
 
   return (
     <>
@@ -245,6 +233,10 @@ const Document = ({
           e.stopPropagation();
           updateContextMenu();
           openContextMenu(e);
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          handleSelectNode(e, id);
         }}
         zIndex={2}
         p={isInColumn ? 1.5 : 0}
@@ -280,7 +272,7 @@ const Document = ({
               ? useColorModeValue("gray.300", "gray.700")
               : useColorModeValue("gray.400", "gray.800")
           }
-          outline="1px solid"
+          outline={selectedNode?.includes(id) ? "3px solid" : "1px solid"}
           outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
           rounded={"md"}
         >

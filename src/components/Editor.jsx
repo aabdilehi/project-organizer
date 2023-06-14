@@ -11,9 +11,8 @@ import { Color } from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
 import Underline from "@tiptap/extension-underline";
 
-import React, { useEffect, useRef, useState } from "react";
-import { Card, CardBody, CardHeader } from "@chakra-ui/card";
-import { Button, IconButton } from "@chakra-ui/button";
+import React, { useRef } from "react";
+import { IconButton } from "@chakra-ui/button";
 import {
   IconAlignCenter,
   IconAlignJustified,
@@ -42,18 +41,8 @@ import {
   IconUnderline,
 } from "@tabler/icons-react";
 import { useColorModeValue } from "@chakra-ui/color-mode";
-import { IconHighlightOff } from "@tabler/icons-react";
 import { Tooltip } from "@chakra-ui/tooltip";
-import { useClickAndHold } from "../hooks/useClickAndHold";
-import {
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalHeader,
-  ModalOverlay,
-} from "@chakra-ui/modal";
-import { useDisclosure } from "@chakra-ui/hooks";
-import { useDebounce } from "../hooks/useDebounced";
+import { useClickAndHold } from "../utils/hooks/useClickAndHold";
 import { debounce } from "lodash";
 
 export const MenuBar = ({ editor }) => {

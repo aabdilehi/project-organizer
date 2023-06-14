@@ -30,11 +30,12 @@ export function useSmoothDrag({
   let isDragging = useRef(false);
 
   const handleDragStart = (event) => {
-    console.log(event.target);
+    event.stopPropagation();
+    console.log("Dragging start");
     if (
       elementRef.current === null ||
       boardRef.current === null ||
-      event.target !== elementRef.current
+      event.currentTarget !== elementRef.current
     ) {
       return;
     }
@@ -64,7 +65,8 @@ export function useSmoothDrag({
   };
 
   const handleDrag = (event) => {
-    console.log("Hello");
+    event.stopPropagation();
+    // console.log(event.touches[0]);
     if (
       elementRef.current === null ||
       boardRef.current === null ||
@@ -87,6 +89,7 @@ export function useSmoothDrag({
   };
 
   const handleDragEnd = (event) => {
+    event.stopPropagation();
     elementRef.current.style.pointerEvents = "all";
     isDragging.current = false;
   };

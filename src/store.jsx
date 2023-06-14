@@ -4,12 +4,12 @@ import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 import { createStateSyncMiddleware } from "redux-state-sync";
 
-import boardReducer from "./slices/boardSlice";
-import columnReducer from "./slices/columnSlice";
-import noteReducer from "./slices/noteSlice";
-import pictureReducer from "./slices/pictureSlice";
-import taskReducer from "./slices/taskSlice";
-import docReducer from "./slices/docSlice";
+import boardReducer from "./utils/slices/boardSlice";
+import columnReducer from "./utils/slices/columnSlice";
+import noteReducer from "./utils/slices/noteSlice";
+import pictureReducer from "./utils/slices/pictureSlice";
+import taskReducer from "./utils/slices/taskSlice";
+import docReducer from "./utils/slices/docSlice";
 
 const initialState = {
   boards: {},

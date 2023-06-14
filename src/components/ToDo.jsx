@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
 import "../App.css";
-import React, { useState, useEffect, useRef, useContext } from "react";
+import { useState, useEffect, useRef, useContext, useMemo } from "react";
 import {
   Checkbox,
   Card,
@@ -21,12 +20,9 @@ import {
   Input,
   Editable,
   useColorModeValue,
-  Menu,
-  Portal,
-  MenuList,
   MenuItem,
 } from "@chakra-ui/react";
-import { BoardObjects } from "../enums/items";
+import { BoardObjects } from "../utils/enums/items";
 import {
   AutoResizeEditableInput,
   AutoResizeTextArea,
@@ -41,13 +37,15 @@ import {
   updateDeadline,
   updateTaskStatus,
   removeTask,
-} from "../slices/taskSlice";
+} from "../utils/slices/taskSlice";
 import { connect } from "react-redux";
 import CustomEditablePreview from "./CustomEditablePreview";
-import { useSmoothDrag } from "../hooks/useSmoothDrag";
-import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
-import { removeBoardChild } from "../slices/boardSlice";
-import { removeColumnChild } from "../slices/columnSlice";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
+import { ContextMenuContext } from "../utils/hooks/useContextMenu";
+import { removeBoardChild } from "../utils/slices/boardSlice";
+import { removeColumnChild } from "../utils/slices/columnSlice";
+import { BadgeC } from "../utils/classes/classes";
+import { SelectedNodeContext } from "../App";
 
 const ToDo = ({
   id,
@@ -74,6 +72,8 @@ const ToDo = ({
 }) => {
   const finalRef = useRef(null);
 
+  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
+
   // Modal control
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -84,6 +84,28 @@ const ToDo = ({
   const [date, setDate] = useState(deadline);
   const dragRef = useRef(null);
   const [isInColumn, setIsInColumn] = useState(false);
+
+  const [badges, setBadges] = useState([]);
+
+  const memoizedBadges = useMemo(() => badges, [badges, setBadges]);
+
+  useEffect(() => {
+    if (deadline !== null) {
+      setBadges((prev) => {
+        prev.push(
+          new BadgeC(
+            ` Due: ${
+              typeof deadline === "string"
+                ? format(parseISO(deadline), "dd MMM")
+                : format(deadline, "dd MMM")
+            }`,
+            "whatsapp"
+          )
+        );
+        return prev;
+      });
+    }
+  }, [deadline]);
 
   //#region  Drag behaviour
   const item = {
@@ -238,12 +260,16 @@ const ToDo = ({
         updateContextMenu();
         openContextMenu(e);
       }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        handleSelectNode(e, id);
+      }}
       zIndex={2}
       role="group"
       ref={dragRef}
       direction={{ base: "row" }}
       bg={useColorModeValue("gray.400", "gray.800")}
-      outline="1px solid"
+      outline={selectedNode?.includes(id) ? "3px solid" : "1px solid"}
       outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
       size={"sm"}
       maxW="1000px"
@@ -324,12 +350,7 @@ const ToDo = ({
               fontSize={{ base: "10px" }}
               size="lg"
               rounded="lg"
-            >
-              Due:{" "}
-              {typeof deadline === "string"
-                ? format(parseISO(deadline), "dd MMM")
-                : format(deadline, "dd MMM")}
-            </Badge>
+            ></Badge>
           ) : null}
           <Badge
             variant={"subtle"}
@@ -344,6 +365,23 @@ const ToDo = ({
           >
             @ Abokor
           </Badge>
+          {memoizedBadges.map((badge) => {
+            return (
+              <Badge
+                variant={"subtle"}
+                letterSpacing="wide"
+                colorScheme={badge.colour}
+                px={2}
+                py={1}
+                width="fit-content"
+                fontSize={{ base: "10px" }}
+                size="lg"
+                rounded="lg"
+              >
+                {badge.text}
+              </Badge>
+            );
+          })}
         </Stack>
       </Stack>
       {ModalMenu}

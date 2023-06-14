@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 
-import { SidebarObjects } from "../enums/items";
+import { SidebarObjects } from "../utils/enums/items";
 import {
   Button,
   Card,
@@ -34,8 +34,6 @@ const Sidebar = ({ router }) => {
     setBoard(bruh);
   }, [id]);
 
-  useEffect(() => {}, []);
-
   return (
     <Stack
       bgColor={useColorModeValue("gray.300", "gray.700")}
@@ -55,7 +53,7 @@ const Sidebar = ({ router }) => {
           console.log(board);
           router.navigate(`/`);
         }}
-        isDisabled={board.id === "root"}
+        isDisabled={!board || board.id === "root"}
       >
         <IconHome />
       </Button>

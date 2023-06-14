@@ -2,7 +2,7 @@
 import "../App.css";
 import { useState, useEffect, useRef } from "react";
 
-import { BoardObjects } from "../enums/items";
+import { BoardObjects } from "../utils/enums/items";
 import ResizeObserver from "rc-resize-observer";
 import "../editor.scss";
 import {
@@ -25,14 +25,14 @@ import {
   updateSize,
   updateNoteParent,
   removeNote,
-} from "../slices/noteSlice";
-import { addBoardChild, removeBoardChild } from "../slices/boardSlice";
-import { addColumnChild, removeColumnChild } from "../slices/columnSlice";
-import { addDocument } from "../slices/docSlice";
+} from "../utils/slices/noteSlice";
+import { addBoardChild, removeBoardChild } from "../utils/slices/boardSlice";
+import { addColumnChild, removeColumnChild } from "../utils/slices/columnSlice";
+import { addDocument } from "../utils/slices/docSlice";
 import { bindActionCreators } from "redux";
 import { connect, useSelector } from "react-redux";
 import { getEmptyImage } from "react-dnd-html5-backend";
-import { useSmoothDrag } from "../hooks/useSmoothDrag";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { wrap } from "framer-motion";
 import Board from "./Board";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -44,9 +44,13 @@ import Highlight from "@tiptap/extension-highlight";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
-import { useClickAndHold } from "../hooks/useClickAndHold";
-import { ContextMenuContext, useContextMenu } from "../hooks/useContextMenu";
+import { useClickAndHold } from "../utils/hooks/useClickAndHold";
+import {
+  ContextMenuContext,
+  useContextMenu,
+} from "../utils/hooks/useContextMenu";
 import { useContext } from "react";
+import { SelectedNodeContext } from "../App";
 
 const Note = ({
   id,
@@ -71,6 +75,7 @@ const Note = ({
   removeColumnChild,
 }) => {
   const dragRef = useRef(null);
+  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
 
   // Determines sizing and positioning based on whether in column or not
   const [isInColumn, setIsInColumn] = useState(false);
@@ -137,16 +142,31 @@ const Note = ({
   });
 
   const handleClick = (event) => {
+    event.stopPropagation();
     if (event.button === 0) {
       if (!editor || !dragRef.current) {
         return;
       }
-      editor.setEditable(true);
-      editor.commands.focus();
-      dragRef.current.draggable = false;
-      dragRef.current.style.cursor = "text";
+
+      if (selectedNode.includes(id)) {
+        editor.setEditable(true);
+        editor.commands.focus();
+        dragRef.current.draggable = false;
+        dragRef.current.style.cursor = "text";
+        return;
+      } else {
+        handleSelectNode(event, id);
+        return;
+      }
     }
   };
+  useEffect(() => {
+    if (selectedNode !== id) {
+      editor?.setEditable(false);
+      dragRef.current.draggable = true;
+      dragRef.current.style.cursor = "grab";
+    }
+  }, [selectedNode]);
 
   useEffect(() => {
     if (!editor) return;
@@ -158,6 +178,7 @@ const Note = ({
   }, [content, editor]);
 
   const handleHold = (event) => {
+    event.preventDefault();
     event.stopPropagation();
   };
 
@@ -286,7 +307,7 @@ const Note = ({
           minW={"75px"}
           maxW={"1000px"}
           bg={useColorModeValue("gray.400", "gray.800")}
-          outline="1px solid"
+          outline={selectedNode?.includes(id) ? "3px solid" : "1px solid"}
           outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
           cursor={"grab"}
           resize={isInColumn ? "vertical" : "both"}
