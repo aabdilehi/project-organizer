@@ -36,6 +36,7 @@ import {
   updateDocumentParent,
   updateDocumentPosition,
 } from "../slices/docSlice";
+import { TaskC } from "../classes/classes";
 
 export function useBoardDrop({
   accept,
@@ -175,20 +176,19 @@ export function useBoardDrop({
             (event.clientX - boundingRect.left) / scale - position.x;
           const yCoord =
             (event.clientY - boundingRect.top) / scale - position.y;
-          const newTask = {
-            id: uuidv4(),
-            type: BoardObjects.TODO,
-            pX: xCoord,
-            pY: yCoord,
-            text: "New task",
-            taskStatus: false,
-            summary: "",
-            deadline: null,
-            parent: {
+          const { ...newTask } = new TaskC(
+            xCoord,
+            yCoord,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            {
               id: boardId,
               type: BoardObjects.BOARD,
-            },
-          };
+            }
+          );
           dispatch(addTask(newTask));
           dispatch(
             addBoardChild({
@@ -523,20 +523,19 @@ export function useColumnDrop({
           const boundingRect = boardRef.current.getBoundingClientRect();
           const xCoord = event.clientX - boundingRect.left;
           const yCoord = event.clientY - boundingRect.top;
-          const newTask = {
-            id: uuidv4(),
-            type: BoardObjects.TODO,
-            pX: xCoord,
-            pY: yCoord,
-            text: "New task",
-            taskStatus: false,
-            summary: "",
-            deadline: null,
-            parent: {
-              id: columnId,
-              type: BoardObjects.COLUMN,
-            },
-          };
+          const { ...newTask } = new TaskC(
+            xCoord,
+            yCoord,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            {
+              id: boardId,
+              type: BoardObjects.BOARD,
+            }
+          );
           dispatch(addTask(newTask));
           dispatch(
             addColumnChild({

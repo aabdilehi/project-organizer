@@ -21,13 +21,16 @@ import {
   Editable,
   useColorModeValue,
   MenuItem,
+  Button,
+  Center,
+  EditableInput,
 } from "@chakra-ui/react";
 import { BoardObjects } from "../utils/enums/items";
 import {
   AutoResizeEditableInput,
   AutoResizeTextArea,
 } from "./AutoResizeTextarea.jsx";
-import { CheckIcon, CloseIcon, EditIcon } from "@chakra-ui/icons";
+import { AddIcon, CheckIcon, CloseIcon, EditIcon } from "@chakra-ui/icons";
 import ChkrDatepicker from "./Datepicker";
 import { format, parseISO } from "date-fns";
 import { bindActionCreators } from "redux";
@@ -36,7 +39,10 @@ import {
   updateSummary,
   updateDeadline,
   updateTaskStatus,
+  addBadge,
+  removeBadge,
   removeTask,
+  updateBadgeText,
 } from "../utils/slices/taskSlice";
 import { connect } from "react-redux";
 import CustomEditablePreview from "./CustomEditablePreview";
@@ -46,6 +52,7 @@ import { removeBoardChild } from "../utils/slices/boardSlice";
 import { removeColumnChild } from "../utils/slices/columnSlice";
 import { BadgeC } from "../utils/classes/classes";
 import { SelectedNodeContext } from "../App";
+import { IconPlus } from "@tabler/icons-react";
 
 const ToDo = ({
   id,
@@ -56,11 +63,15 @@ const ToDo = ({
   offset,
   scale,
   text,
+  badges,
   deadline,
   summary,
   parent,
   setContextMenu,
   openContextMenu,
+  addBadge,
+  removeBadge,
+  updateBadgeText,
   taskStatus,
   updateTaskStatus,
   updateText,
@@ -84,28 +95,6 @@ const ToDo = ({
   const [date, setDate] = useState(deadline);
   const dragRef = useRef(null);
   const [isInColumn, setIsInColumn] = useState(false);
-
-  const [badges, setBadges] = useState([]);
-
-  const memoizedBadges = useMemo(() => badges, [badges, setBadges]);
-
-  useEffect(() => {
-    if (deadline !== null) {
-      setBadges((prev) => {
-        prev.push(
-          new BadgeC(
-            ` Due: ${
-              typeof deadline === "string"
-                ? format(parseISO(deadline), "dd MMM")
-                : format(deadline, "dd MMM")
-            }`,
-            "whatsapp"
-          )
-        );
-        return prev;
-      });
-    }
-  }, [deadline]);
 
   //#region  Drag behaviour
   const item = {
@@ -163,6 +152,7 @@ const ToDo = ({
       deadline,
       summary,
       taskStatus,
+      badges,
       // parent does not have to be the same
     };
     copyNodes([task]);
@@ -224,6 +214,88 @@ const ToDo = ({
                 </Tooltip>
               </Stack>
             </Box>
+            <Box>
+              <Text as="p">Badges:</Text>
+              <Stack direction={"row"} flexWrap={"wrap"} gap={1} height={"2em"}>
+                {Object.values(badges)?.map((badge, index) => {
+                  return (
+                    <Badge
+                      variant={"subtle"}
+                      letterSpacing="wide"
+                      colorScheme={badge.colour}
+                      h={"100%"}
+                      px={2}
+                      py={1}
+                      style={{
+                        margin: 0,
+                      }}
+                      width="fit-content"
+                      fontSize={{ base: "10px" }}
+                      size="lg"
+                      rounded="lg"
+                    >
+                      <Stack direction={"row"}>
+                        <Editable
+                          onChange={(value) => {
+                            updateBadgeText({
+                              taskId: id,
+                              badgeId: badge.id,
+                              text: value,
+                            });
+                          }}
+                          m={0}
+                          p={0}
+                          style={{ height: "100%" }}
+                          textAlign={"center"}
+                          wordBreak="break-word"
+                          isPreviewFocusable={false}
+                          value={badge.text?.toUpperCase()}
+                        >
+                          <CustomEditablePreview h={"100%"} m={0} p={0} />
+                          <AutoResizeEditableInput
+                            h={"100%"}
+                            m={0}
+                            p={0}
+                            textAlign={"center"}
+                          />
+                        </Editable>
+                        <IconButton
+                          size="xs"
+                          rounded={"3xl"}
+                          icon={<CloseIcon fontSize={"3xs"} />}
+                          onClick={() => {
+                            removeBadge({ taskId: id, badgeId: badge.id });
+                          }}
+                        />
+                      </Stack>
+                    </Badge>
+                  );
+                })}
+                <IconButton
+                  icon={<AddIcon />}
+                  variant={"solid"}
+                  letterSpacing="wide"
+                  colorScheme={"messenger"}
+                  width="fit-content"
+                  h={"100%"}
+                  style={{
+                    margin: "0",
+                  }}
+                  p={1}
+                  pr={2}
+                  pl={2}
+                  border={"none"}
+                  textAlign={"center"}
+                  onClick={(e) => {
+                    const { ...newBadge } = new BadgeC();
+                    console.log(newBadge);
+                    addBadge({ taskId: id, newBadge });
+                  }}
+                  size="sm"
+                  rounded="lg"
+                />
+              </Stack>
+            </Box>
           </Stack>
         </ModalBody>
         <ModalFooter gap={2}>
@@ -283,62 +355,77 @@ const ToDo = ({
       cursor={"grab"}
       minW={isInColumn ? "100%;" : ""}
     >
-      <Checkbox
-        size={"lg"}
-        pl={5}
-        pr={5}
-        pt={1.5}
-        h="100%"
-        iconColor={useColorModeValue("black", "white")}
-        borderColor={useColorModeValue("blackAlpha.700", "whiteAlpha.500")}
-        _hover={useColorModeValue(
-          {
-            borderColor: "blackAlpha.500",
-          },
-          {
-            borderColor: "whiteAlpha.700",
-          }
-        )}
-        isChecked={taskStatus}
-        onChange={() =>
-          updateTaskStatus({ taskId: id, taskStatus: !taskStatus })
-        }
-      ></Checkbox>
-      <Stack marginBottom={2} direction={{ base: "column" }}>
-        <IconButton
-          position="absolute"
-          opacity={0}
-          variant={"outline"}
-          _groupHover={{ opacity: 1 }} // add this line
-          _hover={{ bgColor: "green.500" }}
-          tabIndex={1}
-          top={1.5}
-          right={1.5}
-          aria-label="edit-button"
-          size="sm"
-          icon={<EditIcon />}
-          onClick={() => {
-            setTaskText(text);
-            setDate(deadline);
-            setTaskSummary(summary);
-            onOpen();
-          }}
-        />
-        <Editable
-          onChange={(value) => updateText({ taskId: id, text: value })}
-          m={0}
-          p={0}
-          pr={3}
-          textAlign={"left"}
-          wordBreak="break-word"
-          isPreviewFocusable={false}
-          value={text}
-          color={useColorModeValue("black", "white")}
+      <Stack direction={{ base: "column" }} pl={5}>
+        <Stack
+          flexDirection={"row"}
+          alignItems={"center"}
+          alignContent={"center"}
+          gap={5}
         >
-          <CustomEditablePreview m={0} p={0} />
-          <AutoResizeEditableInput m={0} p={0} textAlign={"left"} />
-        </Editable>
-        <Stack direction={{ base: "row" }}>
+          <Checkbox
+            size={"lg"}
+            h="100%"
+            iconColor={useColorModeValue("black", "white")}
+            borderColor={useColorModeValue("blackAlpha.700", "whiteAlpha.500")}
+            _hover={useColorModeValue(
+              {
+                borderColor: "blackAlpha.500",
+              },
+              {
+                borderColor: "whiteAlpha.700",
+              }
+            )}
+            isChecked={taskStatus}
+            onChange={() =>
+              updateTaskStatus({ taskId: id, taskStatus: !taskStatus })
+            }
+          ></Checkbox>
+          <Editable
+            onChange={(value) => updateText({ taskId: id, text: value })}
+            textAlign={"left"}
+            wordBreak="break-word"
+            isPreviewFocusable={false}
+            value={text}
+            flex={1}
+            p={0}
+            style={{
+              margin: "0px",
+              height: "1.5em",
+              padding: "0px",
+            }}
+            color={useColorModeValue("black", "white")}
+            justifyItems={"center"}
+          >
+            <CustomEditablePreview p={0} m={0} h={"100%"} />
+            <AutoResizeEditableInput
+              p={0}
+              m={0}
+              h={"100%"}
+              textAlign={"left"}
+            />
+          </Editable>
+          <IconButton
+            opacity={0}
+            variant={"outline"}
+            _groupHover={{ opacity: 1 }} // add this line
+            _hover={{ bgColor: "green.500" }}
+            tabIndex={1}
+            position="absolute"
+            top={-1}
+            right={1}
+            aria-label="edit-button"
+            size="sm"
+            icon={<EditIcon />}
+            onClick={() => {
+              setTaskText(text);
+              setDate(deadline);
+              setTaskSummary(summary);
+              onOpen();
+            }}
+          />
+        </Stack>
+
+        <Stack direction={{ base: "row" }} pb={2} wrap={"wrap"} gap={1}>
           {deadline !== null ? (
             <Badge
               variant={"subtle"}
@@ -348,24 +435,16 @@ const ToDo = ({
               py={1}
               width="fit-content"
               fontSize={{ base: "10px" }}
+              style={{}}
               size="lg"
               rounded="lg"
-            ></Badge>
+            >
+              {typeof deadline === "string"
+                ? format(parseISO(deadline), "dd MMM")
+                : format(deadline, "dd MMM")}
+            </Badge>
           ) : null}
-          <Badge
-            variant={"subtle"}
-            letterSpacing="wide"
-            colorScheme={"whatsapp"}
-            px={2}
-            py={1}
-            width="fit-content"
-            fontSize={{ base: "10px" }}
-            size="lg"
-            rounded="lg"
-          >
-            @ Abokor
-          </Badge>
-          {memoizedBadges.map((badge) => {
+          {Object.values(badges)?.map((badge) => {
             return (
               <Badge
                 variant={"subtle"}
@@ -373,6 +452,9 @@ const ToDo = ({
                 colorScheme={badge.colour}
                 px={2}
                 py={1}
+                style={{
+                  margin: 0,
+                }}
                 width="fit-content"
                 fontSize={{ base: "10px" }}
                 size="lg"
@@ -396,6 +478,7 @@ const mapStateToProps = (state, ownProps) => {
     text: task.text,
     summary: task.summary,
     deadline: task.deadline,
+    badges: task.badges,
     pX: task.pX,
     pY: task.pY,
     taskStatus: task.taskStatus,
@@ -406,6 +489,9 @@ const mapStateToProps = (state, ownProps) => {
 const mapDispatchToProps = (dispatch) => {
   return bindActionCreators(
     {
+      addBadge,
+      removeBadge,
+      updateBadgeText,
       updateText,
       updateSummary,
       updateDeadline,

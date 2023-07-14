@@ -68,6 +68,8 @@ export const store = configureStore({
           "pictures/updateSize",
           "pictures/updateParent",
           "tasks/addTask",
+          "tasks/addBadge",
+          "tasks/removeBadge",
           "tasks/updateText",
           "tasks/updateDeadline",
           "tasks/updateTaskStatus",

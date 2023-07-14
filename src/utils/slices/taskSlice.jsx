@@ -82,6 +82,62 @@ const taskSlice = createSlice({
         },
       };
     },
+    updateBadges: (state, action) => {
+      const { taskId, badges } = action.payload;
+      const task = state[taskId];
+      return {
+        ...state,
+        [taskId]: {
+          ...task,
+          badges,
+        },
+      };
+    },
+    addBadge: (state, action) => {
+      const { taskId, newBadge } = action.payload;
+      const task = state[taskId];
+      console.log(newBadge);
+      const badges = { ...task.badges };
+      badges[newBadge.id] = newBadge;
+      return {
+        ...state,
+        [taskId]: {
+          ...task,
+          badges,
+        },
+      };
+    },
+    removeBadge: (state, action) => {
+      const { taskId, badgeId } = action.payload;
+      const task = state[taskId];
+      const badges = { ...task.badges };
+      delete badges[badgeId];
+      return {
+        ...state,
+        [taskId]: {
+          ...task,
+          badges,
+        },
+      };
+    },
+    updateBadgeText: (state, action) => {
+      const { taskId, badgeId, text } = action.payload;
+      const task = state[taskId];
+      const badges = task.badges;
+      const badge = { ...badges[badgeId] };
+      badge.text = text;
+
+      return {
+        ...state,
+        [taskId]: {
+          ...task,
+          badges: {
+            ...task.badges,
+            [badgeId]: badge,
+          },
+        },
+      };
+    },
     updateParent: (state, action) => {
       const { taskId, newParentId, newParentType } = action.payload;
       console.log(newParentType);
@@ -107,6 +163,9 @@ export const {
   updatePosition: updateTaskPosition,
   updateSize,
   updateSummary,
+  addBadge,
+  removeBadge,
+  updateBadgeText,
   updateDeadline,
   updateTaskStatus,
   updateParent: updateTaskParent,

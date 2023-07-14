@@ -1,5 +1,5 @@
 import { Menu, MenuItem, MenuList, useDisclosure } from "@chakra-ui/react";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useContext } from "react";
 import { useState } from "react";
 
@@ -42,6 +42,24 @@ export function useContextMenu({ containerRef }) {
   };
 
   const ContextMenu = () => {
+    const contextRef = useRef();
+
+    useEffect(() => {
+      const handleClick = (e) => {
+        e.stopPropagation();
+        if (
+          e.currentTarget !== contextRef.current ||
+          e.currentTarget.parentNode !== contextRef.current
+        ) {
+          onClose();
+        }
+      };
+      window.addEventListener("click", handleClick);
+      return () => {
+        window.removeEventListener("click", handleClick);
+      };
+    }, []);
+
     const styleProps = {
       rounded: "none",
       style: {
@@ -68,6 +86,7 @@ export function useContextMenu({ containerRef }) {
           pb={1}
           position="absolute"
           h={"fit-content"}
+          ref={contextRef}
           rounded={"sm"}
         >
           {React.Children.map(menuItems, (item) =>
@@ -81,5 +100,6 @@ export function useContextMenu({ containerRef }) {
   return {
     handleRightClick,
     ContextMenu,
+    onClose,
   };
 }

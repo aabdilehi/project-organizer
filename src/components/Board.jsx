@@ -41,6 +41,7 @@ import {
   ContextMenuContext,
   useContextMenu,
 } from "../utils/hooks/useContextMenu";
+import { NoteC, TaskC } from "../utils/classes/classes";
 //#endregion
 
 const Board = ({
@@ -56,52 +57,56 @@ const Board = ({
   addBoard,
   addDocument,
 }) => {
-  const ref = useRef(null);
-
+  //#region Handle initial page setup
   const { id } = router.params;
   const boardId = id ? id : "root";
 
-  const handleDoubleClick = (e) => {
-    if (e.target !== ref.current && e.target.parentNode !== ref.current) {
-      return;
-    }
-
-    const boundingRect = ref.current.getBoundingClientRect();
-
-    const mouseX = (e.clientX - boundingRect.left) / scale - position.x;
-    const mouseY = (e.clientY - boundingRect.top) / scale - position.y;
-
-    const newNote = {
-      id: uuidv4(),
-      type: BoardObjects.NOTE,
-      pX: mouseX,
-      pY: mouseY,
-      sX: 200,
-      sY: 200,
-      content: `<p>New note</p>`,
-      parent: {
-        id: boardId,
-        type: BoardObjects.BOARD,
-      },
-    };
-    addNote(newNote);
-    addBoardChild({ boardId, childId: newNote.id, childType: newNote.type });
-  };
-
+  // Redirect if board is invalid
   useEffect(() => {
     if (!validBoard) {
       router.navigate("/");
     }
   }, []);
 
+  // Set title of page to name of board
   useEffect(() => {
     if (document.querySelector("title")) {
       document.querySelector("title").textContent = title ? title : "Home";
     }
   }, [document.querySelector("title"), title]);
+  //#endregion
+
+  //#region References
+  const ref = useRef(null);
+  const transformRef = useRef(null);
+  //#endregion
+
+  const getMouse = (e) => {
+    const boundingRect = ref.current.getBoundingClientRect();
+    const mouseX = (e.clientX - boundingRect.left) / scale - position.x;
+    const mouseY = (e.clientY - boundingRect.top) / scale - position.y;
+
+    return {
+      mouseX,
+      mouseY,
+    };
+  };
+
+  const handleDoubleClick = (e) => {
+    if (e.target !== ref.current && e.target.parentNode !== ref.current) {
+      return;
+    }
+
+    const { mouseX, mouseY } = getMouse(e);
+    const newNote = new NoteC(mouseX, mouseY, undefined, undefined, undefined, {
+      id: boardId,
+      type: BoardObjects.BOARD,
+    });
+    addNote(newNote);
+    addBoardChild({ boardId, childId: newNote.id, childType: newNote.type });
+  };
 
   //#region Pan and zoom behaviour
-  const transformRef = useRef(null);
   const {
     handleWheel,
     handleMouseDown,
@@ -262,27 +267,23 @@ const Board = ({
   };
 
   const updateContextMenu = (e) => {
-    const boundingRect = ref.current.getBoundingClientRect();
-    const mouseX = (e.clientX - boundingRect.left) / scale - position.x;
-    const mouseY = (e.clientY - boundingRect.top) / scale - position.y;
+    const { mouseX, mouseY } = getMouse(e);
     setMenuItems([
       <MenuItem onClick={() => pasteNodes(mouseX, mouseY)}>Paste</MenuItem>,
       <MenuDivider />,
       <MenuItem
         onClick={() => {
-          const newNote = {
-            id: uuidv4(),
-            type: BoardObjects.NOTE,
-            pX: mouseX,
-            pY: mouseY,
-            sX: 200,
-            sY: 200,
-            content: `<strong>New note<strong>`,
-            parent: {
+          const newNote = new NoteC(
+            mouseX,
+            mouseY,
+            undefined,
+            undefined,
+            undefined,
+            {
               id: boardId,
               type: BoardObjects.BOARD,
-            },
-          };
+            }
+          );
           addNote(newNote);
           addBoardChild({
             boardId,
@@ -320,20 +321,19 @@ const Board = ({
       </MenuItem>,
       <MenuItem
         onClick={() => {
-          const newTask = {
-            id: uuidv4(),
-            type: BoardObjects.TODO,
-            pX: mouseX,
-            pY: mouseY,
-            text: "New task",
-            taskStatus: false,
-            summary: "",
-            deadline: null,
-            parent: {
+          const { ...newTask } = new TaskC(
+            mouseX,
+            mouseY,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            {
               id: boardId,
               type: BoardObjects.BOARD,
-            },
-          };
+            }
+          );
           addTask(newTask);
           addBoardChild({
             boardId,
