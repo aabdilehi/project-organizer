@@ -12,24 +12,24 @@ import {
 } from "@chakra-ui/react";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
 import CustomEditablePreview from "./CustomEditablePreview";
-import {
-  removeBoard,
-  removeBoardChild,
-  updateTitle,
-} from "../utils/slices/boardSlice";
+// import {
+//   removeBoard,
+//   removeBoardChild,
+//   updateTitle,
+// } from "../utils/slices/boardSlice";
 import { bindActionCreators } from "redux";
-import { connect, useSelector } from "react-redux";
+import { connect, useDispatch, useSelector } from "react-redux";
 import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { StarIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
 import { useBoardDrop } from "../utils/hooks/useDrop";
-import { removeNote } from "../utils/slices/noteSlice";
-import { removeDocument } from "../utils/slices/docSlice";
-import { removeTask } from "../utils/slices/taskSlice";
-import { removePicture } from "../utils/slices/pictureSlice";
 import { ContextMenuContext } from "../utils/hooks/useContextMenu";
-import { removeColumn, removeColumnChild } from "../utils/slices/columnSlice";
 import { SelectedNodeContext } from "../App";
+import {
+  removeChild,
+  removeNode,
+  updateTitle,
+} from "../utils/slices/nodeActions";
 
 const BoardIcon = ({
   id,
@@ -44,18 +44,10 @@ const BoardIcon = ({
   parent,
   openContextMenu,
   title,
-  updateTitle,
-  removeBoard,
-  removeBoardChild,
-  removeColumnChild,
-  removeColumn,
-  removeNote,
-  removeDocument,
-  removeTask,
-  removePicture,
 }) => {
   const dragRef = useRef(null);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   // Determines sizing and positioning based on whether in column or not
   const [isInColumn, setIsInColumn] = useState(false);
@@ -120,28 +112,20 @@ const BoardIcon = ({
       switch (childType) {
         case BoardObjects.BOARD:
           deleteBoardChildren(childId);
-          removeBoardChild({ boardId: id, childId });
-          removeBoard({ boardId: childId });
+          dispatch(
+            removeChild.action({ id, type: BoardObjects.BOARD, cId: childId })
+          );
+          dispatch(removeNode.action({ id: childId, type: childType }));
           break;
         case BoardObjects.COLUMN:
-          removeBoardChild({ boardId: id, childId });
-          deleteColumn(id, childId);
-          break;
         case BoardObjects.NOTE:
-          removeBoardChild({ boardId: id, childId });
-          removeNote({ noteId: childId });
-          break;
         case BoardObjects.DOCUMENT:
-          removeBoardChild({ boardId: id, childId });
-          removeDocument({ documentId: childId });
-          break;
         case BoardObjects.TODO:
-          removeBoardChild({ boardId: id, childId });
-          removeTask({ taskId: childId });
-          break;
         case BoardObjects.IMAGE:
-          removeBoardChild({ boardId: id, childId });
-          removePicture({ pictureId: childId });
+          dispatch(
+            removeChild.action({ id, type: BoardObjects.BOARD, cId: childId })
+          );
+          dispatch(removeNode.action({ id: childId, type: childType }));
           break;
         default:
           break;
@@ -156,69 +140,76 @@ const BoardIcon = ({
       switch (childType) {
         case BoardObjects.BOARD:
           deleteBoardChildren(childId);
-          removeColumnChild({ columnId: colId, childId });
-          removeBoard({ boardId: childId });
+          dispatch(
+            removeChild.action({
+              id: colId,
+              type: BoardObjects.COLUMN,
+              cId: childId,
+            })
+          );
+          dispatch(removeNode.action({ id: childId, type: childType }));
           break;
         case BoardObjects.NOTE:
-          removeColumnChild({ columnId: colId, childId });
-          removeNote({ noteId: childId });
-          break;
         case BoardObjects.DOCUMENT:
-          removeColumnChild({ columnId: colId, childId });
-          removeDocument({ documentId: childId });
-          break;
         case BoardObjects.TODO:
-          removeColumnChild({ columnId: colId, childId });
-          removeTask({ taskId: childId });
-          break;
         case BoardObjects.IMAGE:
-          removeColumnChild({ columnId: colId, childId });
-          removePicture({ pictureId: childId });
+          dispatch(
+            removeChild.action({
+              id: colId,
+              type: BoardObjects.COLUMN,
+              cId: childId,
+            })
+          );
+          dispatch(removeNode.action({ id: childId, type: childType }));
           break;
         default:
           break;
       }
     });
-    removeBoardChild({ boardId, childId: colId });
-    removeColumn({ columnId: colId });
+
+    dispatch(
+      removeChild.action({ id: boardId, type: BoardObjects.BOARD, cId: colId })
+    );
+    dispatch(removeNode.action({ id: colId, type: BoardObjects.COLUMN }));
   };
 
   const deleteBoard = () => {
-    childRefs.forEach(({ childId, childType }) => {
-      switch (childType) {
-        case BoardObjects.BOARD:
-          deleteBoardChildren(childId);
-          removeBoardChild({ boardId: id, childId });
-          removeBoard({ boardId: childId });
-          break;
-        case BoardObjects.COLUMN:
-          deleteColumn(id, childId);
-          break;
-        case BoardObjects.NOTE:
-          removeBoardChild({ boardId: id, childId });
-          removeNote({ noteId: childId });
-          break;
-        case BoardObjects.DOCUMENT:
-          removeBoardChild({ boardId: id, childId });
-          removeDocument({ documentId: childId });
-          break;
-        case BoardObjects.TODO:
-          removeBoardChild({ boardId: id, childId });
-          removeTask({ taskId: childId });
-          break;
-        case BoardObjects.IMAGE:
-          removeBoardChild({ boardId: id, childId });
-          removePicture({ pictureId: childId });
-          break;
-        default:
-          break;
-      }
-    });
-    removeBoardChild({ boardId: boardId, childId: id });
-    removeBoard({ boardId: id });
+    // childRefs.forEach(({ childId, childType }) => {
+    //   switch (childType) {
+    //     case BoardObjects.BOARD:
+    //       deleteBoardChildren(childId);
+    //       removeBoardChild({ boardId: id, childId });
+    //       removeBoard({ boardId: childId });
+    //       break;
+    //     case BoardObjects.COLUMN:
+    //       deleteColumn(id, childId);
+    //       break;
+    //     case BoardObjects.NOTE:
+    //       removeBoardChild({ boardId: id, childId });
+    //       removeNote({ noteId: childId });
+    //       break;
+    //     case BoardObjects.DOCUMENT:
+    //       removeBoardChild({ boardId: id, childId });
+    //       removeDocument({ documentId: childId });
+    //       break;
+    //     case BoardObjects.TODO:
+    //       removeBoardChild({ boardId: id, childId });
+    //       removeTask({ taskId: childId });
+    //       break;
+    //     case BoardObjects.IMAGE:
+    //       removeBoardChild({ boardId: id, childId });
+    //       removePicture({ pictureId: childId });
+    //       break;
+    //     default:
+    //       break;
+    //   }
+    // });
+    // removeBoardChild({ boardId: boardId, childId: id });
+    // removeBoard({ boardId: id });
   };
 
-  const { setMenuItems, copyNodes } = useContext(ContextMenuContext);
+  const { setMenuItems, setMenuProps, copyNodes } =
+    useContext(ContextMenuContext);
 
   const copyBoard = () => {
     const board = {
@@ -244,6 +235,12 @@ const BoardIcon = ({
       <MenuItem onClick={copyBoard}>Copy</MenuItem>,
       <MenuItem onClick={deleteBoard}>Delete</MenuItem>,
     ]);
+    setMenuProps({
+      canCopy: true,
+      canCut: true,
+      canDelete: true,
+      delete: deleteBoard,
+    });
   };
   const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
 
@@ -262,7 +259,15 @@ const BoardIcon = ({
       }}
       onMouseDown={(e) => {
         e.stopPropagation();
-        handleSelectNode(e, id);
+        handleSelectNode(e, {
+          id, // new Id will be assigned
+          type: BoardObjects.BOARD,
+          pX, // need position in case user uses keyboard shortcut
+          pY,
+          title,
+          childRefs: [],
+          // parent does not have to be the same
+        });
       }}
       direction={isInColumn ? "row" : "column"}
       alignItems={"center"}
@@ -300,7 +305,7 @@ const BoardIcon = ({
             ? useColorModeValue("gray.300", "gray.700")
             : useColorModeValue("gray.400", "gray.800")
         }
-        outline={selectedNode?.includes(id) ? "3px solid" : "1px solid"}
+        outline={!!selectedNode[id] ? "3px solid" : "1px solid"}
         outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
         rounded={"md"}
       >
@@ -308,7 +313,11 @@ const BoardIcon = ({
       </CardBody>
       <Editable
         flex={isInColumn ? 1 : undefined}
-        onChange={(value) => updateTitle({ boardId: id, title: value })}
+        onChange={(value) =>
+          dispatch(
+            updateTitle.action({ id, type: BoardObjects.BOARD, title: value })
+          )
+        }
         m={0}
         mt={isInColumn ? undefined : 1.5}
         p={0}
@@ -348,20 +357,7 @@ const mapStateToProps = (state, ownProps) => {
 };
 
 const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators(
-    {
-      updateTitle,
-      removeBoard,
-      removeBoardChild,
-      removeColumn,
-      removeColumnChild,
-      removeNote,
-      removeDocument,
-      removeTask,
-      removePicture,
-    },
-    dispatch
-  );
+  return bindActionCreators({}, dispatch);
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(BoardIcon);

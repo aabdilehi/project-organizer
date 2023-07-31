@@ -20,17 +20,8 @@ import {
 } from "@chakra-ui/react";
 import { AutoResizeEditableTextArea } from "./AutoResizeTextarea";
 import CustomEditablePreview from "./CustomEditablePreview";
-import {
-  updateContent,
-  updateSize,
-  updateNoteParent,
-  removeNote,
-} from "../utils/slices/noteSlice";
-import { addBoardChild, removeBoardChild } from "../utils/slices/boardSlice";
-import { addColumnChild, removeColumnChild } from "../utils/slices/columnSlice";
-import { addDocument } from "../utils/slices/docSlice";
 import { bindActionCreators } from "redux";
-import { connect, useSelector } from "react-redux";
+import { connect, useDispatch, useSelector } from "react-redux";
 import { getEmptyImage } from "react-dnd-html5-backend";
 import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { wrap } from "framer-motion";
@@ -51,6 +42,15 @@ import {
 } from "../utils/hooks/useContextMenu";
 import { useContext } from "react";
 import { SelectedNodeContext } from "../App";
+import {
+  addChild,
+  addNode,
+  removeChild,
+  removeNode,
+  updateContent,
+  updateSize,
+} from "../utils/slices/nodeActions";
+import { DocumentC } from "../utils/classes/classes";
 
 const Note = ({
   id,
@@ -65,18 +65,10 @@ const Note = ({
   content,
   parent,
   openContextMenu,
-  updateContent,
-  updateSize,
-  removeNote,
-  addDocument,
-  addBoardChild,
-  removeBoardChild,
-  addColumnChild,
-  removeColumnChild,
 }) => {
   const dragRef = useRef(null);
   const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
-
+  const dispatch = useDispatch();
   // Determines sizing and positioning based on whether in column or not
   const [isInColumn, setIsInColumn] = useState(false);
 
@@ -87,19 +79,24 @@ const Note = ({
     parent: parent,
   };
 
-  const { handleDragStart, handleDrag, handleDragEnd, animate } = useSmoothDrag(
-    {
-      boardId,
-      boardRef,
-      elementRef: dragRef,
-      initialCoords: { x: pX, y: pY },
-      shouldAnimate: true,
-      shouldPosition: !isInColumn,
-      item,
-      offset,
-      scale,
-    }
-  );
+  const {
+    handleDragStart,
+    handleDrag,
+    handleDragEnd,
+    animate,
+    isDragging,
+    setSelectedNodes,
+  } = useSmoothDrag({
+    boardId,
+    boardRef,
+    elementRef: dragRef,
+    initialCoords: { x: pX, y: pY },
+    shouldAnimate: true,
+    shouldPosition: !isInColumn,
+    item,
+    offset,
+    scale,
+  });
 
   animate();
 
@@ -136,7 +133,13 @@ const Note = ({
     ],
     content: content,
     onUpdate: ({ editor }) => {
-      updateContent({ noteId: id, content: editor.getHTML() });
+      dispatch(
+        updateContent.action({
+          id,
+          type: BoardObjects.NOTE,
+          content: editor.getHTML(),
+        })
+      );
     },
     editable: false, // set to false by default then enable on single click
   });
@@ -148,20 +151,49 @@ const Note = ({
         return;
       }
 
-      if (selectedNode.includes(id)) {
+      if (!event.ctrlKey && !!selectedNode[id]) {
         editor.setEditable(true);
         editor.commands.focus();
         dragRef.current.draggable = false;
         dragRef.current.style.cursor = "text";
         return;
-      } else {
-        handleSelectNode(event, id);
-        return;
       }
+      // else {
+      //   handleSelectNode(event, {
+      //     id, // new Id will be assigned
+      //     type: BoardObjects.NOTE,
+      //     pX, // need position in case user uses keyboard shortcut
+      //     pY,
+      //     sX,
+      //     sY,
+      //     content,
+      //     parent,
+      //   });
+      //   return;
+      // }
     }
   };
   useEffect(() => {
-    if (selectedNode !== id) {
+    const handleClickk = (e) => {
+      handleSelectNode(e, {
+        id, // new Id will be assigned
+        type: BoardObjects.NOTE,
+        pX, // need position in case user uses keyboard shortcut
+        pY,
+        sX,
+        sY,
+        content,
+        parent,
+      });
+    };
+    dragRef.current?.addEventListener("mousedown", handleClickk);
+    return () => {
+      dragRef.current?.removeEventListener("mousedown", handleClickk);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedNode[id]) {
       editor?.setEditable(false);
       dragRef.current.draggable = true;
       dragRef.current.style.cursor = "grab";
@@ -188,60 +220,35 @@ const Note = ({
   );
 
   const deleteNote = () => {
-    console.log("WHAT?");
-    switch (parent.type) {
-      case BoardObjects.BOARD:
-        removeBoardChild({ boardId: parent.id, childId: id });
-        removeNote({ noteId: id });
-        break;
-      case BoardObjects.COLUMN:
-        removeColumnChild({ columnId: parent.id, childId: id });
-        removeNote({ noteId: id });
-        break;
-      default:
-        break;
-    }
+    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
+    dispatch(removeNode.action({ id, type: BoardObjects.NOTE }));
   };
 
   const convertNote = () => {
-    console.log("HIII");
-    const newDocument = {
-      id: id,
-      type: BoardObjects.DOCUMENT,
+    const { ...newDocument } = new DocumentC({
+      id,
       pX,
       pY,
       title: `${editor?.getText().slice(0, 10)}...`,
       content,
-      expanded: false,
       parent,
-    };
-    switch (parent.type) {
-      case BoardObjects.BOARD:
-        removeBoardChild({ boardId: parent.id, childId: id });
-        removeNote({ noteId: id });
-        addDocument(newDocument);
-        addBoardChild({
-          boardId: parent.id,
-          childId: id,
-          childType: BoardObjects.DOCUMENT,
-        });
-        break;
-      case BoardObjects.COLUMN:
-        removeColumnChild({ columnId: parent.id, childId: id });
-        removeNote({ noteId: id });
-        addDocument(newDocument);
-        addColumnChild({
-          columnId: parent.id,
-          childId: id,
-          childType: BoardObjects.DOCUMENT,
-        });
-        break;
-      default:
-        break;
-    }
+    });
+
+    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
+    dispatch(removeNode.action({ id, type: BoardObjects.NOTE }));
+    dispatch(addNode.action(newDocument));
+    dispatch(
+      addChild.action({
+        id: parent.id,
+        type: parent.type,
+        cId: id,
+        cType: BoardObjects.DOCUMENT,
+      })
+    );
   };
 
-  const { setMenuItems, copyNodes } = useContext(ContextMenuContext);
+  const { setMenuItems, setMenuProps, copyNodes } =
+    useContext(ContextMenuContext);
 
   const copyNote = () => {
     const note = {
@@ -252,7 +259,7 @@ const Note = ({
       sX,
       sY,
       content,
-      // parent does not have to be the same
+      parent, // parent is needed now in case the parent is also in the copied nodes
     };
     copyNodes([note]);
   };
@@ -273,6 +280,14 @@ const Note = ({
         <MenuItem onClick={convertNote}>Convert to document</MenuItem>,
       ];
     });
+    setMenuProps(() => {
+      return {
+        canCopy: true,
+        canCut: true,
+        canDelete: true,
+        delete: deleteNote,
+      };
+    });
   };
 
   return (
@@ -280,7 +295,14 @@ const Note = ({
       <ResizeObserver
         onResize={({ width, height }) => {
           if (!editor?.isEditable) {
-            updateSize({ noteId: id, sX: width / scale, sY: height / scale });
+            dispatch(
+              updateSize.action({
+                id,
+                type: BoardObjects.NOTE,
+                sX: width / scale,
+                sY: height / scale,
+              })
+            );
           }
         }}
       >
@@ -307,7 +329,7 @@ const Note = ({
           minW={"75px"}
           maxW={"1000px"}
           bg={useColorModeValue("gray.400", "gray.800")}
-          outline={selectedNode?.includes(id) ? "3px solid" : "1px solid"}
+          outline={!!selectedNode[id] ? "3px solid" : "1px solid"}
           outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
           cursor={"grab"}
           resize={isInColumn ? "vertical" : "both"}
@@ -354,20 +376,7 @@ const mapStateToProps = (state, ownProps) => {
 };
 
 const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators(
-    {
-      updateContent,
-      updateSize,
-      updateNoteParent,
-      removeNote,
-      addDocument,
-      addBoardChild,
-      removeBoardChild,
-      addColumnChild,
-      removeColumnChild,
-    },
-    dispatch
-  );
+  return bindActionCreators({}, dispatch);
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Note);

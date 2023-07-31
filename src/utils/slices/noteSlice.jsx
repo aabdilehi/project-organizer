@@ -1,80 +1,25 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { normalize } from "normalizr";
-import { noteSchema } from "../schema";
+import {
+  addNode,
+  removeNode,
+  updateContent,
+  updateParent,
+  updatePosition,
+  updateSize,
+} from "./nodeActions";
 
 const noteSlice = createSlice({
   name: "notes",
   initialState: {},
-  reducers: {
-    addNote: (state, action) => {
-      const normalizedData = normalize(action.payload, noteSchema);
-      const { entities } = normalizedData;
-      return {
-        ...state,
-        ...entities.notes,
-      };
-    },
-    updateContent: (state, action) => {
-      const { noteId, content } = action.payload;
-      const note = state[noteId];
-      return {
-        ...state,
-        [noteId]: {
-          ...note,
-          content,
-        },
-      };
-    },
-    updatePosition: (state, action) => {
-      const { noteId, pX, pY } = action.payload;
-      const note = state[noteId];
-      return {
-        ...state,
-        [noteId]: {
-          ...note,
-          pX,
-          pY,
-        },
-      };
-    },
-    updateSize: (state, action) => {
-      const { noteId, sX, sY } = action.payload;
-      const note = state[noteId];
-      return {
-        ...state,
-        [noteId]: {
-          ...note,
-          sX,
-          sY,
-        },
-      };
-    },
-    updateParent: (state, action) => {
-      const { noteId, newParentId, newParentType } = action.payload;
-      console.log(newParentType);
-      const note = state[noteId];
-      return {
-        ...state,
-        [noteId]: {
-          ...note,
-          parent: { id: newParentId, type: newParentType },
-        },
-      };
-    },
-    removeNote: (state, action) => {
-      const { noteId } = action.payload;
-      delete state[noteId];
-    },
+  reducers: {},
+  extraReducers: (builder) => {
+    builder.addCase(addNode.action, addNode.reducer("note"));
+    builder.addCase(updateContent.action, updateContent.reducer("note"));
+    builder.addCase(updatePosition.action, updatePosition.reducer("note"));
+    builder.addCase(updateSize.action, updateSize.reducer("note"));
+    builder.addCase(updateParent.action, updateParent.reducer("note"));
+    builder.addCase(removeNode.action, removeNode.reducer("note"));
   },
 });
-
-export const {
-  addNote,
-  updateContent,
-  updatePosition: updateNotePosition,
-  updateSize,
-  updateParent: updateNoteParent,
-  removeNote,
-} = noteSlice.actions;
 
 export default noteSlice.reducer;

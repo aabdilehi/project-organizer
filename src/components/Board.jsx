@@ -7,33 +7,21 @@ import {
   MenuItem,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { connect } from "react-redux";
+import { connect, useDispatch } from "react-redux";
 
 import { BoardObjects, SidebarObjects } from "../utils/enums/items";
 
 import BoardIcon from "./BoardIcon";
-import {
-  addBoard,
-  addBoardChild,
-  removeBoardChild,
-} from "../utils/slices/boardSlice";
 
 import Note from "./Note";
-import { addNote } from "../utils/slices/noteSlice";
+//import { addNote } from "../utils/slices/noteSlice";
+import { addChild, addNode } from "../utils/slices/nodeActions";
 import { bindActionCreators } from "redux";
 
 import Column from "./Column";
-import { addColumn } from "../utils/slices/columnSlice";
-
 import Picture from "./Picture";
-import { addPicture } from "../utils/slices/pictureSlice";
-
 import ToDo from "./ToDo";
-import { addTask } from "../utils/slices/taskSlice";
-
 import Document from "./Document";
-import { addDocument } from "../utils/slices/docSlice";
-
 import { useBoardDrop } from "../utils/hooks/useDrop";
 import { useSmoothBoardControls } from "../utils/hooks/useSmoothBoardControls";
 import { withRouter } from "./ComponentWithRouterProp";
@@ -41,25 +29,22 @@ import {
   ContextMenuContext,
   useContextMenu,
 } from "../utils/hooks/useContextMenu";
-import { NoteC, TaskC } from "../utils/classes/classes";
+import {
+  BoardC,
+  ColumnC,
+  DocumentC,
+  NoteC,
+  PictureC,
+  TaskC,
+} from "../utils/classes/classes";
 //#endregion
 
-const Board = ({
-  validBoard,
-  title,
-  router,
-  childRefs,
-  addNote,
-  addBoardChild,
-  addColumn,
-  addTask,
-  addPicture,
-  addBoard,
-  addDocument,
-}) => {
+const Board = ({ validBoard, title, router, childRefs }) => {
   //#region Handle initial page setup
   const { id } = router.params;
   const boardId = id ? id : "root";
+
+  const dispatch = useDispatch();
 
   // Redirect if board is invalid
   useEffect(() => {
@@ -98,12 +83,23 @@ const Board = ({
     }
 
     const { mouseX, mouseY } = getMouse(e);
-    const newNote = new NoteC(mouseX, mouseY, undefined, undefined, undefined, {
-      id: boardId,
-      type: BoardObjects.BOARD,
+    const newNote = new NoteC({
+      pX: mouseX,
+      pY: mouseY,
+      parent: {
+        id: boardId,
+        type: BoardObjects.BOARD,
+      },
     });
-    addNote(newNote);
-    addBoardChild({ boardId, childId: newNote.id, childType: newNote.type });
+    dispatch(addNode.action(newNote));
+    dispatch(
+      addChild.action({
+        id: boardId,
+        type: BoardObjects.BOARD,
+        cId: newNote.id,
+        cType: newNote.type,
+      })
+    );
   };
 
   //#region Pan and zoom behaviour
@@ -147,83 +143,57 @@ const Board = ({
     containerRef: ref,
   });
 
-  const { setMenuItems, copiedNodes } = useContext(ContextMenuContext);
+  const { setMenuItems, setMenuProps, copiedNodes } =
+    useContext(ContextMenuContext);
 
-  const pasteNodes = (mouseX, mouseY) => {
-    copiedNodes.forEach((node) => {
+  const pasteNodes = (nodes, mouseX, mouseY) => {
+    nodes?.forEach((node) => {
+      let copiedNode;
       switch (node.type) {
         case BoardObjects.NOTE:
-          const copiedNote = {
+          copiedNode = {
             ...node,
-            id: uuidv4(),
             pX: mouseX,
             pY: mouseY,
-            parent: { id: boardId, type: BoardObjects.BOARD },
+            parent: !!node.parent
+              ? node.parent
+              : { id: boardId, type: BoardObjects.BOARD },
           };
-          addNote(copiedNote);
-          addBoardChild({
-            boardId,
-            childId: copiedNote.id,
-            childType: copiedNote.type,
-          });
           break;
         case BoardObjects.DOCUMENT:
-          const copiedDocument = {
+          copiedNode = {
             ...node,
-            id: uuidv4(),
             pX: mouseX,
             pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
+            parent: !!node.parent
+              ? node.parent
+              : { id: boardId, type: BoardObjects.BOARD },
           };
-          addDocument(copiedDocument);
-          addBoardChild({
-            boardId,
-            childId: copiedDocument.id,
-            childType: copiedDocument.type,
-          });
           break;
         case BoardObjects.IMAGE:
-          const newPicture = {
+          copiedNode = {
             ...node,
-            id: uuidv4(),
             pX: mouseX,
             pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
+            parent: !!node.parent
+              ? node.parent
+              : { id: boardId, type: BoardObjects.BOARD },
           };
-          addPicture(newPicture);
-          addBoardChild({
-            boardId,
-            childId: newPicture.id,
-            childType: newPicture.type,
-          });
           break;
         case BoardObjects.TODO:
-          const copiedTask = {
+          copiedNode = {
             ...node,
             id: uuidv4(),
             pX: mouseX,
             pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
+            parent: !!node.parent
+              ? node.parent
+              : { id: boardId, type: BoardObjects.BOARD },
           };
-          addTask(copiedTask);
-          addBoardChild({
-            boardId,
-            childId: copiedTask.id,
-            childType: copiedTask.type,
-          });
           break;
         case BoardObjects.COLUMN:
           // Need to copy the contents of the column and assign new Ids to them
-          const copiedColumn = {
+          copiedNode = {
             ...node,
             id: uuidv4(),
             pX: mouseX,
@@ -234,15 +204,9 @@ const Board = ({
             },
             childRefs: [],
           };
-          addColumn(copiedColumn);
-          addBoardChild({
-            boardId,
-            childId: copiedColumn.id,
-            childType: copiedColumn.type,
-          });
           break;
         case BoardObjects.BOARD:
-          const copiedBoard = {
+          copiedNode = {
             ...node,
             id: uuidv4(),
             pX: mouseX,
@@ -253,15 +217,21 @@ const Board = ({
             },
             childRefs: [],
           };
-          addBoard(copiedBoard);
-          addBoardChild({
-            boardId,
-            childId: copiedBoard.id,
-            childType: copiedBoard.type,
-          });
           break;
         default:
           break;
+      }
+
+      if (!!copiedNode) {
+        dispatch(addNode.action(copiedNode));
+        dispatch(
+          addChild.action({
+            id,
+            type: BoardObjects.BOARD,
+            cId: copiedNode.id,
+            cType: copiedNode.type,
+          })
+        );
       }
     });
   };
@@ -269,159 +239,154 @@ const Board = ({
   const updateContextMenu = (e) => {
     const { mouseX, mouseY } = getMouse(e);
     setMenuItems([
-      <MenuItem onClick={() => pasteNodes(mouseX, mouseY)}>Paste</MenuItem>,
-      <MenuDivider />,
-      <MenuItem
+      //<MenuItem onClick={() => pasteNodes(mouseX, mouseY)}>Paste</MenuItem>,
+      //<MenuDivider />,
+      <MenuItem // Note
         onClick={() => {
-          const newNote = new NoteC(
-            mouseX,
-            mouseY,
-            undefined,
-            undefined,
-            undefined,
-            {
+          const { ...newNote } = new NoteC({
+            pX: mouseX,
+            pY: mouseY,
+            parent: {
               id: boardId,
               type: BoardObjects.BOARD,
-            }
-          );
-          addNote(newNote);
-          addBoardChild({
-            boardId,
-            childId: newNote.id,
-            childType: newNote.type,
+            },
           });
+          dispatch(addNode.action(newNote));
+          dispatch(
+            addChild.action({
+              id: boardId,
+              type: BoardObjects.BOARD,
+              cId: newNote.id,
+              cType: newNote.type,
+            })
+          );
         }}
       >
         New Note
       </MenuItem>,
-      <MenuItem
+      <MenuItem // Document
         onClick={() => {
-          const newDocument = {
-            id: uuidv4(),
-            type: BoardObjects.DOCUMENT,
+          const { ...newDocument } = new DocumentC({
             pX: mouseX,
             pY: mouseY,
-            title: "New Document",
-            content: `<strong>New note<strong>`,
-            expanded: false,
             parent: {
               id: boardId,
               type: BoardObjects.BOARD,
             },
-          };
-          addDocument(newDocument);
-          addBoardChild({
-            boardId,
-            childId: newDocument.id,
-            childType: newDocument.type,
           });
+          dispatch(addNode.action(newDocument));
+          dispatch(
+            addChild.action({
+              id: boardId,
+              type: BoardObjects.BOARD,
+              cId: newDocument.id,
+              cType: newDocument.type,
+            })
+          );
         }}
       >
         New Document
       </MenuItem>,
-      <MenuItem
+      <MenuItem // Task
         onClick={() => {
-          const { ...newTask } = new TaskC(
-            mouseX,
-            mouseY,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            {
+          const { ...newTask } = new TaskC({
+            pX: mouseX,
+            pY: mouseY,
+            parent: {
               id: boardId,
               type: BoardObjects.BOARD,
-            }
-          );
-          addTask(newTask);
-          addBoardChild({
-            boardId,
-            childId: newTask.id,
-            childType: newTask.type,
+            },
           });
+          dispatch(addNode.action(newTask));
+          dispatch(
+            addChild.action({
+              id: boardId,
+              type: BoardObjects.BOARD,
+              cId: newTask.id,
+              cType: newTask.type,
+            })
+          );
         }}
       >
         New Task
       </MenuItem>,
-      <MenuItem
+      <MenuItem // Column
         onClick={() => {
-          const newColumn = {
-            id: uuidv4(),
-            type: BoardObjects.COLUMN,
+          const { ...newColumn } = new ColumnC({
             pX: mouseX,
             pY: mouseY,
             sX: 200,
-            sY: 200,
-            title: "New note",
             parent: {
               id: boardId,
               type: BoardObjects.BOARD,
             },
-            childRefs: [],
-          };
-          addColumn(newColumn);
-          addBoardChild({
-            boardId,
-            childId: newColumn.id,
-            childType: newColumn.type,
           });
+          dispatch(addNode.action(newColumn));
+          dispatch(
+            addChild.action({
+              id: boardId,
+              type: BoardObjects.BOARD,
+              cId: newColumn.id,
+              cType: newColumn.type,
+            })
+          );
         }}
       >
         New Column
       </MenuItem>,
-      <MenuItem
+      <MenuItem // Board
         onClick={() => {
-          const newBoard = {
-            id: uuidv4(),
-            type: BoardObjects.BOARD,
+          const { ...newBoard } = new BoardC({
             pX: mouseX,
             pY: mouseY,
-            title: "New Board",
             parent: {
               id: boardId,
               type: BoardObjects.BOARD,
             },
-            childRefs: [],
-          };
-          addBoard(newBoard);
-          addBoardChild({
-            boardId,
-            childId: newBoard.id,
-            childType: newBoard.type,
           });
+          dispatch(addNode.action(newBoard));
+          dispatch(
+            addChild.action({
+              id: boardId,
+              type: BoardObjects.BOARD,
+              cId: newBoard.id,
+              cType: newBoard.type,
+            })
+          );
         }}
       >
         New Board
       </MenuItem>,
-      <MenuItem
+      <MenuItem // Picture
         onClick={() => {
-          const newPicture = {
-            id: uuidv4(),
-            type: BoardObjects.IMAGE,
+          const { ...newPicture } = new PictureC({
             pX: mouseX,
             pY: mouseY,
-            sX: 200,
-            sY: 200,
-            image: "",
-            label: "Label",
-            showLabel: false,
             parent: {
               id: boardId,
               type: BoardObjects.BOARD,
             },
-          };
-          addPicture(newPicture);
-          addBoardChild({
-            boardId,
-            childId: newPicture.id,
-            childType: newPicture.type,
           });
+          dispatch(addNode.action(newPicture));
+          dispatch(
+            addChild.action({
+              id: boardId,
+              type: BoardObjects.BOARD,
+              cId: newPicture.id,
+              cType: newPicture.type,
+            })
+          );
         }}
       >
         New Image
       </MenuItem>,
     ]);
+    setMenuProps({
+      canPaste: true,
+      paste: (nodes) => {
+        pasteNodes(nodes, mouseX, mouseY);
+      },
+    });
   };
 
   //#endregion
@@ -454,7 +419,7 @@ const Board = ({
         }}
         onResize={(e) => e.preventDefault()}
       >
-        <ContextMenu />
+        <ContextMenu canCopy canCut canDelete />
         <Box
           ref={transformRef}
           style={{
@@ -570,19 +535,7 @@ const mapStateToProps = (state, ownProps) => {
 };
 
 const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators(
-    {
-      addBoardChild,
-      removeBoardChild,
-      addNote,
-      addColumn,
-      addPicture,
-      addTask,
-      addBoard,
-      addDocument,
-    },
-    dispatch
-  );
+  return bindActionCreators({}, dispatch);
 };
 
 export default withRouter(connect(mapStateToProps, mapDispatchToProps)(Board));

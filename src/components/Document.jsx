@@ -20,15 +20,9 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { bindActionCreators } from "redux";
-import {
-  updateContent,
-  updateTitle,
-  updateDocumentParent,
-  toggleExpanded,
-  removeDocument,
-} from "../utils/slices/docSlice";
+import { toggleExpanded } from "../utils/slices/docSlice";
 import { MenuBar } from "./Editor";
-import { connect } from "react-redux";
+import { connect, useDispatch } from "react-redux";
 import { BoardObjects } from "../utils/enums/items";
 import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { Card, CardBody } from "@chakra-ui/card";
@@ -38,10 +32,13 @@ import CustomEditablePreview from "./CustomEditablePreview";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
 import { MenuDivider, MenuItem } from "@chakra-ui/react";
 import { ContextMenuContext } from "../utils/hooks/useContextMenu";
-import { addBoardChild, removeBoardChild } from "../utils/slices/boardSlice";
-import { addColumnChild, removeColumnChild } from "../utils/slices/columnSlice";
-import { addNote } from "../utils/slices/noteSlice";
 import { SelectedNodeContext } from "../App";
+import {
+  removeChild,
+  removeNode,
+  updateContent,
+  updateTitle,
+} from "../utils/slices/nodeActions";
 
 const Document = ({
   id,
@@ -57,19 +54,11 @@ const Document = ({
   parent,
   setContextMenu,
   openContextMenu,
-  updateContent,
-  updateTitle,
-  addBoardChild,
-  removeBoardChild,
-  addColumnChild,
-  removeColumnChild,
-  addNote,
-  removeDocument,
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isInColumn, setIsInColumn] = useState(false);
   const dragRef = useRef(null);
-
+  const dispatch = useDispatch();
   //#region Drag hook
   const item = {
     id: id,
@@ -127,7 +116,13 @@ const Document = ({
     ],
     content: content,
     onUpdate: ({ editor }) => {
-      updateContent({ documentId: id, content: editor.getHTML() });
+      dispatch(
+        updateContent.action({
+          id,
+          type: BoardObjects.DOCUMENT,
+          content: editor.getHTML(),
+        })
+      );
     },
   });
 
@@ -141,17 +136,8 @@ const Document = ({
   }, [content, editor]);
 
   const deleteDocument = () => {
-    console.log("deleting note");
-    switch (parent.type) {
-      case BoardObjects.BOARD:
-        removeBoardChild({ boardId: parent.id, childId: id });
-        removeDocument({ documentId: id });
-        break;
-      case BoardObjects.COLUMN:
-        removeColumnChild({ columnId: parent.id, childId: id });
-        removeDocument({ documentId: id });
-        break;
-    }
+    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
+    dispatch(removeNode.action({ id, type: BoardObjects.DOCUMENT }));
   };
 
   const convertDocument = () => {
@@ -192,7 +178,8 @@ const Document = ({
     }
   };
 
-  const { setMenuItems, copyNodes } = useContext(ContextMenuContext);
+  const { setMenuItems, setMenuProps, copyNodes } =
+    useContext(ContextMenuContext);
 
   const copyDocument = () => {
     const document = {
@@ -221,6 +208,12 @@ const Document = ({
       <MenuDivider />,
       <MenuItem onClick={convertDocument}>Convert to note</MenuItem>,
     ]);
+    setMenuProps({
+      canCopy: true,
+      canCut: true,
+      canDelete: true,
+      delete: deleteDocument,
+    });
   };
   const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
 
@@ -236,7 +229,16 @@ const Document = ({
         }}
         onMouseDown={(e) => {
           e.stopPropagation();
-          handleSelectNode(e, id);
+          handleSelectNode(e, {
+            id, // new Id will be assigned
+            type: BoardObjects.DOCUMENT,
+            pX, // need position in case user uses keyboard shortcut
+            pY,
+            title,
+            content,
+            expanded,
+            // parent does not have to be the same
+          });
         }}
         zIndex={2}
         p={isInColumn ? 1.5 : 0}
@@ -272,7 +274,7 @@ const Document = ({
               ? useColorModeValue("gray.300", "gray.700")
               : useColorModeValue("gray.400", "gray.800")
           }
-          outline={selectedNode?.includes(id) ? "3px solid" : "1px solid"}
+          outline={!!selectedNode[id] ? "3px solid" : "1px solid"}
           outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
           rounded={"md"}
         >
@@ -280,7 +282,15 @@ const Document = ({
         </CardBody>
         <Editable
           flex={isInColumn ? 1 : undefined}
-          onChange={(value) => updateTitle({ documentId: id, title: value })}
+          onChange={(value) =>
+            dispatch(
+              updateTitle.action({
+                id,
+                type: BoardObjects.DOCUMENT,
+                title: value,
+              })
+            )
+          }
           m={0}
           mt={isInColumn ? undefined : 1.5}
           p={0}
@@ -358,16 +368,7 @@ const mapStateToProps = (state, ownProps) => {
 const mapDispatchToProps = (dispatch) => {
   return bindActionCreators(
     {
-      updateContent,
-      updateTitle,
       toggleExpanded,
-      updateDocumentParent,
-      addBoardChild,
-      removeBoardChild,
-      addColumnChild,
-      removeColumnChild,
-      addNote,
-      removeDocument,
     },
     dispatch
   );

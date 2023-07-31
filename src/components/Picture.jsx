@@ -21,19 +21,20 @@ import { SmallAddIcon } from "@chakra-ui/icons";
 import { bindActionCreators } from "redux";
 import {
   updateImage,
-  updateSize,
   updateLabel,
   updateLabelVisibility,
-  removePicture,
 } from "../utils/slices/pictureSlice";
-import { connect } from "react-redux";
+import { connect, useDispatch } from "react-redux";
 import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import {
   ContextMenuContext,
   useContextMenu,
 } from "../utils/hooks/useContextMenu";
-import { removeBoardChild } from "../utils/slices/boardSlice";
-import { removeColumnChild } from "../utils/slices/columnSlice";
+import {
+  removeChild,
+  removeNode,
+  updateSize,
+} from "../utils/slices/nodeActions";
 
 // Important thing is to keep the aspect ratio of the image
 // Aspect ratio is width to height but the numbers are unpredictable
@@ -59,10 +60,6 @@ const Picture = ({
   updateLabel,
   updateLabelVisibility,
   updateImage,
-  updateSize,
-  removeBoardChild,
-  removeColumnChild,
-  removePicture,
 }) => {
   const [labelHeight, setLabelHeight] = useState(0);
   const [imageHeight, setImageHeight] = useState(0);
@@ -73,6 +70,8 @@ const Picture = ({
   const uploadRef = useRef(null);
 
   const [isInColumn, setIsInColumn] = useState(false);
+
+  const dispatch = useDispatch();
 
   //#region Drag behaviour
 
@@ -110,11 +109,14 @@ const Picture = ({
   // Update total size using individual values
   useEffect(() => {
     if (!isInColumn && imageWidth !== 0 && imageHeight + labelHeight !== 0) {
-      updateSize({
-        pictureId: id,
-        sX: imageWidth,
-        sY: imageHeight + labelHeight,
-      });
+      dispatch(
+        updateSize.action({
+          id,
+          type: BoardObjects.IMAGE,
+          sX: imageWidth,
+          sY: imageHeight + labelHeight,
+        })
+      );
     }
   }, [imageHeight, imageWidth, labelHeight, isInColumn]);
 
@@ -131,16 +133,8 @@ const Picture = ({
   };
 
   const deletePicture = () => {
-    switch (parent.type) {
-      case BoardObjects.BOARD:
-        removeBoardChild({ boardId: parent.id, childId: id });
-        removePicture({ pictureId: id });
-        break;
-      case BoardObjects.COLUMN:
-        removeColumnChild({ columnId: parent.id, childId: id });
-        removePicture({ pictureId: id });
-        break;
-    }
+    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
+    dispatch(removeNode.action({ id, type: BoardObjects.IMAGE }));
   };
 
   const [imageMouseDownHandler, imageMouseUpHandler] = useClickAndHold(
@@ -343,11 +337,7 @@ const mapDispatchToProps = (dispatch) => {
     {
       updateImage,
       updateLabel,
-      updateSize,
       updateLabelVisibility,
-      removeBoardChild,
-      removeColumnChild,
-      removePicture,
     },
     dispatch
   );

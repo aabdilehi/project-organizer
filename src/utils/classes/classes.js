@@ -35,7 +35,14 @@ export class BadgeC {
 }
 
 export class NoteC {
-  constructor(pX, pY, sX = 200, sY = 200, content = `<p>New note</p>`, parent) {
+  constructor({
+    pX = 0,
+    pY = 0,
+    sX = 200,
+    sY = 200,
+    content = `<p>New note</p>`,
+    parent,
+  }) {
     this.id = uuidv4();
     this.type = BoardObjects.NOTE;
     this.pX = pX;
@@ -47,26 +54,102 @@ export class NoteC {
   }
 }
 
+export class DocumentC {
+  constructor({
+    id = undefined,
+    pX = 0,
+    pY = 0,
+    title = "New Document",
+    content = `<p>Content goes here</p>`,
+    expanded = false,
+    parent,
+  }) {
+    this.id = id ? id : uuidv4();
+    this.type = BoardObjects.DOCUMENT;
+    this.pX = pX;
+    this.pY = pY;
+    (this.title = title), (this.content = content);
+    this.expanded = expanded;
+    this.parent = parent;
+  }
+}
+
 export class TaskC {
-  constructor(
-    pX,
-    pY,
-    text = "New task",
+  constructor({
+    pX = 0,
+    pY = 0,
+    title = "New task",
     taskStatus = false,
-    summary = "",
+    content = "",
     deadline = null,
     badges = {},
-    parent
-  ) {
+    parent,
+  }) {
     this.id = uuidv4();
     this.type = BoardObjects.TODO;
     this.pX = pX;
     this.pY = pY;
-    this.text = text;
+    this.title = title;
     this.taskStatus = taskStatus;
-    this.summary = summary;
+    this.content = content;
     this.deadline = deadline;
     this.badges = badges;
     this.parent = parent;
+  }
+}
+
+export class PictureC {
+  constructor({
+    pX = 0,
+    pY = 0,
+    sX = 200,
+    sY = 200,
+    image = undefined,
+    label = undefined,
+    showLabel = false,
+    parent,
+  }) {
+    this.id = uuidv4();
+    this.type = BoardObjects.IMAGE;
+    this.pX = pX;
+    this.pY = pY;
+    this.sX = sX;
+    this.sY = sY;
+    this.image = image;
+    this.label = label;
+    this.showLabel = showLabel;
+    this.parent = parent;
+  }
+}
+
+export class BoardC {
+  constructor({ pX = 0, pY = 0, title = "New Board", parent, childRefs = [] }) {
+    this.id = uuidv4();
+    this.type = BoardObjects.BOARD;
+    this.pX = pX;
+    this.pY = pY;
+    this.title = title;
+    this.parent = parent;
+    this.childRefs = childRefs;
+  }
+}
+
+export class ColumnC {
+  constructor({
+    pX = 0,
+    pY = 0,
+    sX = 200,
+    title = "New Column",
+    parent,
+    childRefs = [],
+  }) {
+    this.id = uuidv4();
+    this.type = BoardObjects.COLUMN;
+    this.pX = pX;
+    this.pY = pY;
+    this.sX = sX;
+    this.title = title;
+    this.parent = parent;
+    this.childRefs = childRefs;
   }
 }

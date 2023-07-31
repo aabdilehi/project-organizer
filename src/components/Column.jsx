@@ -3,20 +3,8 @@ import { useContext, useRef } from "react";
 import { BoardObjects, SidebarObjects } from "../utils/enums/items";
 import { v4 as uuidv4 } from "uuid";
 import ResizeObserver from "rc-resize-observer";
-import {
-  addNote,
-  updateNoteParent,
-  removeNote,
-} from "../utils/slices/noteSlice";
-import {
-  updateColumnTitle,
-  addColumnChild,
-  removeColumnChild,
-  updateColumnSize,
-  removeColumn,
-} from "../utils/slices/columnSlice";
 import { bindActionCreators } from "redux";
-import { connect, useSelector } from "react-redux";
+import { connect, useDispatch, useSelector } from "react-redux";
 
 import Note from "./Note";
 import {
@@ -29,17 +17,6 @@ import {
   MenuItem,
 } from "@chakra-ui/react";
 import CustomEditablePreview from "./CustomEditablePreview";
-import { removeBoard, removeBoardChild } from "../utils/slices/boardSlice";
-import {
-  addPicture,
-  removePicture,
-  updatePictureParent,
-} from "../utils/slices/pictureSlice";
-import {
-  addTask,
-  removeTask,
-  updateTaskParent,
-} from "../utils/slices/taskSlice";
 import Picture from "./Picture";
 import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { useColumnDrop } from "../utils/hooks/useDrop";
@@ -48,9 +25,15 @@ import BoardIcon from "./BoardIcon";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
 import Document from "./Document";
 import { ContextMenuContext } from "../utils/hooks/useContextMenu";
-import { addBoard } from "../utils/slices/boardSlice";
-import { addDocument, removeDocument } from "../utils/slices/docSlice";
 import { SelectedNodeContext } from "../App";
+import {
+  addChild,
+  addNode,
+  removeChild,
+  removeNode,
+  updateSize,
+  updateTitle,
+} from "../utils/slices/nodeActions";
 
 const Column = ({
   id,
@@ -66,25 +49,11 @@ const Column = ({
   childRefs,
   parent,
   openContextMenu,
-  updateColumnTitle,
-  updateColumnSize,
-  removeColumn,
-  addColumnChild,
-  removeBoardChild,
-  removeColumnChild,
-  addNote,
-  removeNote,
-  addDocument,
-  removeDocument,
-  addPicture,
-  removePicture,
-  addTask,
-  removeTask,
-  addBoard,
-  removeBoard,
 }) => {
   const dragRef = useRef(null);
   const columnRef = useRef(null);
+
+  const dispatch = useDispatch();
 
   //#region Drag behaviour
 
@@ -146,28 +115,20 @@ const Column = ({
       switch (childType) {
         case BoardObjects.BOARD:
           deleteBoardChildren(childId);
-          removeBoardChild({ boardId: id, childId });
-          removeBoard({ boardId: childId });
+          dispatch(
+            removeChild.action({ id, type: BoardObjects.BOARD, cId: childId })
+          );
+          dispatch(removeNode.action({ id: childId, type: childType }));
           break;
         case BoardObjects.COLUMN:
-          removeBoardChild({ boardId: id, childId });
-          deleteColumn(id, childId);
-          break;
         case BoardObjects.NOTE:
-          removeBoardChild({ boardId: id, childId });
-          removeNote({ noteId: childId });
-          break;
         case BoardObjects.DOCUMENT:
-          removeBoardChild({ boardId: id, childId });
-          removeDocument({ documentId: childId });
-          break;
         case BoardObjects.TODO:
-          removeBoardChild({ boardId: id, childId });
-          removeTask({ taskId: childId });
-          break;
         case BoardObjects.IMAGE:
-          removeBoardChild({ boardId: id, childId });
-          removePicture({ pictureId: childId });
+          dispatch(
+            removeChild.action({ id, type: BoardObjects.BOARD, cId: childId })
+          );
+          dispatch(removeNode.action({ id: childId, type: childType }));
           break;
         default:
           break;
@@ -180,34 +141,40 @@ const Column = ({
       switch (childType) {
         case BoardObjects.BOARD:
           deleteBoardChildren(childId);
-          removeColumnChild({ columnId: colId, childId });
-          removeBoard({ boardId: childId });
+          dispatch(
+            removeChild.action({
+              id: colId,
+              type: BoardObjects.COLUMN,
+              cId: childId,
+            })
+          );
+          dispatch(removeNode.action({ id: childId, type: childType }));
           break;
         case BoardObjects.NOTE:
-          removeColumnChild({ columnId: colId, childId });
-          removeNote({ noteId: childId });
-          break;
         case BoardObjects.DOCUMENT:
-          removeColumnChild({ columnId: colId, childId });
-          removeDocument({ documentId: childId });
-          break;
         case BoardObjects.TODO:
-          removeColumnChild({ columnId: colId, childId });
-          removeTask({ taskId: childId });
-          break;
         case BoardObjects.IMAGE:
-          removeColumnChild({ columnId: colId, childId });
-          removePicture({ pictureId: childId });
+          dispatch(
+            removeChild.action({
+              id: colId,
+              type: BoardObjects.COLUMN,
+              cId: childId,
+            })
+          );
+          dispatch(removeNode.action({ id: childId, type: childType }));
           break;
         default:
           break;
       }
     });
-    removeBoardChild({ boardId, childId: colId });
-    removeColumn({ columnId: colId });
+
+    dispatch(
+      removeChild.action({ id: boardId, type: BoardObjects.BOARD, cId: colId })
+    );
+    dispatch(removeNode.action({ id: colId, type: BoardObjects.COLUMN }));
   };
 
-  const { setMenuItems, copiedNodes, copyNodes } =
+  const { setMenuItems, setMenuProps, copiedNodes, copyNodes } =
     useContext(ContextMenuContext);
 
   const copyColumn = () => {
@@ -229,87 +196,74 @@ const Column = ({
     deleteColumn(boardId, id);
   };
 
-  const pasteNodes = () => {
-    copiedNodes.forEach((node) => {
+  const pasteNodes = (nodes) => {
+    nodes.forEach((node) => {
+      let copiedNode;
       switch (node.type) {
         case BoardObjects.NOTE:
-          const copiedNote = {
+          copiedNode = {
             ...node,
-            id: uuidv4(),
             pX: 0,
             pY: 0,
-            parent: { id: id, type: BoardObjects.COLUMN },
+            parent: !!node.parent
+              ? node.parent
+              : { id: id, type: BoardObjects.COLUMN },
           };
-          addNote(copiedNote);
-          addColumnChild({
-            columnId: id,
-            childId: copiedNote.id,
-            childType: copiedNote.type,
-          });
           break;
         case BoardObjects.DOCUMENT:
-          const copiedDocument = {
+          copiedNode = {
             ...node,
-            id: uuidv4(),
             pX: 0,
             pY: 0,
-            parent: { id: id, type: BoardObjects.COLUMN },
+            parent: !!node.parent
+              ? node.parent
+              : { id: id, type: BoardObjects.COLUMN },
           };
-          addDocument(copiedDocument);
-          addColumnChild({
-            columnId: id,
-            childId: copiedDocument.id,
-            childType: copiedDocument.type,
-          });
           break;
         case BoardObjects.IMAGE:
-          const newPicture = {
+          copiedNode = {
             ...node,
-            id: uuidv4(),
             pX: 0,
             pY: 0,
-            parent: { id: id, type: BoardObjects.COLUMN },
+            parent: !!node.parent
+              ? node.parent
+              : { id: id, type: BoardObjects.COLUMN },
           };
-          addPicture(newPicture);
-          addColumnChild({
-            columnId: id,
-            childId: newPicture.id,
-            childType: newPicture.type,
-          });
           break;
         case BoardObjects.TODO:
-          const copiedTask = {
+          copiedNode = {
             ...node,
-            id: uuidv4(),
             pX: 0,
             pY: 0,
-            parent: { id: id, type: BoardObjects.COLUMN },
+            parent: !!node.parent
+              ? node.parent
+              : { id: id, type: BoardObjects.COLUMN },
           };
-          addTask(copiedTask);
-          addColumnChild({
-            columnId: id,
-            childId: copiedTask.id,
-            childType: copiedTask.type,
-          });
           break;
         case BoardObjects.BOARD:
-          const copiedBoard = {
+          copiedNode = {
             ...node,
-            id: uuidv4(),
             pX: 0,
             pY: 0,
-            parent: { id: id, type: BoardObjects.COLUMN },
+            parent: !!node.parent
+              ? node.parent
+              : { id: id, type: BoardObjects.COLUMN },
             childRefs: [],
           };
-          addBoard(copiedBoard);
-          addColumnChild({
-            columnId: id,
-            childId: copiedBoard.id,
-            childType: copiedBoard.type,
-          });
           break;
         default:
           break;
+      }
+      if (!!copiedNode) {
+        dispatch(addNode.action(copiedNode));
+        dispatch(
+          addChild.action({
+            id,
+            type: BoardObjects.COLUMN,
+            cId: copiedNode.id,
+            cType: copiedNode.type,
+          })
+        );
       }
     });
   };
@@ -321,6 +275,18 @@ const Column = ({
       <MenuItem onClick={copyColumn}>Copy</MenuItem>,
       <MenuItem onClick={() => deleteColumn(boardId, id)}>Delete</MenuItem>,
     ]);
+    setMenuProps({
+      canCopy: true,
+      canCut: true,
+      canDelete: true,
+      canPaste: true,
+      delete: () => {
+        deleteColumn(boardId, id);
+      },
+      paste: (nodes) => {
+        pasteNodes(nodes);
+      },
+    });
   };
 
   //#endregion
@@ -328,7 +294,14 @@ const Column = ({
   return (
     <ResizeObserver
       onResize={({ width, height }) => {
-        updateColumnSize({ columnId: id, sX: width, sY: height });
+        dispatch(
+          updateSize.action({
+            id,
+            type: BoardObjects.COLUMN,
+            sX: width,
+            sY: height,
+          })
+        );
       }}
     >
       <Card
@@ -347,7 +320,17 @@ const Column = ({
         }}
         onMouseDown={(e) => {
           e.stopPropagation();
-          handleSelectNode(e, id);
+          handleSelectNode(e, {
+            id, // new Id will be assigned
+            type: BoardObjects.COLUMN,
+            pX, // need position in case user uses keyboard shortcut
+            pY,
+            sX,
+            sY,
+            title,
+            parent,
+            // parent does not have to be the same
+          });
         }}
         zIndex={2}
         w={sX + "px"}
@@ -362,7 +345,7 @@ const Column = ({
         overflow="hidden"
         rounded={"sm"}
         bgColor={useColorModeValue("gray.300", "gray.700")}
-        outline={selectedNode?.includes(id) ? "3px solid" : "1px solid"}
+        outline={!!selectedNode[id] ? "3px solid" : "1px solid"}
         outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
         cursor={"grab"}
       >
@@ -388,7 +371,13 @@ const Column = ({
               fontSize="larger"
               overflow={"hidden"}
               onChange={(e) =>
-                updateColumnTitle({ columnId: id, title: e.target.value })
+                dispatch(
+                  updateTitle.action({
+                    id,
+                    type: BoardObjects.COLUMN,
+                    title: e.target.value,
+                  })
+                )
               }
             />
           </Editable>
@@ -493,30 +482,7 @@ const mapStateToProps = (state, ownProps) => {
 };
 
 const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators(
-    {
-      addNote,
-      removeNote,
-      updateNoteParent,
-      updateColumnTitle,
-      updateColumnSize,
-      removeColumn,
-      addColumnChild,
-      removeBoardChild,
-      removeColumnChild,
-      addPicture,
-      updatePictureParent,
-      removePicture,
-      addTask,
-      removeTask,
-      updateTaskParent,
-      addDocument,
-      addBoard,
-      removeDocument,
-      removeBoard,
-    },
-    dispatch
-  );
+  return bindActionCreators({}, dispatch);
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Column);

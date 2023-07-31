@@ -1,6 +1,7 @@
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 import { useRef, useState } from "react";
 import { SelectedNodeContext } from "../../App";
+import { ContextMenuContext } from "./useContextMenu";
 
 export function useSmoothBoardControls(transformRef, boardRef) {
   const offX = useRef(0);
@@ -10,6 +11,42 @@ export function useSmoothBoardControls(transformRef, boardRef) {
   const lerpedScale = useRef(scale);
   const currentPositionX = useRef(0);
   const currentPositionY = useRef(0);
+  const {
+    copiedNodes,
+    copyNodes,
+    paste,
+    delete: del,
+  } = useContext(ContextMenuContext);
+  const { selectedNode, setSelectedNode } = useContext(SelectedNodeContext);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey) {
+        switch (e.key) {
+          case "v":
+            console.log("PASTE");
+            break;
+          case "c":
+            const c = Object.values(selectedNode);
+            console.log(selectedNode);
+            copyNodes(c);
+            break;
+          case "x":
+            Object.values(selectedNode).forEach((item) => {
+              del();
+            });
+            copyNodes(Object.values(selectedNode));
+            break;
+          default:
+            break;
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedNode]);
 
   const handleWheel = (event) => {
     if (

@@ -35,24 +35,25 @@ import ChkrDatepicker from "./Datepicker";
 import { format, parseISO } from "date-fns";
 import { bindActionCreators } from "redux";
 import {
-  updateText,
-  updateSummary,
   updateDeadline,
   updateTaskStatus,
   addBadge,
   removeBadge,
-  removeTask,
   updateBadgeText,
 } from "../utils/slices/taskSlice";
-import { connect } from "react-redux";
+import { connect, useDispatch } from "react-redux";
 import CustomEditablePreview from "./CustomEditablePreview";
 import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { ContextMenuContext } from "../utils/hooks/useContextMenu";
-import { removeBoardChild } from "../utils/slices/boardSlice";
-import { removeColumnChild } from "../utils/slices/columnSlice";
 import { BadgeC } from "../utils/classes/classes";
 import { SelectedNodeContext } from "../App";
 import { IconPlus } from "@tabler/icons-react";
+import {
+  removeChild,
+  removeNode,
+  updateContent,
+  updateTitle,
+} from "../utils/slices/nodeActions";
 
 const ToDo = ({
   id,
@@ -62,10 +63,10 @@ const ToDo = ({
   pY,
   offset,
   scale,
-  text,
+  title,
   badges,
   deadline,
-  summary,
+  content,
   parent,
   setContextMenu,
   openContextMenu,
@@ -74,23 +75,19 @@ const ToDo = ({
   updateBadgeText,
   taskStatus,
   updateTaskStatus,
-  updateText,
   updateDeadline,
-  updateSummary,
-  removeBoardChild,
-  removeColumnChild,
-  removeTask,
 }) => {
   const finalRef = useRef(null);
 
   const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
 
+  const dispatch = useDispatch();
   // Modal control
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   // Temporary storage for editing text. Pushes this value to data storage on submit
-  const [taskText, setTaskText] = useState(text);
-  const [taskSummary, setTaskSummary] = useState(summary);
+  const [taskText, setTaskText] = useState(title);
+  const [taskSummary, setTaskSummary] = useState(content);
 
   const [date, setDate] = useState(deadline);
   const dragRef = useRef(null);
@@ -127,20 +124,12 @@ const ToDo = ({
   }, [parent]);
 
   const deleteTask = () => {
-    console.log("deleting note");
-    switch (parent.type) {
-      case BoardObjects.BOARD:
-        removeBoardChild({ boardId: parent.id, childId: id });
-        removeTask({ taskId: id });
-        break;
-      case BoardObjects.COLUMN:
-        removeColumnChild({ columnId: parent.id, childId: id });
-        removeTask({ taskId: id });
-        break;
-    }
+    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
+    dispatch(removeNode.action({ id, type: BoardObjects.TODO }));
   };
 
-  const { setMenuItems, copyNodes } = useContext(ContextMenuContext);
+  const { setMenuItems, setMenuProps, copyNodes } =
+    useContext(ContextMenuContext);
 
   const copyTask = () => {
     const task = {
@@ -148,12 +137,12 @@ const ToDo = ({
       type: BoardObjects.TODO,
       pX, // need position in case user uses keyboard shortcut
       pY,
-      text,
+      title,
       deadline,
-      summary,
+      content,
       taskStatus,
       badges,
-      // parent does not have to be the same
+      parent,
     };
     copyNodes([task]);
   };
@@ -169,6 +158,13 @@ const ToDo = ({
       <MenuItem onClick={copyTask}>Copy</MenuItem>,
       <MenuItem onClick={deleteTask}>Delete</MenuItem>,
     ]);
+    setMenuProps({
+      canCopy: true,
+      canCut: true,
+      canDelete: true,
+
+      delete: deleteTask,
+    });
   };
 
   //#region Modal menu
@@ -302,9 +298,21 @@ const ToDo = ({
           <IconButton
             aria-label="submit-button"
             onClick={() => {
-              updateText({ taskId: id, text: taskText });
+              dispatch(
+                updateTitle.action({
+                  id,
+                  type: BoardObjects.TODO,
+                  title: taskText,
+                })
+              );
               updateDeadline({ taskId: id, deadline: date });
-              updateSummary({ taskId: id, summary: taskSummary });
+              dispatch(
+                updateContent.action({
+                  id,
+                  type: BoardObjects.TODO,
+                  content: taskSummary,
+                })
+              );
               onClose();
             }}
             icon={<CheckIcon />}
@@ -334,14 +342,26 @@ const ToDo = ({
       }}
       onMouseDown={(e) => {
         e.stopPropagation();
-        handleSelectNode(e, id);
+        handleSelectNode(e, {
+          id, // new Id will be assigned
+          type: BoardObjects.TODO,
+          pX, // need position in case user uses keyboard shortcut
+          pY,
+          title,
+          deadline,
+          content,
+          taskStatus,
+          badges,
+
+          parent, // parent does not have to be the same
+        });
       }}
       zIndex={2}
       role="group"
       ref={dragRef}
       direction={{ base: "row" }}
       bg={useColorModeValue("gray.400", "gray.800")}
-      outline={selectedNode?.includes(id) ? "3px solid" : "1px solid"}
+      outline={!!selectedNode[id] ? "3px solid" : "1px solid"}
       outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
       size={"sm"}
       maxW="1000px"
@@ -381,11 +401,19 @@ const ToDo = ({
             }
           ></Checkbox>
           <Editable
-            onChange={(value) => updateText({ taskId: id, text: value })}
+            onChange={(value) =>
+              dispatch(
+                updateTitle.action({
+                  id,
+                  type: BoardObjects.TODO,
+                  title: value,
+                })
+              )
+            }
             textAlign={"left"}
             wordBreak="break-word"
             isPreviewFocusable={false}
-            value={text}
+            value={title}
             flex={1}
             p={0}
             style={{
@@ -417,9 +445,9 @@ const ToDo = ({
             size="sm"
             icon={<EditIcon />}
             onClick={() => {
-              setTaskText(text);
+              setTaskText(title);
               setDate(deadline);
-              setTaskSummary(summary);
+              setTaskSummary(content);
               onOpen();
             }}
           />
@@ -475,8 +503,8 @@ const mapStateToProps = (state, ownProps) => {
   const { id } = ownProps;
   const task = state.tasks[id];
   return {
-    text: task.text,
-    summary: task.summary,
+    title: task.title,
+    content: task.content,
     deadline: task.deadline,
     badges: task.badges,
     pX: task.pX,
@@ -492,13 +520,8 @@ const mapDispatchToProps = (dispatch) => {
       addBadge,
       removeBadge,
       updateBadgeText,
-      updateText,
-      updateSummary,
       updateDeadline,
       updateTaskStatus,
-      removeBoardChild,
-      removeColumnChild,
-      removeTask,
     },
     dispatch
   );

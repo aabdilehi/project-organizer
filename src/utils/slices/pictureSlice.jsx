@@ -1,20 +1,16 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { normalize } from "normalizr";
-import { pictureSchema } from "../schema";
+import {
+  addNode,
+  removeNode,
+  updatePosition,
+  updateSize,
+  updateParent,
+} from "./nodeActions";
 
 const pictureSlice = createSlice({
   name: "pictures",
   initialState: {},
   reducers: {
-    addPicture: (state, action) => {
-      const normalizedData = normalize(action.payload, pictureSchema);
-      const { entities } = normalizedData;
-      console.log(action.payload);
-      return {
-        ...state,
-        ...entities.pictures,
-      };
-    },
     updateLabel: (state, action) => {
       const { pictureId, label } = action.payload;
       const picture = state[pictureId];
@@ -37,30 +33,6 @@ const pictureSlice = createSlice({
         },
       };
     },
-    updatePosition: (state, action) => {
-      const { pictureId, pX, pY } = action.payload;
-      const picture = state[pictureId];
-      return {
-        ...state,
-        [pictureId]: {
-          ...picture,
-          pX,
-          pY,
-        },
-      };
-    },
-    updateSize: (state, action) => {
-      const { pictureId, sX, sY } = action.payload;
-      const picture = state[pictureId];
-      return {
-        ...state,
-        [pictureId]: {
-          ...picture,
-          sX,
-          sY,
-        },
-      };
-    },
     updateImage: (state, action) => {
       const { pictureId, image } = action.payload;
       const picture = state[pictureId];
@@ -72,34 +44,17 @@ const pictureSlice = createSlice({
         },
       };
     },
-    updateParent: (state, action) => {
-      const { pictureId, newParentId, newParentType } = action.payload;
-      console.log(newParentType);
-      const picture = state[pictureId];
-      return {
-        ...state,
-        [pictureId]: {
-          ...picture,
-          parent: { id: newParentId, type: newParentType },
-        },
-      };
-    },
-    removePicture: (state, action) => {
-      const { pictureId } = action.payload;
-      delete state[pictureId];
-    },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(addNode.action, addNode.reducer("image"));
+    builder.addCase(removeNode.action, removeNode.reducer("image"));
+    builder.addCase(updatePosition.action, updatePosition.reducer("image"));
+    builder.addCase(updateSize.action, updateSize.reducer("image"));
+    builder.addCase(updateParent.action, updateParent.reducer("image"));
   },
 });
 
-export const {
-  addPicture,
-  updateImage,
-  updateLabel,
-  updatePosition: updatePicturePosition,
-  updateSize,
-  updateParent: updatePictureParent,
-  updateLabelVisibility,
-  removePicture,
-} = pictureSlice.actions;
+export const { updateImage, updateLabel, updateLabelVisibility } =
+  pictureSlice.actions;
 
 export default pictureSlice.reducer;

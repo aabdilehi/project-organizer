@@ -21,7 +21,7 @@ function App() {
 
   // I know this is not great but I need an easy way to access AND set the value
   // Since it is state, it would have re-rendered anyway if I changed it so who cares (?)
-  const [selectedNode, setSelectedNode] = useState([]);
+  const [selectedNode, setSelectedNode] = useState({});
 
   const handleSelectNode = useCallback(
     (e, value) => {
@@ -29,27 +29,26 @@ function App() {
         if (!value) {
           return;
         }
-        if (!selectedNode.includes(value)) {
+        if (!selectedNode[value.id]) {
           setSelectedNode((prev) => {
-            const a = [...prev];
-            a.push(value);
+            const a = { ...prev };
+            a[value.id] = value;
             return a;
           });
           console.log(selectedNode);
         } else {
           setSelectedNode((prev) => {
-            const a = [...prev];
-            const i = a.indexOf(value);
-            a.splice(i, 1);
+            const a = { ...prev };
+            delete a[value.id];
             return a;
           });
           console.log(selectedNode);
         }
       } else {
         if (!value) {
-          setSelectedNode([]);
+          setSelectedNode({});
         } else {
-          setSelectedNode([value]);
+          setSelectedNode({ [value.id]: value });
         }
       }
     },

@@ -1,53 +1,18 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { normalize } from "normalizr";
-import { docSchema } from "../schema";
+import {
+  addNode,
+  removeNode,
+  updatePosition,
+  updateSize,
+  updateParent,
+  updateContent,
+  updateTitle,
+} from "./nodeActions";
 
 const docSlice = createSlice({
   name: "documents",
   initialState: {},
   reducers: {
-    addDocument: (state, action) => {
-      const normalizedData = normalize(action.payload, docSchema);
-      const { entities } = normalizedData;
-      return {
-        ...state,
-        ...entities.documents,
-      };
-    },
-    updateContent: (state, action) => {
-      const { documentId, content } = action.payload;
-      const document = state[documentId];
-      return {
-        ...state,
-        [documentId]: {
-          ...document,
-          content,
-        },
-      };
-    },
-    updateTitle: (state, action) => {
-      const { documentId, title } = action.payload;
-      const document = state[documentId];
-      return {
-        ...state,
-        [documentId]: {
-          ...document,
-          title,
-        },
-      };
-    },
-    updatePosition: (state, action) => {
-      const { documentId, pX, pY } = action.payload;
-      const document = state[documentId];
-      return {
-        ...state,
-        [documentId]: {
-          ...document,
-          pX,
-          pY,
-        },
-      };
-    },
     toggleExpanded: (state, action) => {
       const { documentId, expanded } = action.payload;
       const document = state[documentId];
@@ -59,33 +24,18 @@ const docSlice = createSlice({
         },
       };
     },
-    updateParent: (state, action) => {
-      const { documentId, newParentId, newParentType } = action.payload;
-      console.log(newParentType);
-      const document = state[documentId];
-      return {
-        ...state,
-        [documentId]: {
-          ...document,
-          parent: { id: newParentId, type: newParentType },
-        },
-      };
-    },
-    removeDocument: (state, action) => {
-      const { documentId } = action.payload;
-      delete state[documentId];
-    },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(addNode.action, addNode.reducer("document"));
+    builder.addCase(removeNode.action, removeNode.reducer("document"));
+    builder.addCase(updateTitle.action, updateTitle.reducer("document"));
+    builder.addCase(updateContent.action, updateContent.reducer("document"));
+    builder.addCase(updatePosition.action, updatePosition.reducer("document"));
+    builder.addCase(updateSize.action, updateSize.reducer("document"));
+    builder.addCase(updateParent.action, updateParent.reducer("document"));
   },
 });
 
-export const {
-  addDocument,
-  updateContent,
-  updateTitle,
-  updatePosition: updateDocumentPosition,
-  toggleExpanded,
-  updateParent: updateDocumentParent,
-  removeDocument,
-} = docSlice.actions;
+export const { toggleExpanded } = docSlice.actions;
 
 export default docSlice.reducer;

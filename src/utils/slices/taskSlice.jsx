@@ -1,41 +1,17 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { normalize } from "normalizr";
-import { taskSchema } from "../schema";
+import {
+  addNode,
+  removeNode,
+  updateTitle,
+  updateContent,
+  updatePosition,
+  updateParent,
+} from "./nodeActions";
 
 const taskSlice = createSlice({
   name: "tasks",
   initialState: {},
   reducers: {
-    addTask: (state, action) => {
-      const normalizedData = normalize(action.payload, taskSchema);
-      const { entities } = normalizedData;
-      return {
-        ...state,
-        ...entities.tasks,
-      };
-    },
-    updateText: (state, action) => {
-      const { taskId, text } = action.payload;
-      const task = state[taskId];
-      return {
-        ...state,
-        [taskId]: {
-          ...task,
-          text,
-        },
-      };
-    },
-    updateSummary: (state, action) => {
-      const { taskId, summary } = action.payload;
-      const task = state[taskId];
-      return {
-        ...state,
-        [taskId]: {
-          ...task,
-          summary,
-        },
-      };
-    },
     updateTaskStatus: (state, action) => {
       const { taskId, taskStatus } = action.payload;
       const task = state[taskId];
@@ -55,41 +31,6 @@ const taskSlice = createSlice({
         [taskId]: {
           ...task,
           deadline,
-        },
-      };
-    },
-    updatePosition: (state, action) => {
-      const { taskId, pX, pY } = action.payload;
-      const task = state[taskId];
-      return {
-        ...state,
-        [taskId]: {
-          ...task,
-          pX,
-          pY,
-        },
-      };
-    },
-    updateSize: (state, action) => {
-      const { taskId, sX, sY } = action.payload;
-      const task = state[taskId];
-      return {
-        ...state,
-        [taskId]: {
-          ...task,
-          sX,
-          sY,
-        },
-      };
-    },
-    updateBadges: (state, action) => {
-      const { taskId, badges } = action.payload;
-      const task = state[taskId];
-      return {
-        ...state,
-        [taskId]: {
-          ...task,
-          badges,
         },
       };
     },
@@ -138,38 +79,23 @@ const taskSlice = createSlice({
         },
       };
     },
-    updateParent: (state, action) => {
-      const { taskId, newParentId, newParentType } = action.payload;
-      console.log(newParentType);
-      const task = state[taskId];
-      return {
-        ...state,
-        [taskId]: {
-          ...task,
-          parent: { id: newParentId, type: newParentType },
-        },
-      };
-    },
-    removeTask: (state, action) => {
-      const { taskId } = action.payload;
-      delete state[taskId];
-    },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(addNode.action, addNode.reducer("to-do"));
+    builder.addCase(removeNode.action, removeNode.reducer("to-do"));
+    builder.addCase(updateTitle.action, updateTitle.reducer("to-do"));
+    builder.addCase(updateContent.action, updateContent.reducer("to-do"));
+    builder.addCase(updatePosition.action, updatePosition.reducer("to-do"));
+    builder.addCase(updateParent.action, updateParent.reducer("to-do"));
   },
 });
 
 export const {
-  addTask,
-  updateText,
-  updatePosition: updateTaskPosition,
-  updateSize,
-  updateSummary,
   addBadge,
   removeBadge,
   updateBadgeText,
   updateDeadline,
   updateTaskStatus,
-  updateParent: updateTaskParent,
-  removeTask,
 } = taskSlice.actions;
 
 export default taskSlice.reducer;

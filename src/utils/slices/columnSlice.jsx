@@ -1,103 +1,29 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { normalize } from "normalizr";
-import { columnSchema } from "../schema";
-import { updateParent } from "./nodeActions";
+import {
+  addChild,
+  addNode,
+  removeChild,
+  removeNode,
+  updateParent,
+  updatePosition,
+  updateSize,
+  updateTitle,
+} from "./nodeActions";
 
 const columnSlice = createSlice({
   name: "columns",
   initialState: {},
-  reducers: {
-    addColumn: (state, action) => {
-      const normalizedData = normalize(action.payload, columnSchema);
-      const { entities } = normalizedData;
-      console.log(action.payload);
-      return {
-        ...state,
-        ...entities.columns,
-      };
-    },
-    addChild: (state, action) => {
-      const { columnId, childId, childType } = action.payload;
-      const column = state[columnId];
-      return {
-        ...state,
-        [columnId]: {
-          ...column,
-          childRefs: [...column.childRefs, { childId, childType }],
-        },
-      };
-    },
-    removeChild: (state, action) => {
-      const { columnId, childId } = action.payload;
-      const column = state[columnId];
-      const index = column.childRefs.findIndex((item) => {
-        return item.childId === childId;
-      });
-      if (index === -1) return;
-      column.childRefs.splice(index, 1);
-    },
-    updateTitle: (state, action) => {
-      const { columnId, title } = action.payload;
-      const column = state[columnId];
-      return {
-        ...state,
-        [columnId]: {
-          ...column,
-          title,
-        },
-      };
-    },
-    updatePosition: (state, action) => {
-      const { columnId, pX, pY } = action.payload;
-      const column = state[columnId];
-      return {
-        ...state,
-        [columnId]: {
-          ...column,
-          pX,
-          pY,
-        },
-      };
-    },
-    updateSize: (state, action) => {
-      const { columnId, sX, sY } = action.payload;
-      const column = state[columnId];
-      return {
-        ...state,
-        [columnId]: {
-          ...column,
-          sX,
-          sY,
-        },
-      };
-    },
-    updateParent: (state, action) => {
-      const { columnId, newParentId, newParentType } = action.payload;
-      const column = state[columnId];
-      return {
-        ...state,
-        [columnId]: {
-          ...column,
-          parent: { id: newParentId, type: newParentType },
-        },
-      };
-    },
-    removeColumn: (state, action) => {
-      const { columnId } = action.payload;
-      delete state[columnId];
-    },
+  reducers: {},
+  extraReducers: (builder) => {
+    builder.addCase(addNode.action, addNode.reducer("column"));
+    builder.addCase(removeNode.action, removeNode.reducer("column"));
+    builder.addCase(addChild.action, addChild.reducer("column"));
+    builder.addCase(removeChild.action, removeChild.reducer("column"));
+    builder.addCase(updateTitle.action, updateTitle.reducer("column"));
+    builder.addCase(updatePosition.action, updatePosition.reducer("column"));
+    builder.addCase(updateSize.action, updateSize.reducer("column"));
+    builder.addCase(updateParent.action, updateParent.reducer("column"));
   },
 });
-
-export const {
-  addColumn,
-  addChild: addColumnChild,
-  removeChild: removeColumnChild,
-  updateTitle: updateColumnTitle,
-  updatePosition: updateColumnPosition,
-  updateSize: updateColumnSize,
-  updateParent: updateColumnParent,
-  removeColumn,
-} = columnSlice.actions;
 
 export default columnSlice.reducer;
