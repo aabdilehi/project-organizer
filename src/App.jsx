@@ -22,45 +22,81 @@ function App() {
   // I know this is not great but I need an easy way to access AND set the value
   // Since it is state, it would have re-rendered anyway if I changed it so who cares (?)
   const [selectedNode, setSelectedNode] = useState({});
+  const [selectedNodeRefs, setSelectedNodeRefs] = useState({});
 
   const handleSelectNode = useCallback(
     (e, value) => {
+      if (!value) {
+        return;
+      }
+
+      // separate refs from rest of node info
+      const { ref, ...node } = value;
+
       if (e.ctrlKey) {
-        if (!value) {
-          return;
-        }
-        if (!selectedNode[value.id]) {
+        if (!selectedNode[node.id]) {
           setSelectedNode((prev) => {
             const a = { ...prev };
-            a[value.id] = value;
+            a[node.id] = node;
             return a;
           });
-          console.log(selectedNode);
+          setSelectedNodeRefs((prev) => {
+            const a = { ...prev };
+            a[node.id] = ref;
+            return a;
+          });
         } else {
           setSelectedNode((prev) => {
             const a = { ...prev };
-            delete a[value.id];
+            delete a[node.id];
             return a;
           });
-          console.log(selectedNode);
+          setSelectedNodeRefs((prev) => {
+            const a = { ...prev };
+            delete a[node.id];
+            return a;
+          });
+        }
+      } else if (e.shiftKey) {
+        if (!selectedNode[node.id]) {
+          setSelectedNode((prev) => {
+            const a = { ...prev };
+            a[node.id] = node;
+            return a;
+          });
+          setSelectedNodeRefs((prev) => {
+            const a = { ...prev };
+            a[node.id] = ref;
+            return a;
+          });
         }
       } else {
         if (!value) {
           setSelectedNode({});
+          setSelectedNodeRefs({});
         } else {
-          setSelectedNode({ [value.id]: value });
+          const { ref, ...node } = value;
+          setSelectedNode({ [node.id]: node });
+          setSelectedNodeRefs({ [node.id]: ref });
         }
       }
     },
-    [selectedNode, setSelectedNode]
+    [selectedNode, setSelectedNode, selectedNodeRefs, setSelectedNodeRefs]
   );
 
   const contextValue = useMemo(
     () => ({
       selectedNode,
+      selectedNodeRefs,
       handleSelectNode,
     }),
-    [selectedNode, setSelectedNode, handleSelectNode]
+    [
+      selectedNode,
+      setSelectedNode,
+      selectedNodeRefs,
+      setSelectedNodeRefs,
+      handleSelectNode,
+    ]
   );
 
   return (

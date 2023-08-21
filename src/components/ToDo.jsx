@@ -57,12 +57,8 @@ import {
 
 const ToDo = ({
   id,
-  boardId,
-  boardRef,
   pX,
   pY,
-  offset,
-  scale,
   title,
   badges,
   deadline,
@@ -76,6 +72,10 @@ const ToDo = ({
   taskStatus,
   updateTaskStatus,
   updateDeadline,
+  handleDragStart,
+  handleDrag,
+  handleDragEnd,
+  animate,
 }) => {
   const finalRef = useRef(null);
 
@@ -100,21 +100,7 @@ const ToDo = ({
     parent: parent,
   };
 
-  const { handleDragStart, handleDrag, handleDragEnd, animate } = useSmoothDrag(
-    {
-      boardId,
-      boardRef,
-      elementRef: dragRef,
-      initialCoords: { x: pX, y: pY },
-      shouldAnimate: true,
-      shouldPosition: !isInColumn,
-      item,
-      offset,
-      scale,
-    }
-  );
-
-  animate();
+  if (!!animate) animate();
 
   //#endregion
 
@@ -331,6 +317,10 @@ const ToDo = ({
   return (
     <Card
       draggable={true}
+      position={isInColumn ? "relative" : "absolute"}
+      transform={
+        isInColumn ? "translate(0px, 0px)" : `translate(${pX}px, ${pY}px)`
+      }
       onDragStart={handleDragStart}
       onDrag={handleDrag}
       onDragEnd={handleDragEnd}
@@ -350,6 +340,7 @@ const ToDo = ({
           title,
           deadline,
           content,
+          ref: dragRef,
           taskStatus,
           badges,
 

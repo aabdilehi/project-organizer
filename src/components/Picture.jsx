@@ -60,6 +60,10 @@ const Picture = ({
   updateLabel,
   updateLabelVisibility,
   updateImage,
+  handleDragStart,
+  handleDrag,
+  handleDragEnd,
+  animate,
 }) => {
   const [labelHeight, setLabelHeight] = useState(0);
   const [imageHeight, setImageHeight] = useState(0);
@@ -80,21 +84,8 @@ const Picture = ({
     type: BoardObjects.IMAGE,
     parent: parent,
   };
-  const { handleDragStart, handleDrag, handleDragEnd, animate } = useSmoothDrag(
-    {
-      boardId,
-      boardRef,
-      elementRef: dragRef,
-      initialCoords: { x: pX, y: pY },
-      shouldAnimate: true,
-      shouldPosition: !isInColumn,
-      item,
-      offset,
-      scale,
-    }
-  );
 
-  animate();
+  if (!!animate) animate();
 
   //#endregion
 
@@ -193,6 +184,10 @@ const Picture = ({
       <Card
         ref={dragRef}
         draggable={true}
+        position={isInColumn ? "relative" : "absolute"}
+        transform={
+          isInColumn ? "translate(0px, 0px)" : `translate(${pX}px, ${pY}px)`
+        }
         onDragStart={handleDragStart}
         onDrag={handleDrag}
         onDragEnd={handleDragEnd}

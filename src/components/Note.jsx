@@ -54,9 +54,6 @@ import { DocumentC } from "../utils/classes/classes";
 
 const Note = ({
   id,
-  boardId,
-  boardRef,
-  offset,
   scale,
   pX,
   pY,
@@ -65,6 +62,10 @@ const Note = ({
   content,
   parent,
   openContextMenu,
+  handleDragStart,
+  handleDrag,
+  handleDragEnd,
+  animate,
 }) => {
   const dragRef = useRef(null);
   const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
@@ -79,26 +80,7 @@ const Note = ({
     parent: parent,
   };
 
-  const {
-    handleDragStart,
-    handleDrag,
-    handleDragEnd,
-    animate,
-    isDragging,
-    setSelectedNodes,
-  } = useSmoothDrag({
-    boardId,
-    boardRef,
-    elementRef: dragRef,
-    initialCoords: { x: pX, y: pY },
-    shouldAnimate: true,
-    shouldPosition: !isInColumn,
-    item,
-    offset,
-    scale,
-  });
-
-  animate();
+  if (!!animate) animate();
 
   // Read parent prop and set isInColumn
   useEffect(() => {
@@ -182,6 +164,7 @@ const Note = ({
         pY,
         sX,
         sY,
+        ref: dragRef,
         content,
         parent,
       });
@@ -272,13 +255,7 @@ const Note = ({
   const updateContextMenu = () => {
     setMenuItems(() => {
       // Add to theme instead of this hacky solution
-      return [
-        <MenuItem onClick={cutNote}>Cut</MenuItem>,
-        <MenuItem onClick={copyNote}>Copy</MenuItem>,
-        <MenuItem onClick={deleteNote}>Delete</MenuItem>,
-        <MenuDivider />,
-        <MenuItem onClick={convertNote}>Convert to document</MenuItem>,
-      ];
+      return [<MenuItem onClick={convertNote}>Convert to document</MenuItem>];
     });
     setMenuProps(() => {
       return {
@@ -309,6 +286,10 @@ const Note = ({
         <Box
           ref={dragRef}
           draggable={true}
+          position={isInColumn ? "relative" : "absolute"}
+          transform={
+            isInColumn ? "translate(0px, 0px)" : `translate(${pX}px, ${pY}px)`
+          }
           onDragStart={handleDragStart}
           onDrag={(event) => {
             handleDrag(event);

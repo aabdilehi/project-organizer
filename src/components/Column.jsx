@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useContext, useRef } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { BoardObjects, SidebarObjects } from "../utils/enums/items";
 import { v4 as uuidv4 } from "uuid";
 import ResizeObserver from "rc-resize-observer";
@@ -49,6 +49,10 @@ const Column = ({
   childRefs,
   parent,
   openContextMenu,
+  handleDragStart,
+  handleDrag,
+  handleDragEnd,
+  animate,
 }) => {
   const dragRef = useRef(null);
   const columnRef = useRef(null);
@@ -65,21 +69,7 @@ const Column = ({
 
   const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
 
-  const { handleDragStart, handleDrag, handleDragEnd, animate } = useSmoothDrag(
-    {
-      boardId,
-      boardRef,
-      elementRef: dragRef,
-      initialCoords: { x: pX, y: pY },
-      shouldAnimate: true,
-      shouldPosition: true,
-      item,
-      offset,
-      scale,
-    }
-  );
-
-  animate();
+  if (animate !== undefined) animate();
 
   //#endregion
 
@@ -174,27 +164,7 @@ const Column = ({
     dispatch(removeNode.action({ id: colId, type: BoardObjects.COLUMN }));
   };
 
-  const { setMenuItems, setMenuProps, copiedNodes, copyNodes } =
-    useContext(ContextMenuContext);
-
-  const copyColumn = () => {
-    const column = {
-      // new Id will be assigned
-      type: BoardObjects.COLUMN,
-      pX, // need position in case user uses keyboard shortcut
-      pY,
-      sX,
-      sY,
-      title,
-      // parent does not have to be the same
-    };
-    copyNodes([column]);
-  };
-
-  const cutColumn = () => {
-    copyColumn();
-    deleteColumn(boardId, id);
-  };
+  const { setMenuItems, setMenuProps } = useContext(ContextMenuContext);
 
   const pasteNodes = (nodes) => {
     nodes.forEach((node) => {
@@ -269,12 +239,7 @@ const Column = ({
   };
 
   const updateContextMenu = () => {
-    setMenuItems([
-      <MenuItem onClick={pasteNodes}>Paste</MenuItem>,
-      <MenuItem onClick={cutColumn}>Cut</MenuItem>,
-      <MenuItem onClick={copyColumn}>Copy</MenuItem>,
-      <MenuItem onClick={() => deleteColumn(boardId, id)}>Delete</MenuItem>,
-    ]);
+    setMenuItems([]);
     setMenuProps({
       canCopy: true,
       canCut: true,
@@ -290,6 +255,31 @@ const Column = ({
   };
 
   //#endregion
+
+  useEffect(() => {
+    if (!dragRef.current) return;
+    const bruh = (e) => {
+      e.stopPropagation();
+      handleSelectNode(e, {
+        id, // new Id will be assigned
+        type: BoardObjects.COLUMN,
+        pX, // need position in case user uses keyboard shortcut
+        pY,
+        sX,
+        sY,
+        title,
+        ref: dragRef,
+        parent,
+        childRefs,
+        // parent does not have to be the same
+      });
+    };
+
+    dragRef.current.addEventListener("mousedown", bruh);
+    return () => {
+      dragRef.current.removeEventListener("mousedown", bruh);
+    };
+  }, [dragRef]);
 
   return (
     <ResizeObserver
@@ -307,6 +297,8 @@ const Column = ({
       <Card
         ref={dragRef}
         draggable
+        position={"absolute"}
+        transform={`translate(${pX}px, ${pY}px)`}
         onDragStart={handleDragStart}
         onDrag={handleDrag}
         onDragEnd={handleDragEnd}
@@ -317,20 +309,6 @@ const Column = ({
           e.stopPropagation();
           updateContextMenu();
           openContextMenu(e);
-        }}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          handleSelectNode(e, {
-            id, // new Id will be assigned
-            type: BoardObjects.COLUMN,
-            pX, // need position in case user uses keyboard shortcut
-            pY,
-            sX,
-            sY,
-            title,
-            parent,
-            // parent does not have to be the same
-          });
         }}
         zIndex={2}
         w={sX + "px"}
@@ -361,6 +339,7 @@ const Column = ({
             isPreviewFocusable={false}
           >
             <CustomEditablePreview
+              canEdit={!!selectedNode[id]}
               draggable={false}
               color={useColorModeValue("black", "white")}
               fontSize="larger"

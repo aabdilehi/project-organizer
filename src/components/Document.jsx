@@ -34,18 +34,17 @@ import { MenuDivider, MenuItem } from "@chakra-ui/react";
 import { ContextMenuContext } from "../utils/hooks/useContextMenu";
 import { SelectedNodeContext } from "../App";
 import {
+  addChild,
+  addNode,
   removeChild,
   removeNode,
   updateContent,
   updateTitle,
 } from "../utils/slices/nodeActions";
+import { NoteC } from "../utils/classes/classes";
 
 const Document = ({
   id,
-  boardId,
-  boardRef,
-  offset,
-  scale,
   pX,
   pY,
   expanded,
@@ -54,6 +53,10 @@ const Document = ({
   parent,
   setContextMenu,
   openContextMenu,
+  handleDragStart,
+  handleDrag,
+  handleDragEnd,
+  animate,
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isInColumn, setIsInColumn] = useState(false);
@@ -66,21 +69,7 @@ const Document = ({
     parent: parent,
   };
 
-  const { handleDragStart, handleDrag, handleDragEnd, animate } = useSmoothDrag(
-    {
-      boardId,
-      boardRef,
-      elementRef: dragRef,
-      initialCoords: { x: pX, y: pY },
-      shouldAnimate: true,
-      shouldPosition: !isInColumn,
-      item,
-      offset,
-      scale,
-    }
-  );
-
-  animate();
+  if (!!animate) animate();
 
   //#endregion
 
@@ -142,40 +131,24 @@ const Document = ({
 
   const convertDocument = () => {
     console.log("HIII");
-    const newNote = {
-      id: id,
-      type: BoardObjects.NOTE,
-      pX: pX ? pX : 0,
-      pY: pY ? pY : 0,
-      sX: 200,
-      sY: 200,
+    const { ...newNote } = new NoteC({
+      id,
+      pX,
+      pY,
       content,
       parent,
-    };
-    switch (parent.type) {
-      case BoardObjects.BOARD:
-        removeBoardChild({ boardId: parent.id, childId: id });
-        removeDocument({ documentId: id });
-        addNote(newNote);
-        addBoardChild({
-          boardId: parent.id,
-          childId: id,
-          childType: BoardObjects.NOTE,
-        });
-        break;
-      case BoardObjects.COLUMN:
-        removeColumnChild({ columnId: parent.id, childId: id });
-        removeDocument({ documentId: id });
-        addNote(newNote);
-        addColumnChild({
-          columnId: parent.id,
-          childId: id,
-          childType: BoardObjects.NOTE,
-        });
-        break;
-      default:
-        break;
-    }
+    });
+    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
+    dispatch(removeNode.action({ id, type: BoardObjects.DOCUMENT }));
+    dispatch(addNode.action(newNote));
+    dispatch(
+      addChild.action({
+        id: parent.id,
+        type: parent.type,
+        cId: id,
+        cType: BoardObjects.NOTE,
+      })
+    );
   };
 
   const { setMenuItems, setMenuProps, copyNodes } =
@@ -234,10 +207,11 @@ const Document = ({
             type: BoardObjects.DOCUMENT,
             pX, // need position in case user uses keyboard shortcut
             pY,
+            ref: dragRef,
             title,
             content,
             expanded,
-            // parent does not have to be the same
+            parent, // parent does not have to be the same
           });
         }}
         zIndex={2}

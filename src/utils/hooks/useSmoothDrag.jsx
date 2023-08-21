@@ -1,64 +1,63 @@
-import { useRef } from "react";
-
-// Still need to separate the element from column as column is a positioned element
-// Probably just get the boardId and updateParent on dragStart to board
-
-// CHANGE TO USE SELECTED NODES
-// I THINK ALL I HAVE TO DO IS TRIGGER HANDLEDRAGSTART ON ALL SELECTED NODES?
-// I ALSO NEED TO CHANGE THE DRAG STUFF TO WORK WITH RELATIVE POSITION RATHER THAN ABSOLUTE POSITION
-// OTHER OPTIONS INCLUDE CREATING A FAKE CONTAINER AROUND THE BOUNDS OF THE SELECTED NODES?
+import { useCallback, useContext, useEffect, useRef } from "react";
+import { SelectedNodeContext } from "../../App";
 
 export function useSmoothDrag({
-  boardId,
   boardRef,
-  elementRef,
-  initialCoords,
-  shouldAnimate = true, // whether to smooth drag or not
-  shouldPosition = true, // whether to use the actual position or (0,0) for coords
-  item,
   offset = { x: 0, y: 0 }, // board's position after panning
   scale = 1, // board's scale after zooming
   lerpValue = 0.35, // speed at which the element should follow the mouse
 }) {
   // offset between top left of dragged element and actual mouse position
-  let initialOffsetX = useRef(0);
-  let initialOffsetY = useRef(0);
+  // let initialOffsetX = useRef(0);
+  // let initialOffsetY = useRef(0);
 
-  // mouse position
-  let mouseX = useRef(initialCoords.x);
-  let mouseY = useRef(initialCoords.y);
-
-  // linearly interpolated mouse position
-  let lerpedMouseX = useRef(initialCoords.x);
-  let lerpedMouseY = useRef(initialCoords.y);
+  const { selectedNodeRefs, selectedNode } = useContext(SelectedNodeContext);
 
   let isDragging = useRef(false);
 
+  let initialOffsets = useRef();
+
+  // mouse position
+  let mouseX = useRef(0); // was initial coords
+  let mouseY = useRef(0); // was initial coords
+
+  // linearly interpolated mouse position
+  let lerpedMouseX = useRef(0); // was initial coords
+  let lerpedMouseY = useRef(0); // was initial coords
+
   const handleDragStart = (event) => {
     event.stopPropagation();
+    initialOffsets.current = {};
     console.log("Dragging start");
-    if (
-      elementRef.current === null ||
-      boardRef.current === null ||
-      event.currentTarget !== elementRef.current
-    ) {
+    if (boardRef.current === null) {
       return;
     }
 
     isDragging.current = true;
 
-    const elementBoundingBox = elementRef.current.getBoundingClientRect();
+    const boundingRect = boardRef.current.getBoundingClientRect();
+    mouseX.current = (event.clientX - boundingRect.left) / scale;
+    mouseY.current = (event.clientY - boundingRect.top) / scale;
 
-    const initialMouseX = event.clientX;
-    const initialMouseY = event.clientY;
+    lerpedMouseX.current = mouseX.current;
+    lerpedMouseX.current = mouseY.current;
 
-    initialOffsetX.current =
-      (initialMouseX - elementBoundingBox.left) / scale + offset.x;
-    initialOffsetY.current =
-      (initialMouseY - elementBoundingBox.top) / scale + offset.y;
+    Object.keys(selectedNodeRefs).forEach((key) => {
+      const elementBoundingBox =
+        selectedNodeRefs[key].current.getBoundingClientRect();
 
-    // send initial offset to drop zone
-    item.offset = { x: initialOffsetX.current, y: initialOffsetY.current };
+      initialOffsets.current = {
+        ...initialOffsets.current,
+        [key]: {
+          x: (event.clientX - elementBoundingBox.left) / scale + offset.x,
+          y: (event.clientY - elementBoundingBox.top) / scale + offset.y,
+        },
+      };
+
+      // send initial offset to drop zone
+      // item.offset = { x: initialOffsetX.current, y: initialOffsetY.current };
+      selectedNode[key].offset = initialOffsets.current[key];
+    });
 
     event.dataTransfer.dropEffect = "move";
 
@@ -66,72 +65,69 @@ export function useSmoothDrag({
     const prev = document.createElement("span");
     prev.style.display = "none";
     event.dataTransfer.setDragImage(prev, 0, 0);
-    event.dataTransfer.setData("application/json", JSON.stringify(item));
+    event.dataTransfer.setData(
+      "application/json",
+      JSON.stringify(selectedNode)
+    );
   };
 
   const handleDrag = (event) => {
     event.stopPropagation();
     // console.log(event.touches[0]);
-    if (
-      elementRef.current === null ||
-      boardRef.current === null ||
-      event.target !== elementRef.current
-    ) {
+    if (boardRef.current === null) {
       return;
     }
 
+    Object.keys(selectedNodeRefs).forEach((key) => {
+      selectedNodeRefs[key].current.style.pointerEvents = "none";
+    });
     // prevent mouse events so that drop can function properly
     // could not drop in columns without wonky z-index stuff before this
     // not actually sure why this works
-    elementRef.current.style.pointerEvents = "none";
+
+    //elementRef.current.style.pointerEvents = "none";
 
     // where element should go relative to board bounds, position, size and initial offset
     const boundingRect = boardRef.current.getBoundingClientRect();
-    mouseX.current =
-      (event.clientX - boundingRect.left) / scale - initialOffsetX.current;
-    mouseY.current =
-      (event.clientY - boundingRect.top) / scale - initialOffsetY.current;
+    mouseX.current = (event.clientX - boundingRect.left) / scale;
+    mouseY.current = (event.clientY - boundingRect.top) / scale;
   };
 
   const handleDragEnd = (event) => {
     event.stopPropagation();
-    elementRef.current.style.pointerEvents = "all";
+    //elementRef.current.style.pointerEvents = "all";
+    Object.keys(selectedNodeRefs).forEach((key) => {
+      selectedNodeRefs[key].current.style.pointerEvents = "all";
+    });
     isDragging.current = false;
   };
 
   const animate = () => {
-    if (
-      elementRef.current !== null &&
-      boardRef.current !== null &&
-      shouldAnimate
-    ) {
+    if (boardRef.current !== null) {
       if (isDragging.current) {
-        // "interpolate" between current value and desired value
-        // might want to ease instead of lerp for more satisfying dragging but that can wait
         lerpedMouseX.current +=
           (mouseX.current - lerpedMouseX.current) * lerpValue;
         lerpedMouseY.current +=
           (mouseY.current - lerpedMouseY.current) * lerpValue;
 
-        // mouse and lerpedMouse pos will reset if you exit the bounds of the window
-        // so do not transform the elementRef if that is the case
-        // cannot drop outside of window anyway so it will just return to where it was pre-drag
-        if (lerpedMouseX.current !== 0 && lerpedMouseY.current !== 0) {
-          elementRef.current.style.position = "absolute";
-          elementRef.current.style.transform = `translate(${lerpedMouseX.current}px, ${lerpedMouseY.current}px)`;
-        }
-      } else {
-        // shouldPosition is usually only false if the element is in a column
-        elementRef.current.style.position = shouldPosition
-          ? "absolute"
-          : "relative";
-        elementRef.current.style.transform = `translate(${
-          shouldPosition ? initialCoords.x : 0
-        }px, ${shouldPosition ? initialCoords.y : 0}px)`;
-      }
-    }
+        //console.log(initialOffsets.current);
+        Object.keys(selectedNodeRefs).forEach((key) => {
+          const el = selectedNodeRefs[key].current;
 
-    requestAnimationFrame(animate);
+          if (
+            !!el &&
+            lerpedMouseX.current !== 0 &&
+            lerpedMouseY.current !== 0
+          ) {
+            el.style.position = "absolute";
+            el.style.transform = `translate(${
+              lerpedMouseX.current - initialOffsets.current[key].x
+            }px, ${lerpedMouseY.current - initialOffsets.current[key].y}px)`;
+          }
+        });
+      }
+      requestAnimationFrame(animate);
+    }
   };
 
   return {

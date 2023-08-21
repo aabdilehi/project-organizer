@@ -37,6 +37,7 @@ import {
   PictureC,
   TaskC,
 } from "../utils/classes/classes";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 //#endregion
 
 const Board = ({ validBoard, title, router, childRefs }) => {
@@ -107,12 +108,27 @@ const Board = ({ validBoard, title, router, childRefs }) => {
     handleWheel,
     handleMouseDown,
     handleTouchStart,
-    animate,
+    animate: boardAnimate,
     scale,
     position,
   } = useSmoothBoardControls(transformRef, ref);
 
-  animate();
+  boardAnimate();
+  //#endregion
+
+  //#region Drag behaviour
+
+  const {
+    handleDragStart,
+    handleDrag,
+    handleDragEnd,
+    animate: nodeAnimate,
+  } = useSmoothDrag({
+    boardRef: ref,
+    offset: position,
+    scale,
+  });
+
   //#endregion
 
   //#region Drop behaviour
@@ -163,6 +179,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
         case BoardObjects.DOCUMENT:
           copiedNode = {
             ...node,
+            id: uuidv4(),
             pX: mouseX,
             pY: mouseY,
             parent: !!node.parent
@@ -202,7 +219,6 @@ const Board = ({ validBoard, title, router, childRefs }) => {
               id: boardId,
               type: BoardObjects.BOARD,
             },
-            childRefs: [],
           };
           break;
         case BoardObjects.BOARD:
@@ -215,7 +231,6 @@ const Board = ({ validBoard, title, router, childRefs }) => {
               id: boardId,
               type: BoardObjects.BOARD,
             },
-            childRefs: [],
           };
           break;
         default:
@@ -226,8 +241,8 @@ const Board = ({ validBoard, title, router, childRefs }) => {
         dispatch(addNode.action(copiedNode));
         dispatch(
           addChild.action({
-            id,
-            type: BoardObjects.BOARD,
+            id: copiedNode.parent.id,
+            type: copiedNode.parent.type,
             cId: copiedNode.id,
             cType: copiedNode.type,
           })
@@ -444,6 +459,10 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                     offset={position}
                     scale={scale}
                     openContextMenu={handleRightClick}
+                    handleDragStart={handleDragStart}
+                    handleDrag={handleDrag}
+                    handleDragEnd={handleDragEnd}
+                    animate={nodeAnimate}
                   />
                 );
               case BoardObjects.COLUMN:
@@ -456,6 +475,10 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                     offset={position}
                     scale={scale}
                     openContextMenu={handleRightClick}
+                    handleDragStart={handleDragStart}
+                    handleDrag={handleDrag}
+                    handleDragEnd={handleDragEnd}
+                    animate={nodeAnimate}
                   />
                 );
               case BoardObjects.IMAGE:
@@ -468,6 +491,10 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                     offset={position}
                     scale={scale}
                     openContextMenu={handleRightClick}
+                    handleDragStart={handleDragStart}
+                    handleDrag={handleDrag}
+                    handleDragEnd={handleDragEnd}
+                    animate={nodeAnimate}
                   />
                 );
               case BoardObjects.TODO:
@@ -480,6 +507,10 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                     offset={position}
                     scale={scale}
                     openContextMenu={handleRightClick}
+                    handleDragStart={handleDragStart}
+                    handleDrag={handleDrag}
+                    handleDragEnd={handleDragEnd}
+                    animate={nodeAnimate}
                   />
                 );
               case BoardObjects.BOARD:
@@ -492,6 +523,10 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                     offset={position}
                     scale={scale}
                     openContextMenu={handleRightClick}
+                    handleDragStart={handleDragStart}
+                    handleDrag={handleDrag}
+                    handleDragEnd={handleDragEnd}
+                    animate={nodeAnimate}
                   />
                 );
               case BoardObjects.DOCUMENT:
@@ -504,6 +539,10 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                     offset={position}
                     scale={scale}
                     openContextMenu={handleRightClick}
+                    handleDragStart={handleDragStart}
+                    handleDrag={handleDrag}
+                    handleDragEnd={handleDragEnd}
+                    animate={nodeAnimate}
                   />
                 );
               default:

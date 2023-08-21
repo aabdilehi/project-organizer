@@ -19,7 +19,6 @@ import CustomEditablePreview from "./CustomEditablePreview";
 // } from "../utils/slices/boardSlice";
 import { bindActionCreators } from "redux";
 import { connect, useDispatch, useSelector } from "react-redux";
-import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { StarIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
 import { useBoardDrop } from "../utils/hooks/useDrop";
@@ -33,17 +32,17 @@ import {
 
 const BoardIcon = ({
   id,
-  boardId,
   boardRef,
-  columnRef,
-  childRefs,
-  offset,
-  scale,
   pX,
   pY,
   parent,
   openContextMenu,
   title,
+  childRefs,
+  handleDragStart,
+  handleDrag,
+  handleDragEnd,
+  animate,
 }) => {
   const dragRef = useRef(null);
   const navigate = useNavigate();
@@ -59,21 +58,7 @@ const BoardIcon = ({
     parent: parent,
   };
 
-  const { handleDragStart, handleDrag, handleDragEnd, animate } = useSmoothDrag(
-    {
-      boardId,
-      boardRef,
-      elementRef: dragRef,
-      initialCoords: { x: pX, y: pY },
-      shouldAnimate: true,
-      shouldPosition: !isInColumn,
-      item,
-      offset,
-      scale,
-    }
-  );
-
-  animate();
+  if (!!animate) animate();
 
   //#endregion
 
@@ -247,6 +232,10 @@ const BoardIcon = ({
   return (
     <Card
       ref={dragRef}
+      position={isInColumn ? "relative" : "absolute"}
+      transform={
+        isInColumn ? "translate(0px, 0px)" : `translate(${pX}px, ${pY}px)`
+      }
       zIndex={2}
       p={isInColumn ? 1.5 : 0}
       draggable
@@ -264,8 +253,10 @@ const BoardIcon = ({
           type: BoardObjects.BOARD,
           pX, // need position in case user uses keyboard shortcut
           pY,
+          ref: dragRef,
           title,
-          childRefs: [],
+          childRefs,
+          parent,
           // parent does not have to be the same
         });
       }}

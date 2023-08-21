@@ -1,7 +1,12 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 
 // Still need to separate the element from column as column is a positioned element
 // Probably just get the boardId and updateParent on dragStart to board
+
+// CHANGE TO USE SELECTED NODES
+// I THINK ALL I HAVE TO DO IS TRIGGER HANDLEDRAGSTART ON ALL SELECTED NODES?
+// I ALSO NEED TO CHANGE THE DRAG STUFF TO WORK WITH RELATIVE POSITION RATHER THAN ABSOLUTE POSITION
+// OTHER OPTIONS INCLUDE CREATING A FAKE CONTAINER AROUND THE BOUNDS OF THE SELECTED NODES?
 
 export function useSmoothDrag({
   boardId,
@@ -19,11 +24,6 @@ export function useSmoothDrag({
   let initialOffsetX = useRef(0);
   let initialOffsetY = useRef(0);
 
-  let [initialOffsets, setInitialOffsets] = useState({});
-
-  // SELECTED NODE REFS
-  let [selectedNodes, setSelectedNodes] = useState({});
-
   // mouse position
   let mouseX = useRef(initialCoords.x);
   let mouseY = useRef(initialCoords.y);
@@ -38,9 +38,9 @@ export function useSmoothDrag({
     event.stopPropagation();
     console.log("Dragging start");
     if (
-      // elementRef.current === null ||
-      boardRef.current === null
-      // event.currentTarget !== elementRef.current
+      elementRef.current === null ||
+      boardRef.current === null ||
+      event.currentTarget !== elementRef.current
     ) {
       return;
     }
@@ -56,8 +56,6 @@ export function useSmoothDrag({
       (initialMouseX - elementBoundingBox.left) / scale + offset.x;
     initialOffsetY.current =
       (initialMouseY - elementBoundingBox.top) / scale + offset.y;
-
-    console.log(Object.values(selectedNodes)[0]);
 
     // send initial offset to drop zone
     item.offset = { x: initialOffsetX.current, y: initialOffsetY.current };
@@ -103,7 +101,7 @@ export function useSmoothDrag({
 
   const animate = () => {
     if (
-      //elementRef.current !== null &&
+      elementRef.current !== null &&
       boardRef.current !== null &&
       shouldAnimate
     ) {
@@ -119,27 +117,17 @@ export function useSmoothDrag({
         // so do not transform the elementRef if that is the case
         // cannot drop outside of window anyway so it will just return to where it was pre-drag
         if (lerpedMouseX.current !== 0 && lerpedMouseY.current !== 0) {
-          Object.values(selectedNodes).forEach((ref) => {
-            ref.current.style.position = "absolute";
-            ref.current.style.transform = `translate(${lerpedMouseX.current}px, ${lerpedMouseY.current}px)`;
-          });
-          // elementRef.current.style.position = "absolute";
-          // elementRef.current.style.transform = `translate(${lerpedMouseX.current}px, ${lerpedMouseY.current}px)`;
+          elementRef.current.style.position = "absolute";
+          elementRef.current.style.transform = `translate(${lerpedMouseX.current}px, ${lerpedMouseY.current}px)`;
         }
       } else {
         // shouldPosition is usually only false if the element is in a column
-        Object.values(selectedNodes).forEach((ref) => {
-          ref.current.style.position = shouldPosition ? "absolute" : "relative";
-          ref.current.style.transform = `translate(${
-            shouldPosition ? initialCoords.x : 0
-          }px, ${shouldPosition ? initialCoords.y : 0}px)`;
-        });
-        // elementRef.current.style.position = shouldPosition
-        //   ? "absolute"
-        //   : "relative";
-        // elementRef.current.style.transform = `translate(${
-        //   shouldPosition ? initialCoords.x : 0
-        // }px, ${shouldPosition ? initialCoords.y : 0}px)`;
+        elementRef.current.style.position = shouldPosition
+          ? "absolute"
+          : "relative";
+        elementRef.current.style.transform = `translate(${
+          shouldPosition ? initialCoords.x : 0
+        }px, ${shouldPosition ? initialCoords.y : 0}px)`;
       }
     }
 
@@ -152,7 +140,5 @@ export function useSmoothDrag({
     handleDragEnd,
     animate,
     isDragging,
-    selectedNodes,
-    setSelectedNodes,
   };
 }

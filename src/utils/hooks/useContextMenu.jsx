@@ -149,6 +149,7 @@ export function useContextMenu({ containerRef }) {
                 <MenuItem
                   onClick={() => {
                     const a = Object.values(selectedNode);
+                    console.log(a);
                     copyNodes(a);
                   }}
                 >
@@ -182,15 +183,21 @@ export function useContextMenu({ containerRef }) {
                       // Check if parent's ID is in object.
                       // if true, use mappedIDs to update; else assign id of node that triggered the paste
                       node.parent = !!mappedIDs[node.parent.id]
-                        ? mappedIDs[node.parent.id]
+                        ? { ...node.parent, id: mappedIDs[node.parent.id] }
                         : undefined; // paste node id;
-                      if (!node.children) return node;
-                      // Update children of IDS
-                      node.children = node.children.map((item) => {
-                        const child = { ...item };
-                        child.id = mappedIDs[child.id];
-                        return child;
-                      });
+                      if (!node.childRefs) return node;
+                      // Update childRefs of IDS
+                      node.childRefs = node.childRefs
+                        .map((item2) => {
+                          const child = {
+                            ...item2,
+                            childId: !!mappedIDs[item2.childId]
+                              ? mappedIDs[item2.childId]
+                              : undefined,
+                          };
+                          return child;
+                        })
+                        .filter((item2) => item2.childID !== undefined);
 
                       return node;
                     });

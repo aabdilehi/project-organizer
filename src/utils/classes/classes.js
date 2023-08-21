@@ -36,6 +36,7 @@ export class BadgeC {
 
 export class NoteC {
   constructor({
+    id = undefined,
     pX = 0,
     pY = 0,
     sX = 200,
@@ -43,7 +44,7 @@ export class NoteC {
     content = `<p>New note</p>`,
     parent,
   }) {
-    this.id = uuidv4();
+    this.id = id ? id : uuidv4();
     this.type = BoardObjects.NOTE;
     this.pX = pX;
     this.pY = pY;

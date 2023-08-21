@@ -5,13 +5,13 @@ import { useRef } from "react";
 
 import { useClickAndHold } from "../utils/hooks/useClickAndHold";
 
-function CustomEditablePreview(props) {
+function CustomEditablePreview({ canEdit = true, ...props }) {
   const editRef = useRef();
   const { getEditButtonProps } = useEditableControls();
   const startEdit = getEditButtonProps().onClick;
 
   const handleClick = (event) => {
-    if (event.button === 0) {
+    if (event.button === 0 && canEdit) {
       startEdit();
     }
   };
