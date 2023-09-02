@@ -237,6 +237,11 @@ const Board = ({ validBoard, title, router, childRefs }) => {
           break;
       }
 
+      /// I think the order is messed up here
+      // Maybe go through and only add the nodes that have parent as this board
+      // Then do second pass (things can only ever be 2 levels deep I think?)
+      // Nvm boards can have other boards that have other boards
+      // then i guess do the board idea then just go recursively?
       if (!!copiedNode) {
         dispatch(addNode.action(copiedNode));
         dispatch(
@@ -428,7 +433,9 @@ const Board = ({ validBoard, title, router, childRefs }) => {
           updateContextMenu(e);
           handleRightClick(e);
         }}
-        onDrop={(event) => drop(event)}
+        onDrop={(event) => {
+          drop(event);
+        }}
         onDragOver={(event) => {
           allowDrop(event);
         }}
@@ -455,9 +462,6 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                   <Note
                     key={childId}
                     id={childId}
-                    boardRef={ref}
-                    offset={position}
-                    scale={scale}
                     openContextMenu={handleRightClick}
                     handleDragStart={handleDragStart}
                     handleDrag={handleDrag}
@@ -485,11 +489,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                 return (
                   <Picture
                     key={childId}
-                    boardId={boardId}
                     id={childId}
-                    boardRef={ref}
-                    offset={position}
-                    scale={scale}
                     openContextMenu={handleRightClick}
                     handleDragStart={handleDragStart}
                     handleDrag={handleDrag}
@@ -501,11 +501,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                 return (
                   <ToDo
                     key={childId}
-                    boardId={boardId}
                     id={childId}
-                    boardRef={ref}
-                    offset={position}
-                    scale={scale}
                     openContextMenu={handleRightClick}
                     handleDragStart={handleDragStart}
                     handleDrag={handleDrag}
@@ -517,11 +513,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                 return (
                   <BoardIcon
                     key={childId}
-                    boardId={boardId}
                     id={childId}
-                    boardRef={ref}
-                    offset={position}
-                    scale={scale}
                     openContextMenu={handleRightClick}
                     handleDragStart={handleDragStart}
                     handleDrag={handleDrag}
@@ -533,11 +525,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                 return (
                   <Document
                     key={childId}
-                    boardId={boardId}
                     id={childId}
-                    boardRef={ref}
-                    offset={position}
-                    scale={scale}
                     openContextMenu={handleRightClick}
                     handleDragStart={handleDragStart}
                     handleDrag={handleDrag}

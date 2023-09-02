@@ -19,6 +19,8 @@ import {
   PictureC,
   TaskC,
 } from "../classes/classes";
+import { useContext } from "react";
+import { SelectedNodeContext } from "../../App";
 
 export function useBoardDrop({
   accept,
@@ -28,6 +30,7 @@ export function useBoardDrop({
   scale = 1,
 }) {
   const dispatch = useDispatch();
+  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
 
   function allowDrop(event) {
     event.preventDefault();
@@ -50,6 +53,7 @@ export function useBoardDrop({
           if (item.parent.id !== boardId) {
             updateNodeParent(item, boardId, BoardObjects.BOARD);
             updateNodePosition(event, item);
+            handleSelectNode(event, null); // temp fix for issue when selectednode data doesn't match actual node data
           } else {
             updateNodePosition(event, item);
           }
@@ -199,8 +203,8 @@ export function useColumnDrop({
 }) {
   const dispatch = useDispatch();
 
+  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
   const allowDrop = (event) => {
-    event.stopPropagation();
     event.preventDefault();
   };
 
@@ -227,6 +231,7 @@ export function useColumnDrop({
             return;
           }
           updateNodeParent(item, columnId, BoardObjects.COLUMN);
+          handleSelectNode(event, null); // temp fix for issue when selectednode data doesn't match actual node data
         }
       });
     }

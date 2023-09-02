@@ -42,6 +42,7 @@ import {
   updateTitle,
 } from "../utils/slices/nodeActions";
 import { NoteC } from "../utils/classes/classes";
+import NodeWrapper from "./NodeWrapper";
 
 const Document = ({
   id,
@@ -192,45 +193,45 @@ const Document = ({
 
   return (
     <>
-      <Card
-        ref={dragRef}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          updateContextMenu();
-          openContextMenu(e);
+      <NodeWrapper
+        nodeId={id}
+        canPosition={true}
+        canResize={false}
+        pX={pX}
+        pY={pY}
+        handleDragStart={handleDragStart}
+        handleDrag={handleDrag}
+        handleDragEnd={handleDragEnd}
+        animate={animate}
+        openContextMenu={openContextMenu}
+        isInColumn={isInColumn}
+        onSelectNode={{
+          id, // new Id will be assigned
+          type: BoardObjects.DOCUMENT,
+          pX, // need position in case user uses keyboard shortcut
+          pY,
+          title,
+          content,
+          expanded,
+          parent, // parent does not have to be the same
         }}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          handleSelectNode(e, {
-            id, // new Id will be assigned
-            type: BoardObjects.DOCUMENT,
-            pX, // need position in case user uses keyboard shortcut
-            pY,
-            ref: dragRef,
-            title,
-            content,
-            expanded,
-            parent, // parent does not have to be the same
-          });
+        clickCallback={() => {}}
+        holdCallback={() => {}}
+        bg={"none"}
+        outline={"none"}
+        menuProps={{
+          canCopy: true,
+          canCut: true,
+          canDelete: true,
+          delete: deleteDocument,
         }}
+        menuItems={[
+          <MenuItem onClick={convertDocument}>Convert to note</MenuItem>,
+        ]}
         zIndex={2}
         p={isInColumn ? 1.5 : 0}
-        draggable
-        onDragStart={handleDragStart}
-        onDrag={handleDrag}
-        onDragEnd={handleDragEnd}
         direction={isInColumn ? "row" : "column"}
         alignItems={"center"}
-        bgColor={
-          isInColumn ? useColorModeValue("gray.400", "gray.800") : "transparent"
-        }
-        outline={isInColumn ? "1px solid" : "none"}
-        outlineColor={
-          isInColumn
-            ? useColorModeValue("blackAlpha.500", "whiteAlpha.300")
-            : "none"
-        }
         border={"none"}
         rounded={"sm"}
         variant={"filled"}
@@ -287,7 +288,7 @@ const Document = ({
             required={true}
           />
         </Editable>
-      </Card>
+      </NodeWrapper>
       <Modal
         colorScheme={useColorModeValue("whiteAlpha", "blackAlpha")}
         size={"4xl"}

@@ -33,6 +33,10 @@ export function useSmoothDrag({
       return;
     }
 
+    console.log(Object.values(selectedNode)[0]);
+
+    console.log(Object.values(selectedNodeRefs)[0]);
+
     isDragging.current = true;
 
     const boundingRect = boardRef.current.getBoundingClientRect();
@@ -117,7 +121,9 @@ export function useSmoothDrag({
           if (
             !!el &&
             lerpedMouseX.current !== 0 &&
-            lerpedMouseY.current !== 0
+            lerpedMouseY.current !== 0 &&
+            !!initialOffsets.current &&
+            !!initialOffsets.current[key]
           ) {
             el.style.position = "absolute";
             el.style.transform = `translate(${
