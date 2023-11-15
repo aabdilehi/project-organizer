@@ -2,13 +2,17 @@ import { useContext, useEffect } from "react";
 import { useRef, useState } from "react";
 import { SelectedNodeContext } from "../../App";
 import { ContextMenuContext } from "./useContextMenu";
+import { useDispatch, useSelector } from "react-redux";
+import { clearSelectNode } from "../slices/selectionSlice";
 
 export function useSmoothBoardControls(transformRef, boardRef) {
   const offX = useRef(0);
   const offY = useRef(0);
-  const [scale, setScale] = useState(1);
+  // const [scale, setScale] = useState(1);
+  const scale = useRef(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const lerpedScale = useRef(scale);
+  const lerpedScale = useRef(scale.current);
+
   const currentPositionX = useRef(0);
   const currentPositionY = useRef(0);
   const {
@@ -17,7 +21,8 @@ export function useSmoothBoardControls(transformRef, boardRef) {
     paste,
     delete: del,
   } = useContext(ContextMenuContext);
-  const { selectedNode, setSelectedNode } = useContext(SelectedNodeContext);
+
+  const selectedNodes = useSelector((state) => state.selection);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -27,15 +32,15 @@ export function useSmoothBoardControls(transformRef, boardRef) {
             console.log("PASTE");
             break;
           case "c":
-            const c = Object.values(selectedNode);
-            console.log(selectedNode);
+            const c = Object.values(selectedNodes);
+            console.log(selectedNodes);
             copyNodes(c);
             break;
           case "x":
-            Object.values(selectedNode).forEach((item) => {
+            Object.values(selectedNodes).forEach((item) => {
               del();
             });
-            copyNodes(Object.values(selectedNode));
+            copyNodes(Object.values(selectedNodes));
             break;
           default:
             break;
@@ -46,25 +51,19 @@ export function useSmoothBoardControls(transformRef, boardRef) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedNode]);
+  }, [selectedNodes]);
 
   const handleWheel = (event) => {
     if (
       event.target === boardRef.current ||
       event.target.parentNode === boardRef.current
     ) {
-      const newScale = Math.max(0.1, scale + event.deltaY * -0.0025);
-      lerpedScale.current += (newScale - scale) * 0.2;
-
-      setScale((prev) => {
-        if (prev !== lerpedScale.current) {
-          return lerpedScale.current;
-        }
-        return prev;
-      });
+      scale.current = scale.current + event.deltaY * -0.0004;
     }
   };
   const { handleSelectNode } = useContext(SelectedNodeContext);
+  const dispatch = useDispatch();
+
   const handleMouseDown = (event) => {
     if (event.type !== "mousedown") return;
     if (
@@ -74,7 +73,7 @@ export function useSmoothBoardControls(transformRef, boardRef) {
       return;
     if (event.button === 0) {
       console.log("Clicking on board");
-      handleSelectNode(event, undefined);
+      dispatch(clearSelectNode());
     }
 
     if (event.button === 1) {
@@ -132,6 +131,7 @@ export function useSmoothBoardControls(transformRef, boardRef) {
 
   const animate = () => {
     if (transformRef.current !== null) {
+      lerpedScale.current += (scale.current - lerpedScale.current) * 0.2;
       transformRef.current.style.transform = `scale(${lerpedScale.current}) translate(${currentPositionX.current}px, ${currentPositionY.current}px)`;
     }
     requestAnimationFrame(animate);
@@ -141,7 +141,7 @@ export function useSmoothBoardControls(transformRef, boardRef) {
     handleMouseDown,
     handleTouchStart,
     animate,
-    scale,
+    scale: scale.current,
     position,
   };
 }

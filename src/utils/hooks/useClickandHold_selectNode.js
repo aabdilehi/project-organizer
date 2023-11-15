@@ -19,7 +19,7 @@ export function useClickAndHold(
     event.stopPropagation();
 
     selectedRef.current = isSelected;
-    if (!selectedRef.current) {
+    if (!selectedRef.current || (!event.ctrlKey && !event.shiftKey)) {
       selectCallback(event);
     }
     downRef.current = new Date();

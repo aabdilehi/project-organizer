@@ -8,7 +8,7 @@ import { useRef } from "react";
 // I ALSO NEED TO CHANGE THE DRAG STUFF TO WORK WITH RELATIVE POSITION RATHER THAN ABSOLUTE POSITION
 // OTHER OPTIONS INCLUDE CREATING A FAKE CONTAINER AROUND THE BOUNDS OF THE SELECTED NODES?
 
-export function useSmoothDrag({
+function useSmoothDrag({
   boardId,
   boardRef,
   elementRef,
@@ -66,7 +66,10 @@ export function useSmoothDrag({
     const prev = document.createElement("span");
     prev.style.display = "none";
     event.dataTransfer.setDragImage(prev, 0, 0);
-    event.dataTransfer.setData("application/json", JSON.stringify(item));
+    event.dataTransfer.setData(
+      "application/json",
+      JSON.stringify({ [item.id]: item })
+    );
   };
 
   const handleDrag = (event) => {
@@ -142,3 +145,5 @@ export function useSmoothDrag({
     isDragging,
   };
 }
+
+export default useSmoothDrag;

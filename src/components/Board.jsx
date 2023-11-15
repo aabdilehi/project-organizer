@@ -38,7 +38,12 @@ import {
   TaskC,
 } from "../utils/classes/classes";
 import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
+import { createContext } from "react";
+
+import useSmoothDrag2 from "../utils/hooks/useSmoothDrag_copy";
 //#endregion
+
+export const DragFunctions = createContext();
 
 const Board = ({ validBoard, title, router, childRefs }) => {
   //#region Handle initial page setup
@@ -118,16 +123,13 @@ const Board = ({ validBoard, title, router, childRefs }) => {
 
   //#region Drag behaviour
 
-  const {
-    handleDragStart,
-    handleDrag,
-    handleDragEnd,
-    animate: nodeAnimate,
-  } = useSmoothDrag({
+  const { animate, ...dragFunctions } = useSmoothDrag({
     boardRef: ref,
     offset: position,
     scale,
   });
+
+  requestAnimationFrame(animate);
 
   //#endregion
 
@@ -162,97 +164,102 @@ const Board = ({ validBoard, title, router, childRefs }) => {
   const { setMenuItems, setMenuProps, copiedNodes } =
     useContext(ContextMenuContext);
 
-  const pasteNodes = (nodes, mouseX, mouseY) => {
-    nodes?.forEach((node) => {
-      let copiedNode;
-      switch (node.type) {
-        case BoardObjects.NOTE:
-          copiedNode = {
-            ...node,
-            pX: mouseX,
-            pY: mouseY,
-            parent: !!node.parent
-              ? node.parent
-              : { id: boardId, type: BoardObjects.BOARD },
-          };
-          break;
-        case BoardObjects.DOCUMENT:
-          copiedNode = {
-            ...node,
-            id: uuidv4(),
-            pX: mouseX,
-            pY: mouseY,
-            parent: !!node.parent
-              ? node.parent
-              : { id: boardId, type: BoardObjects.BOARD },
-          };
-          break;
-        case BoardObjects.IMAGE:
-          copiedNode = {
-            ...node,
-            pX: mouseX,
-            pY: mouseY,
-            parent: !!node.parent
-              ? node.parent
-              : { id: boardId, type: BoardObjects.BOARD },
-          };
-          break;
-        case BoardObjects.TODO:
-          copiedNode = {
-            ...node,
-            id: uuidv4(),
-            pX: mouseX,
-            pY: mouseY,
-            parent: !!node.parent
-              ? node.parent
-              : { id: boardId, type: BoardObjects.BOARD },
-          };
-          break;
-        case BoardObjects.COLUMN:
-          // Need to copy the contents of the column and assign new Ids to them
-          copiedNode = {
-            ...node,
-            id: uuidv4(),
-            pX: mouseX,
-            pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
-          };
-          break;
-        case BoardObjects.BOARD:
-          copiedNode = {
-            ...node,
-            id: uuidv4(),
-            pX: mouseX,
-            pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
-          };
-          break;
-        default:
-          break;
-      }
+  const boing = (node, mouseX, mouseY) => {
+    let copiedNode;
+    switch (node.type) {
+      case BoardObjects.NOTE:
+        copiedNode = {
+          ...node,
+          pX: mouseX,
+          pY: mouseY,
+          parent: !!node.parent
+            ? node.parent
+            : { id: boardId, type: BoardObjects.BOARD },
+        };
+        break;
+      case BoardObjects.DOCUMENT:
+        copiedNode = {
+          ...node,
+          id: uuidv4(),
+          pX: mouseX,
+          pY: mouseY,
+          parent: !!node.parent
+            ? node.parent
+            : { id: boardId, type: BoardObjects.BOARD },
+        };
+        break;
+      case BoardObjects.IMAGE:
+        copiedNode = {
+          ...node,
+          pX: mouseX,
+          pY: mouseY,
+          parent: !!node.parent
+            ? node.parent
+            : { id: boardId, type: BoardObjects.BOARD },
+        };
+        break;
+      case BoardObjects.TODO:
+        copiedNode = {
+          ...node,
+          id: uuidv4(),
+          pX: mouseX,
+          pY: mouseY,
+          parent: !!node.parent
+            ? node.parent
+            : { id: boardId, type: BoardObjects.BOARD },
+        };
+        break;
+      case BoardObjects.COLUMN:
+        // Need to copy the contents of the column and assign new Ids to them
+        copiedNode = {
+          ...node,
+          id: uuidv4(),
+          pX: mouseX,
+          pY: mouseY,
+          parent: {
+            id: boardId,
+            type: BoardObjects.BOARD,
+          },
+        };
+        break;
+      case BoardObjects.BOARD:
+        copiedNode = {
+          ...node,
+          id: uuidv4(),
+          pX: mouseX,
+          pY: mouseY,
+          parent: {
+            id: boardId,
+            type: BoardObjects.BOARD,
+          },
+        };
+        break;
+      default:
+        break;
+    }
 
-      /// I think the order is messed up here
-      // Maybe go through and only add the nodes that have parent as this board
-      // Then do second pass (things can only ever be 2 levels deep I think?)
-      // Nvm boards can have other boards that have other boards
-      // then i guess do the board idea then just go recursively?
-      if (!!copiedNode) {
-        dispatch(addNode.action(copiedNode));
-        dispatch(
-          addChild.action({
-            id: copiedNode.parent.id,
-            type: copiedNode.parent.type,
-            cId: copiedNode.id,
-            cType: copiedNode.type,
-          })
-        );
-      }
+    /// I think the order is messed up here
+    // Maybe go through and only add the nodes that have parent as this board
+    // Then do second pass (things can only ever be 2 levels deep I think?)
+    // Nvm boards can have other boards that have other boards
+    // then i guess do the board idea then just go recursively?
+    if (!!copiedNode) {
+      dispatch(addNode.action(copiedNode));
+      dispatch(
+        addChild.action({
+          id: copiedNode.parent.id,
+          type: copiedNode.parent.type,
+          cId: copiedNode.id,
+          cType: copiedNode.type,
+        })
+      );
+    }
+  };
+
+  const pasteNodes = (nodes, mouseX, mouseY) => {
+    console.log(nodes);
+    nodes?.forEach((node) => {
+      boing(node, mouseX, mouseY);
     });
   };
 
@@ -446,6 +453,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
           ref={transformRef}
           style={{
             transformOrigin: "top left",
+            transition: "all 0.1s transform 3s",
             width: "100%",
             height: "100%",
           }}
@@ -455,88 +463,71 @@ const Board = ({ validBoard, title, router, childRefs }) => {
             pasteNodes(0, 0);
           }}
         >
-          {childRefs.map(({ childId, childType }) => {
-            switch (childType) {
-              case BoardObjects.NOTE:
-                return (
-                  <Note
-                    key={childId}
-                    id={childId}
-                    openContextMenu={handleRightClick}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={nodeAnimate}
-                  />
-                );
-              case BoardObjects.COLUMN:
-                return (
-                  <Column
-                    key={childId}
-                    boardId={boardId}
-                    id={childId}
-                    boardRef={ref}
-                    offset={position}
-                    scale={scale}
-                    openContextMenu={handleRightClick}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={nodeAnimate}
-                  />
-                );
-              case BoardObjects.IMAGE:
-                return (
-                  <Picture
-                    key={childId}
-                    id={childId}
-                    openContextMenu={handleRightClick}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={nodeAnimate}
-                  />
-                );
-              case BoardObjects.TODO:
-                return (
-                  <ToDo
-                    key={childId}
-                    id={childId}
-                    openContextMenu={handleRightClick}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={nodeAnimate}
-                  />
-                );
-              case BoardObjects.BOARD:
-                return (
-                  <BoardIcon
-                    key={childId}
-                    id={childId}
-                    openContextMenu={handleRightClick}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={nodeAnimate}
-                  />
-                );
-              case BoardObjects.DOCUMENT:
-                return (
-                  <Document
-                    key={childId}
-                    id={childId}
-                    openContextMenu={handleRightClick}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={nodeAnimate}
-                  />
-                );
-              default:
-                break;
-            }
-          })}
+          <DragFunctions.Provider value={dragFunctions}>
+            {childRefs.map(({ childId, childType }) => {
+              switch (childType) {
+                case BoardObjects.NOTE:
+                  return (
+                    <Note
+                      key={childId}
+                      id={childId}
+                      openContextMenu={handleRightClick}
+                      scale={scale}
+                      animate={animate}
+                    />
+                  );
+                case BoardObjects.COLUMN:
+                  return (
+                    <Column
+                      key={childId}
+                      boardId={boardId}
+                      id={childId}
+                      boardRef={ref}
+                      offset={position}
+                      scale={scale}
+                      openContextMenu={handleRightClick}
+                      animate={animate}
+                    />
+                  );
+                // case BoardObjects.IMAGE:
+                //   return (
+                //     <Picture
+                //       key={childId}
+                //       id={childId}
+                //       openContextMenu={handleRightClick}
+                //     />
+                //   );
+                case BoardObjects.TODO:
+                  return (
+                    <ToDo
+                      key={childId}
+                      id={childId}
+                      openContextMenu={handleRightClick}
+                      animate={animate}
+                    />
+                  );
+                // case BoardObjects.BOARD:
+                //   return (
+                //     <BoardIcon
+                //       key={childId}
+                //       id={childId}
+                //       openContextMenu={handleRightClick}
+                //     />
+                //   );
+                case BoardObjects.DOCUMENT:
+                  return (
+                    <Document
+                      key={childId}
+                      id={childId}
+                      openContextMenu={handleRightClick}
+                      animate={animate}
+                    />
+                  );
+                default:
+                  break;
+              }
+            })}
+          </DragFunctions.Provider>
         </Box>
       </Box>
     );

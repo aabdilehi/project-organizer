@@ -24,6 +24,8 @@ import ToDo from "./ToDo";
 import BoardIcon from "./BoardIcon";
 import { AutoResizeEditableInput } from "./AutoResizeTextarea";
 import Document from "./Document";
+import { ContextMenuContext } from "../utils/hooks/useContextMenu";
+import { SelectedNodeContext } from "../App";
 import {
   addChild,
   addNode,
@@ -32,13 +34,11 @@ import {
   updateSize,
   updateTitle,
 } from "../utils/slices/nodeActions";
-import NodeWrapper from "./NodeWrapper";
 
 const Column = ({
   id,
   boardId,
   boardRef,
-  animate,
   pX,
   pY,
   offset,
@@ -49,12 +49,29 @@ const Column = ({
   childRefs,
   parent,
   openContextMenu,
+  handleDragStart,
+  handleDrag,
+  handleDragEnd,
+  animate,
 }) => {
+  const dragRef = useRef(null);
   const columnRef = useRef(null);
 
-  const selectedNodes = useSelector((state) => state.selection);
-
   const dispatch = useDispatch();
+
+  //#region Drag behaviour
+
+  const item = {
+    id,
+    type: BoardObjects.COLUMN,
+    parent: parent,
+  };
+
+  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
+
+  if (animate !== undefined) animate();
+
+  //#endregion
 
   //#region Drop behaviour
 
@@ -147,6 +164,8 @@ const Column = ({
     dispatch(removeNode.action({ id: colId, type: BoardObjects.COLUMN }));
   };
 
+  const { setMenuItems, setMenuProps } = useContext(ContextMenuContext);
+
   const pasteNodes = (nodes) => {
     nodes.forEach((node) => {
       let copiedNode;
@@ -219,10 +238,52 @@ const Column = ({
     });
   };
 
+  const updateContextMenu = () => {
+    setMenuItems([]);
+    setMenuProps({
+      canCopy: true,
+      canCut: true,
+      canDelete: true,
+      canPaste: true,
+      delete: () => {
+        deleteColumn(boardId, id);
+      },
+      paste: (nodes) => {
+        pasteNodes(nodes);
+      },
+    });
+  };
+
   //#endregion
 
+  useEffect(() => {
+    if (!dragRef.current) return;
+    const bruh = (e) => {
+      handleSelectNode(e, {
+        id, // new Id will be assigned
+        type: BoardObjects.COLUMN,
+        pX, // need position in case user uses keyboard shortcut
+        pY,
+        sX,
+        sY,
+        title,
+        ref: dragRef,
+        parent,
+        childRefs,
+        // parent does not have to be the same
+      });
+    };
+
+    dragRef.current.addEventListener("mousedown", bruh);
+    return () => {
+      if (!!dragRef.current) {
+        dragRef.current.removeEventListener("mousedown", bruh);
+      }
+    };
+  }, [dragRef.current]);
+
   return (
-    <NodeWrapper
+    <ResizeObserver
       onResize={({ width, height }) => {
         dispatch(
           updateSize.action({
@@ -233,154 +294,157 @@ const Column = ({
           })
         );
       }}
-      nodeId={id}
-      nodeType={BoardObjects.COLUMN}
-      animate={animate}
-      canPosition={true}
-      canResize={true}
-      direction={{ base: "column" }}
-      openContextMenu={openContextMenu}
-      rounded={"sm"}
-      menuItems={[]}
-      menuProps={{
-        canCopy: true,
-        canCut: true,
-        canDelete: true,
-        canPaste: true,
-        delete: () => {
-          deleteColumn(boardId, id);
-        },
-        paste: (nodes) => {
-          pasteNodes(nodes);
-        },
-      }}
-      pX={pX}
-      pY={pY}
-      onDragOver={allowDrop}
-      onDrop={drop}
-      style={{
-        zIndex: 2,
-        minWidth: "300px",
-        maxWidth: "1000px",
-        width: sX + "px",
-        minHeight: "120px",
-        resize: "horizontal",
-        overflow: "hidden",
-        alignItems: "center",
-        // color: "white",
-        padding: 4,
-        cursor: "grab",
-      }}
-      clickCallback={() => {}}
-      holdCallback={() => {}}
-      parent={parent}
     >
-      <CardHeader draggable p={1.5}>
-        <Editable
-          draggable
-          as="h2"
-          fontSize="larger"
-          fontWeight="800"
-          color={useColorModeValue("black", "white")}
-          value={title}
-          textAlign="center"
-          isPreviewFocusable={false}
-          //pointerEvents={!!selectedNodes[id] ? "unset" : "none"}
-        >
-          <CustomEditablePreview
-            canEdit={true}
-            draggable
-            color={useColorModeValue("black", "white")}
+      <Card
+        ref={dragRef}
+        nodeId={id}
+        draggable
+        position={"absolute"}
+        transform={`translate(${pX}px, ${pY}px)`}
+        onDragStart={handleDragStart}
+        onDrag={handleDrag}
+        onDragEnd={handleDragEnd}
+        onDragOver={allowDrop}
+        onDrop={drop}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          updateContextMenu();
+          openContextMenu(e);
+        }}
+        zIndex={2}
+        w={sX + "px"}
+        direction={{ base: "column" }}
+        alignItems="center"
+        color={"white"}
+        p={1}
+        minW="300px"
+        maxW="1000px"
+        minH="120px"
+        resize="horizontal"
+        overflow="hidden"
+        rounded={"sm"}
+        bgColor={useColorModeValue("gray.300", "gray.700")}
+        outline={!!selectedNode[id] ? "3px solid" : "1px solid"}
+        outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
+        cursor={"grab"}
+      >
+        <CardHeader draggable={false} p={1.5}>
+          <Editable
+            draggable={false}
+            as="h2"
             fontSize="larger"
             fontWeight="800"
-          />
-          <AutoResizeEditableInput
-            draggable
-            fontSize="larger"
-            overflow={"hidden"}
-            onChange={(e) =>
-              dispatch(
-                updateTitle.action({
-                  id,
-                  type: BoardObjects.COLUMN,
-                  title: e.target.value,
-                })
-              )
-            }
-          />
-        </Editable>
-      </CardHeader>
-      <CardBody
-        draggable={false}
-        ref={columnRef}
-        w="calc(100%)"
-        alignItems="center"
-        border="2px dashed"
-        borderColor="gray.600"
-        p={0}
-        rounded="md"
-      >
-        <Stack direction="column" w="full">
-          {childRefs.map(({ childId, childType }) => {
-            switch (childType) {
-              case BoardObjects.NOTE:
-                return (
-                  <Note
-                    key={childId}
-                    id={childId}
-                    openContextMenu={openContextMenu}
-                    animate={animate}
-                  />
-                );
-              // case BoardObjects.IMAGE:
-              //   return (
-              //     <Picture
-              //       key={childId}
-              //       boardId={boardId}
-              //       id={childId}
-              //       boardRef={boardRef}
-              //       offset={offset}
-              //       scale={scale}
-              //       openContextMenu={openContextMenu}
-              //     />
-              //   );
-              case BoardObjects.TODO:
-                return (
-                  <ToDo
-                    key={childId}
-                    id={childId}
-                    openContextMenu={openContextMenu}
-                    animate={animate}
-                  />
-                );
-              // case BoardObjects.BOARD:
-              //   return (
-              //     <BoardIcon
-              //       key={childId}
-              //       boardId={boardId}
-              //       id={childId}
-              //       boardRef={boardRef}
-              //       offset={offset}
-              //       scale={scale}
-              //       openContextMenu={openContextMenu}
-              //     />
-              //   );
-              case BoardObjects.DOCUMENT:
-                return (
-                  <Document
-                    key={childId}
-                    id={childId}
-                    openContextMenu={openContextMenu}
-                    animate={animate}
-                  />
-                );
-              default:
-                break;
-            }
-          })}
-        </Stack>
-      </CardBody>
-    </NodeWrapper>
+            color={useColorModeValue("black", "white")}
+            value={title}
+            textAlign="center"
+            isPreviewFocusable={false}
+          >
+            <CustomEditablePreview
+              canEdit={!!selectedNode[id]}
+              draggable={false}
+              color={useColorModeValue("black", "white")}
+              fontSize="larger"
+              fontWeight="800"
+            />
+            <AutoResizeEditableInput
+              draggable={false}
+              fontSize="larger"
+              overflow={"hidden"}
+              onChange={(e) =>
+                dispatch(
+                  updateTitle.action({
+                    id,
+                    type: BoardObjects.COLUMN,
+                    title: e.target.value,
+                  })
+                )
+              }
+            />
+          </Editable>
+        </CardHeader>
+        <CardBody
+          draggable={false}
+          ref={columnRef}
+          w="calc(100%)"
+          alignItems="center"
+          border="2px dashed"
+          borderColor="gray.600"
+          p={0}
+          rounded="md"
+        >
+          <Stack direction="column" w="full">
+            {childRefs.map(({ childId, childType }) => {
+              switch (childType) {
+                case BoardObjects.NOTE:
+                  return (
+                    <Note
+                      key={childId}
+                      boardId={boardId}
+                      id={childId}
+                      boardRef={boardRef}
+                      columnRef={dragRef}
+                      offset={offset}
+                      scale={scale}
+                      openContextMenu={openContextMenu}
+                    />
+                  );
+                case BoardObjects.IMAGE:
+                  return (
+                    <Picture
+                      key={childId}
+                      boardId={boardId}
+                      id={childId}
+                      boardRef={boardRef}
+                      offset={offset}
+                      scale={scale}
+                      openContextMenu={openContextMenu}
+                    />
+                  );
+                case BoardObjects.TODO:
+                  return (
+                    <ToDo
+                      key={childId}
+                      boardId={boardId}
+                      id={childId}
+                      boardRef={boardRef}
+                      offset={offset}
+                      scale={scale}
+                      openContextMenu={openContextMenu}
+                    />
+                  );
+                case BoardObjects.BOARD:
+                  return (
+                    <BoardIcon
+                      key={childId}
+                      boardId={boardId}
+                      id={childId}
+                      boardRef={boardRef}
+                      offset={offset}
+                      scale={scale}
+                      openContextMenu={openContextMenu}
+                    />
+                  );
+                case BoardObjects.DOCUMENT:
+                  return (
+                    <Document
+                      key={childId}
+                      boardId={boardId}
+                      id={childId}
+                      boardRef={boardRef}
+                      offset={offset}
+                      scale={scale}
+                      openContextMenu={openContextMenu}
+                    />
+                  );
+                default:
+                  break;
+              }
+            })}
+          </Stack>
+        </CardBody>
+      </Card>
+    </ResizeObserver>
   );
 };
 

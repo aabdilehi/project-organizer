@@ -54,11 +54,9 @@ import {
   updateContent,
   updateTitle,
 } from "../utils/slices/nodeActions";
-import NodeWrapper from "./NodeWrapper";
 
 const ToDo = ({
   id,
-  animate,
   pX,
   pY,
   title,
@@ -66,6 +64,7 @@ const ToDo = ({
   deadline,
   content,
   parent,
+  setContextMenu,
   openContextMenu,
   addBadge,
   removeBadge,
@@ -73,8 +72,14 @@ const ToDo = ({
   taskStatus,
   updateTaskStatus,
   updateDeadline,
+  boardId,
+  boardRef,
+  offset,
+  scale,
 }) => {
   const finalRef = useRef(null);
+
+  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
 
   const dispatch = useDispatch();
   // Modal control
@@ -85,7 +90,32 @@ const ToDo = ({
   const [taskSummary, setTaskSummary] = useState(content);
 
   const [date, setDate] = useState(deadline);
+  const dragRef = useRef(null);
   const [isInColumn, setIsInColumn] = useState(false);
+
+  //#region  Drag behaviour
+  const item = {
+    id: id,
+    type: BoardObjects.TODO,
+    parent: parent,
+  };
+
+  const { animate, handleDragStart, handleDrag, handleDragEnd } = useSmoothDrag(
+    {
+      boardId,
+      boardRef,
+      elementRef: dragRef,
+      initialCoords: { x: pX, y: pY },
+      item,
+      offset,
+      scale,
+      shouldAnimate: true,
+      shouldPosition: true,
+    }
+  );
+  if (!!animate) animate();
+
+  //#endregion
 
   useEffect(() => {
     setIsInColumn(parent.type === BoardObjects.COLUMN);
@@ -95,6 +125,45 @@ const ToDo = ({
   const deleteTask = () => {
     dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
     dispatch(removeNode.action({ id, type: BoardObjects.TODO }));
+  };
+
+  const { setMenuItems, setMenuProps, copyNodes } =
+    useContext(ContextMenuContext);
+
+  const copyTask = () => {
+    const task = {
+      // new Id will be assigned
+      type: BoardObjects.TODO,
+      pX, // need position in case user uses keyboard shortcut
+      pY,
+      title,
+      deadline,
+      content,
+      taskStatus,
+      badges,
+      parent,
+    };
+    copyNodes([task]);
+  };
+
+  const cutTask = () => {
+    copyTask();
+    deleteTask();
+  };
+
+  const updateContextMenu = () => {
+    setMenuItems([
+      <MenuItem onClick={cutTask}>Cut</MenuItem>,
+      <MenuItem onClick={copyTask}>Copy</MenuItem>,
+      <MenuItem onClick={deleteTask}>Delete</MenuItem>,
+    ]);
+    setMenuProps({
+      canCopy: true,
+      canCut: true,
+      canDelete: true,
+
+      delete: deleteTask,
+    });
   };
 
   //#region Modal menu
@@ -259,42 +328,58 @@ const ToDo = ({
   //#endregion
 
   return (
-    <NodeWrapper
-      nodeId={id}
-      nodeType={"task"}
-      canPosition={true}
-      animate={animate}
-      canResize={false}
-      parent={parent}
-      isInColumn={isInColumn}
-      pX={pX}
-      pY={pY}
-      parent={parent}
-      clickCallback={() => {}}
-      holdCallback={() => {}}
+    <Card
+      draggable={true}
+      position={isInColumn ? "relative" : "absolute"}
+      transform={
+        isInColumn ? "translate(0px, 0px)" : `translate(${pX}px, ${pY}px)`
+      }
+      onDragStart={handleDragStart}
+      onDrag={handleDrag}
+      onDragEnd={handleDragEnd}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        updateContextMenu();
+        openContextMenu(e);
+      }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        handleSelectNode(e, {
+          id, // new Id will be assigned
+          type: BoardObjects.TODO,
+          pX, // need position in case user uses keyboard shortcut
+          pY,
+          title,
+          deadline,
+          content,
+          ref: dragRef,
+          taskStatus,
+          badges,
+
+          parent, // parent does not have to be the same
+        });
+      }}
+      zIndex={2}
       role="group"
+      ref={dragRef}
       direction={{ base: "row" }}
+      bg={useColorModeValue("gray.400", "gray.800")}
+      outline={!!selectedNode[id] ? "3px solid" : "1px solid"}
+      outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
       size={"sm"}
+      maxW="1000px"
+      maxH="1000px"
+      alignItems="flex-start"
       pt={2}
       pr={2}
       style={{
         width: isInColumn ? "100%" : "250px",
         height: "fit-content",
-        minWidth: isInColumn ? "100%" : undefined,
-        maxWidth: "1000px",
-        maxHeight: "1000px",
-        zIndex: 2,
-        alignItems: "flex-start",
-        cursor: "grab",
       }}
-      menuProps={{
-        canCopy: true,
-        canCut: true,
-        canDelete: true,
-
-        delete: deleteTask,
-      }}
-      menuItems={[]}
+      position={isInColumn ? "relative" : "absolute"}
+      cursor={"grab"}
+      minW={isInColumn ? "100%;" : ""}
     >
       <Stack direction={{ base: "column" }} pl={5}>
         <Stack
@@ -416,7 +501,7 @@ const ToDo = ({
         </Stack>
       </Stack>
       {ModalMenu}
-    </NodeWrapper>
+    </Card>
   );
 };
 

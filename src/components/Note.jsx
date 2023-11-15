@@ -1,25 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import "../App.css";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect } from "react";
 
 import { BoardObjects } from "../utils/enums/items";
-import ResizeObserver from "rc-resize-observer";
 import "../editor.scss";
-import {
-  Box,
-  Editable,
-  ListItem,
-  Menu,
-  MenuDivider,
-  MenuItem,
-  MenuList,
-  Portal,
-  Textarea,
-  useColorModeValue,
-  useDisclosure,
-} from "@chakra-ui/react";
+import { ListItem, MenuItem } from "@chakra-ui/react";
 import { bindActionCreators } from "redux";
-import { connect, useDispatch } from "react-redux";
+import { connect, useDispatch, useSelector } from "react-redux";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Color from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
@@ -29,8 +16,6 @@ import Highlight from "@tiptap/extension-highlight";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
-import { useContext } from "react";
-import { SelectedNodeContext } from "../App";
 import {
   addChild,
   addNode,
@@ -45,6 +30,7 @@ import NodeWrapper from "./NodeWrapper";
 const Note = ({
   id,
   scale,
+  animate,
   pX,
   pY,
   sX,
@@ -52,26 +38,9 @@ const Note = ({
   content,
   parent,
   openContextMenu,
-  handleDragStart,
-  handleDrag,
-  handleDragEnd,
-  animate,
 }) => {
-  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
+  const selectedNodes = useSelector((state) => state.selection);
   const dispatch = useDispatch();
-
-  const selectData = useMemo(() => {
-    return {
-      id, // new Id will be assigned
-      type: BoardObjects.NOTE,
-      pX, // need position in case user uses keyboard shortcut
-      pY,
-      sX,
-      sY,
-      content,
-      parent,
-    };
-  }, [id, pX, pY, sX, sY, content, parent]);
 
   const editor = useEditor({
     extensions: [
@@ -117,7 +86,7 @@ const Note = ({
       }
 
       // Set to edit mode
-      if (!event.ctrlKey && !!selectedNode[id]) {
+      if (!event.ctrlKey && !event.shiftKey && !!selectedNodes[id]) {
         editor.setEditable(true);
         editor.commands.focus();
         return;
@@ -126,10 +95,10 @@ const Note = ({
   };
 
   useEffect(() => {
-    if (!selectedNode[id]) {
+    if (!selectedNodes[id]) {
       editor?.setEditable(false);
     }
-  }, [selectedNode]);
+  }, [selectedNodes]);
 
   // Update text and maintain cursor position on re-render
   useEffect(() => {
@@ -185,17 +154,21 @@ const Note = ({
   return (
     <NodeWrapper
       nodeId={id}
+      nodeType={"note"}
+      animate={animate}
       canPosition={!editor?.isEditable}
       canResize={true}
-      pX={pX}
-      pY={pY}
-      handleDragStart={handleDragStart}
-      handleDrag={handleDrag}
-      handleDragEnd={handleDragEnd}
       openContextMenu={openContextMenu}
       isInColumn={isInColumn}
+      pX={pX}
+      pY={pY}
+      parent={parent}
       onResize={({ width, height }) => {
-        if (!editor?.isEditable) {
+        console.log(scale);
+        if (
+          width / scale !== sX ||
+          (height / scale !== sY && !editor?.isEditable)
+        ) {
           dispatch(
             updateSize.action({
               id,
@@ -206,25 +179,25 @@ const Note = ({
           );
         }
       }}
-      animate={animate}
       clickCallback={handleClick}
       holdCallback={handleHold}
       onBlur={() => {
         editor?.setEditable(false);
       }}
-      zIndex={2}
+      style={{
+        minHeight: "75px",
+        minWidth: "75px",
+        maxHeight: "1000px",
+        maxWidth: "1000px",
+        cursor: "grab",
+        zIndex: "2",
+        overflow: editor?.isEditable ? "none" : "auto",
+        textAlign: "left",
+        // transition: "none",
+      }}
       h={editor?.isEditable ? "unset" : sY + "px"}
       w={isInColumn ? "full" : sX + "px"}
-      minH={"75px"}
-      maxH={"1000px"}
-      minW={"75px"}
-      maxW={"1000px"}
-      cursor={"grab"}
-      resize={isInColumn ? "vertical" : "both"}
-      overflow={editor?.isEditable ? "none" : "auto"}
       rounded={"sm"}
-      textAlign={"left"}
-      onSelectNode={selectData}
       menuProps={{
         canCopy: true,
         canCut: true,
@@ -239,7 +212,6 @@ const Note = ({
         style={{
           padding: 0,
           margin: 0,
-          width: "100%",
           height: "fit-content",
           overflow: "none",
           border: "none",

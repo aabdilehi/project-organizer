@@ -22,7 +22,7 @@ import React, { useContext, useEffect, useRef, useState } from "react";
 import { bindActionCreators } from "redux";
 import { toggleExpanded } from "../utils/slices/docSlice";
 import { MenuBar } from "./Editor";
-import { connect, useDispatch } from "react-redux";
+import { connect, useDispatch, useSelector } from "react-redux";
 import { BoardObjects } from "../utils/enums/items";
 import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { Card, CardBody } from "@chakra-ui/card";
@@ -47,6 +47,7 @@ import NodeWrapper from "./NodeWrapper";
 const Document = ({
   id,
   pX,
+  animate,
   pY,
   expanded,
   title,
@@ -54,10 +55,6 @@ const Document = ({
   parent,
   setContextMenu,
   openContextMenu,
-  handleDragStart,
-  handleDrag,
-  handleDragEnd,
-  animate,
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isInColumn, setIsInColumn] = useState(false);
@@ -69,8 +66,6 @@ const Document = ({
     type: BoardObjects.DOCUMENT,
     parent: parent,
   };
-
-  if (!!animate) animate();
 
   //#endregion
 
@@ -189,36 +184,32 @@ const Document = ({
       delete: deleteDocument,
     });
   };
-  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
+
+  const selectedNodes = useSelector((state) => state.selection);
 
   return (
     <>
       <NodeWrapper
         nodeId={id}
+        nodeType={BoardObjects.DOCUMENT}
         canPosition={true}
+        animate={animate}
         canResize={false}
         pX={pX}
         pY={pY}
-        handleDragStart={handleDragStart}
-        handleDrag={handleDrag}
-        handleDragEnd={handleDragEnd}
-        animate={animate}
         openContextMenu={openContextMenu}
         isInColumn={isInColumn}
-        onSelectNode={{
-          id, // new Id will be assigned
-          type: BoardObjects.DOCUMENT,
-          pX, // need position in case user uses keyboard shortcut
-          pY,
-          title,
-          content,
-          expanded,
-          parent, // parent does not have to be the same
-        }}
         clickCallback={() => {}}
         holdCallback={() => {}}
-        bg={"none"}
-        outline={"none"}
+        style={{
+          background: "none",
+          outline: "none",
+          zIndex: "2",
+          padding: isInColumn ? 1.5 : 0,
+          alignItems: "center",
+          width: isInColumn ? "full" : undefined,
+          minWidth: isInColumn ? "100%" : undefined,
+        }}
         menuProps={{
           canCopy: true,
           canCut: true,
@@ -228,17 +219,12 @@ const Document = ({
         menuItems={[
           <MenuItem onClick={convertDocument}>Convert to note</MenuItem>,
         ]}
-        zIndex={2}
-        p={isInColumn ? 1.5 : 0}
         direction={isInColumn ? "row" : "column"}
-        alignItems={"center"}
-        border={"none"}
         rounded={"sm"}
         variant={"filled"}
-        w={isInColumn ? "full" : undefined}
-        minW={isInColumn ? "100%" : undefined}
       >
         <CardBody
+          draggable
           flex={isInColumn ? 0.12 : undefined}
           cursor={"grab"}
           onDoubleClick={onOpen}
@@ -249,7 +235,7 @@ const Document = ({
               ? useColorModeValue("gray.300", "gray.700")
               : useColorModeValue("gray.400", "gray.800")
           }
-          outline={!!selectedNode[id] ? "3px solid" : "1px solid"}
+          outline={!!selectedNodes[id] ? "3px solid" : "1px solid"}
           outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
           rounded={"md"}
         >

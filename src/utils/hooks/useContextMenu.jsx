@@ -6,7 +6,7 @@ import {
   MenuList,
   useDisclosure,
 } from "@chakra-ui/react";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useContext } from "react";
 import { useState } from "react";
 import { SelectedNodeContext } from "../../App";
@@ -63,14 +63,14 @@ export function useContextMenu({ containerRef }) {
     copyNodes,
   } = useContext(ContextMenuContext);
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const handleRightClick = (event) => {
+  const handleRightClick = useCallback((event) => {
     const boundingRect = containerRef.current.getBoundingClientRect();
     const mouseX = event.clientX - boundingRect.left;
     const mouseY = event.clientY - boundingRect.top;
 
     setMousePos({ x: mouseX, y: mouseY });
     onOpen();
-  };
+  }, []);
 
   const ContextMenu = () => {
     // I think paste should still be custom (?)
@@ -83,7 +83,15 @@ export function useContextMenu({ containerRef }) {
       delete: del,
       paste,
     } = menuProps;
-    const { selectedNode, setSelectedNode } = useContext(SelectedNodeContext);
+    // const { selectedNode, setSelectedNode } = useContext(SelectedNodeContext);
+
+    const selectedNodes = useSelector((state) => state.selection);
+    const copiedNodeData = useSelector((state) => {
+      if (!selectedNodes) return;
+      return Object.keys(selectedNodes).map((key) => {
+        return state[`${selectedNodes[key]}s`][key];
+      });
+    });
     const dispatch = useDispatch();
 
     useEffect(() => {
@@ -136,10 +144,8 @@ export function useContextMenu({ containerRef }) {
               {canCut ? (
                 <MenuItem
                   onClick={() => {
-                    const a = Object.values(selectedNode);
-
+                    copyNodes(copiedNodeData);
                     del();
-                    copyNodes(a);
                   }}
                 >
                   Cut
@@ -148,9 +154,7 @@ export function useContextMenu({ containerRef }) {
               {canCopy ? (
                 <MenuItem
                   onClick={() => {
-                    const a = Object.values(selectedNode);
-                    console.log(a);
-                    copyNodes(a);
+                    copyNodes(copiedNodeData);
                   }}
                 >
                   Copy
@@ -159,7 +163,7 @@ export function useContextMenu({ containerRef }) {
               {canDelete ? (
                 <MenuItem
                   onClick={() => {
-                    Object.values(selectedNode).forEach(() => {
+                    Object.values(selectedNodes).forEach(() => {
                       del();
                     });
                   }}
@@ -171,12 +175,12 @@ export function useContextMenu({ containerRef }) {
                 <MenuItem
                   onClick={() => {
                     const mappedIDs = {};
-                    Object.values(copiedNodes).forEach((item) => {
+                    copiedNodes.forEach((item) => {
                       mappedIDs[item.id] = uuidv4();
                     });
                     console.log(mappedIDs);
-                    const a = Object.values(copiedNodes).map((item) => {
-                      const node = item;
+                    const a = copiedNodes.map((item) => {
+                      const node = { ...item };
                       console.log(node);
                       node.id = mappedIDs[node.id];
 
@@ -187,17 +191,14 @@ export function useContextMenu({ containerRef }) {
                         : undefined; // paste node id;
                       if (!node.childRefs) return node;
                       // Update childRefs of IDS
-                      node.childRefs = node.childRefs
-                        .map((item2) => {
-                          const child = {
-                            ...item2,
-                            childId: !!mappedIDs[item2.childId]
-                              ? mappedIDs[item2.childId]
-                              : undefined,
-                          };
-                          return child;
-                        })
-                        .filter((item2) => item2.childID !== undefined);
+                      node.childRefs = item.childRefs.map((childRef) => {
+                        const child = {
+                          ...childRef,
+                          childId: mappedIDs[childRef.childId],
+                        };
+                        return child;
+                      });
+                      // .filter((item2) => item2.childID !== undefined);
 
                       return node;
                     });
