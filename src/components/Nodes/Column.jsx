@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useContext, useEffect, useRef } from "react";
-import { BoardObjects, SidebarObjects } from "../utils/enums/items";
+import { BoardObjects, SidebarObjects } from "../../utils/enums/items";
 import { v4 as uuidv4 } from "uuid";
 import ResizeObserver from "rc-resize-observer";
 import { bindActionCreators } from "redux";
@@ -16,16 +16,14 @@ import {
   useColorModeValue,
   MenuItem,
 } from "@chakra-ui/react";
-import CustomEditablePreview from "./CustomEditablePreview";
+import CustomEditablePreview from "../Other/CustomEditablePreview";
 import Picture from "./Picture";
-import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
-import { useColumnDrop } from "../utils/hooks/useDrop";
+import { useSmoothDrag } from "../../utils/hooks/useSmoothDrag";
+import { useColumnDrop } from "../../utils/hooks/useDrop";
 import ToDo from "./ToDo";
 import BoardIcon from "./BoardIcon";
-import { AutoResizeEditableInput } from "./AutoResizeTextarea";
+import { AutoResizeEditableInput } from "../Other/AutoResizeTextarea";
 import Document from "./Document";
-import { ContextMenuContext } from "../utils/hooks/useContextMenu";
-import { SelectedNodeContext } from "../App";
 import {
   addChild,
   addNode,
@@ -33,13 +31,14 @@ import {
   removeNode,
   updateSize,
   updateTitle,
-} from "../utils/slices/nodeActions";
+} from "../../utils/slices/nodeActions";
 import NodeWrapper from "./NodeWrapper";
 
 const Column = ({
   id,
   boardId,
   boardRef,
+  animate,
   pX,
   pY,
   offset,
@@ -50,20 +49,12 @@ const Column = ({
   childRefs,
   parent,
   openContextMenu,
-  handleDragStart,
-  handleDrag,
-  handleDragEnd,
-  animate,
 }) => {
   const columnRef = useRef(null);
 
+  const selectedNodes = useSelector((state) => state.selection);
+
   const dispatch = useDispatch();
-
-  //#region Drag behaviour
-
-  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
-
-  //#endregion
 
   //#region Drop behaviour
 
@@ -156,8 +147,6 @@ const Column = ({
     dispatch(removeNode.action({ id: colId, type: BoardObjects.COLUMN }));
   };
 
-  const { setMenuItems, setMenuProps } = useContext(ContextMenuContext);
-
   const pasteNodes = (nodes) => {
     nodes.forEach((node) => {
       let copiedNode;
@@ -234,15 +223,24 @@ const Column = ({
 
   return (
     <NodeWrapper
+      onResize={({ width, height }) => {
+        dispatch(
+          updateSize.action({
+            id,
+            type: BoardObjects.COLUMN,
+            sX: width,
+            sY: height,
+          })
+        );
+      }}
       nodeId={id}
+      nodeType={BoardObjects.COLUMN}
+      animate={animate}
       canPosition={true}
       canResize={true}
-      pX={pX}
-      pY={pY}
-      handleDragStart={handleDragStart}
-      handleDrag={handleDrag}
-      handleDragEnd={handleDragEnd}
-      animate={animate}
+      direction={{ base: "column" }}
+      openContextMenu={openContextMenu}
+      rounded={"sm"}
       menuItems={[]}
       menuProps={{
         canCopy: true,
@@ -256,49 +254,30 @@ const Column = ({
           pasteNodes(nodes);
         },
       }}
-      onSelectNode={{
-        id, // new Id will be assigned
-        type: BoardObjects.COLUMN,
-        pX, // need position in case user uses keyboard shortcut
-        pY,
-        sX,
-        sY,
-        title,
-        parent,
-        childRefs,
-        // parent does not have to be the same
+      pX={pX}
+      pY={pY}
+      onDragOver={allowDrop}
+      onDrop={drop}
+      style={{
+        zIndex: 2,
+        minWidth: "300px",
+        maxWidth: "1000px",
+        width: sX + "px",
+        minHeight: "120px",
+        resize: "horizontal",
+        overflow: "hidden",
+        alignItems: "center",
+        // color: "white",
+        padding: 4,
+        cursor: "grab",
       }}
       clickCallback={() => {}}
       holdCallback={() => {}}
-      openContextMenu={openContextMenu}
       parent={parent}
-      onResize={({ width, height }) => {
-        dispatch(
-          updateSize.action({
-            id,
-            type: BoardObjects.COLUMN,
-            sX: width,
-            sY: height,
-          })
-        );
-      }}
-      onDragOver={allowDrop}
-      onDrop={drop}
-      zIndex={2}
-      w={sX + "px"}
-      direction={{ base: "column" }}
-      alignItems="center"
-      p={1}
-      minW="300px"
-      maxW="1000px"
-      minH="120px"
-      resize="horizontal"
-      overflow="hidden"
-      rounded={"sm"}
     >
-      <CardHeader draggable={false} p={1.5}>
+      <CardHeader draggable p={1.5}>
         <Editable
-          draggable={false}
+          draggable
           as="h2"
           fontSize="larger"
           fontWeight="800"
@@ -306,16 +285,17 @@ const Column = ({
           value={title}
           textAlign="center"
           isPreviewFocusable={false}
+          //pointerEvents={!!selectedNodes[id] ? "unset" : "none"}
         >
           <CustomEditablePreview
-            canEdit={!!selectedNode[id]}
-            draggable={false}
+            canEdit={true}
+            draggable
             color={useColorModeValue("black", "white")}
             fontSize="larger"
             fontWeight="800"
           />
           <AutoResizeEditableInput
-            draggable={false}
+            draggable
             fontSize="larger"
             overflow={"hidden"}
             onChange={(e) =>
@@ -349,57 +329,48 @@ const Column = ({
                     key={childId}
                     id={childId}
                     openContextMenu={openContextMenu}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
                     animate={animate}
                   />
                 );
-              case BoardObjects.IMAGE:
-                return (
-                  <Picture
-                    key={childId}
-                    id={childId}
-                    openContextMenu={openContextMenu}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={animate}
-                  />
-                );
+              // case BoardObjects.IMAGE:
+              //   return (
+              //     <Picture
+              //       key={childId}
+              //       boardId={boardId}
+              //       id={childId}
+              //       boardRef={boardRef}
+              //       offset={offset}
+              //       scale={scale}
+              //       openContextMenu={openContextMenu}
+              //     />
+              //   );
               case BoardObjects.TODO:
                 return (
                   <ToDo
                     key={childId}
                     id={childId}
                     openContextMenu={openContextMenu}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
                     animate={animate}
                   />
                 );
-              case BoardObjects.BOARD:
-                return (
-                  <BoardIcon
-                    key={childId}
-                    id={childId}
-                    openContextMenu={openContextMenu}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={animate}
-                  />
-                );
+              // case BoardObjects.BOARD:
+              //   return (
+              //     <BoardIcon
+              //       key={childId}
+              //       boardId={boardId}
+              //       id={childId}
+              //       boardRef={boardRef}
+              //       offset={offset}
+              //       scale={scale}
+              //       openContextMenu={openContextMenu}
+              //     />
+              //   );
               case BoardObjects.DOCUMENT:
                 return (
                   <Document
                     key={childId}
                     id={childId}
                     openContextMenu={openContextMenu}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
                     animate={animate}
                   />
                 );

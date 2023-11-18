@@ -13,17 +13,17 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { ContextMenuContext } from "../utils/hooks/useContextMenu";
-import { SelectedNodeContext } from "../App";
+import { ContextMenuContext } from "../../utils/hooks/useContextMenu";
+import { SelectedNodeContext } from "../../App";
 import ResizeObserver from "rc-resize-observer";
-import { BoardObjects } from "../utils/enums/items";
-import { useClickAndHold } from "../utils/hooks/useClickandHold_selectNode";
+import { BoardObjects } from "../../utils/enums/items";
+import { useClickAndHold } from "../../utils/hooks/useClickandHold_selectNode";
 import { useDispatch, useSelector } from "react-redux";
 import {
   addSelectNode,
   selectNode,
   toggleSelectNode,
-} from "../utils/slices/selectionSlice";
+} from "../../utils/slices/selectionSlice";
 import { DragFunctions } from "./Board";
 import { debounce } from "lodash";
 import { IconRotate } from "@tabler/icons-react";
@@ -126,64 +126,64 @@ const NodeWrapper = ({
   );
 
   //#region Rotation stuff (WIP)
-  const rotateRef = useRef(null);
-  const [isRotating, setIsRotating] = useState(false);
-  const shiftHeld = useRef(false);
-  const currentAngle = useRef(0);
-  let initialMouse = useRef({ x: 0, y: 0 });
-  let currentMouse = useRef({ x: 0, y: 0 });
-  const rotateMouseDown = (e) => {
-    e.stopPropagation();
-    setIsRotating(true);
+  // const rotateRef = useRef(null);
+  // const [isRotating, setIsRotating] = useState(false);
+  // const shiftHeld = useRef(false);
+  // const currentAngle = useRef(0);
+  // let initialMouse = useRef({ x: 0, y: 0 });
+  // let currentMouse = useRef({ x: 0, y: 0 });
+  // const rotateMouseDown = (e) => {
+  //   e.stopPropagation();
+  //   setIsRotating(true);
 
-    shiftHeld.current = e.shiftKey;
-    currentMouse.current = { x: e.clientX, y: e.clientY };
-    let bounds = dragRef.current.getBoundingClientRect();
-    let width = bounds.right - bounds.left;
-    let height = bounds.bottom - bounds.top;
-    let center = { x: bounds.left + width / 2, y: bounds.top + height / 2 };
-    initialMouse.current = { ...center };
-  };
+  //   shiftHeld.current = e.shiftKey;
+  //   currentMouse.current = { x: e.clientX, y: e.clientY };
+  //   let bounds = dragRef.current.getBoundingClientRect();
+  //   let width = bounds.right - bounds.left;
+  //   let height = bounds.bottom - bounds.top;
+  //   let center = { x: bounds.left + width / 2, y: bounds.top + height / 2 };
+  //   initialMouse.current = { ...center };
+  // };
 
-  const rotateMouseMove = (e) => {
-    e.stopPropagation();
-    currentMouse.current = { x: e.clientX, y: e.clientY };
-    shiftHeld.current = e.shiftKey;
-    if (e.shiftKey) {
-      currentAngle.current =
-        Math.round(
-          rotateNode(initialMouse.current, currentMouse.current) / 45
-        ) * 45;
-    } else {
-      currentAngle.current = rotateNode(
-        initialMouse.current,
-        currentMouse.current
-      );
-    }
-  };
+  // const rotateMouseMove = (e) => {
+  //   e.stopPropagation();
+  //   currentMouse.current = { x: e.clientX, y: e.clientY };
+  //   shiftHeld.current = e.shiftKey;
+  //   if (e.shiftKey) {
+  //     currentAngle.current =
+  //       Math.round(
+  //         rotateNode(initialMouse.current, currentMouse.current) / 45
+  //       ) * 45;
+  //   } else {
+  //     currentAngle.current = rotateNode(
+  //       initialMouse.current,
+  //       currentMouse.current
+  //     );
+  //   }
+  // };
 
-  const rotateMouseUp = (e) => {
-    e.stopPropagation();
-    setIsRotating(false);
-    shiftHeld.current = false;
-    initialMouse.current = { x: 0, y: 0 };
-    currentMouse.current = { x: 0, y: 0 };
-  };
+  // const rotateMouseUp = (e) => {
+  //   e.stopPropagation();
+  //   setIsRotating(false);
+  //   shiftHeld.current = false;
+  //   initialMouse.current = { x: 0, y: 0 };
+  //   currentMouse.current = { x: 0, y: 0 };
+  // };
 
-  useEffect(() => {
-    if (isRotating) {
-      window.addEventListener("mousemove", rotateMouseMove);
-      window.addEventListener("mouseup", rotateMouseUp);
-    } else {
-      window.removeEventListener("mousemove", rotateMouseMove);
-      window.removeEventListener("mouseup", rotateMouseUp);
-    }
+  // useEffect(() => {
+  //   if (isRotating) {
+  //     window.addEventListener("mousemove", rotateMouseMove);
+  //     window.addEventListener("mouseup", rotateMouseUp);
+  //   } else {
+  //     window.removeEventListener("mousemove", rotateMouseMove);
+  //     window.removeEventListener("mouseup", rotateMouseUp);
+  //   }
 
-    return () => {
-      window.removeEventListener("mousemove", rotateMouseMove);
-      window.removeEventListener("mouseup", rotateMouseUp);
-    };
-  }, [isRotating, setIsRotating]);
+  //   return () => {
+  //     window.removeEventListener("mousemove", rotateMouseMove);
+  //     window.removeEventListener("mouseup", rotateMouseUp);
+  //   };
+  // }, [isRotating, setIsRotating]);
 
   const animatethingy = () => {
     // console.log(currentAngle);

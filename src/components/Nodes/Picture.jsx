@@ -13,28 +13,28 @@ import {
   Portal,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { useClickAndHold } from "../utils/hooks/useClickAndHold";
-import CustomEditablePreview from "./CustomEditablePreview";
-import { AutoResizeEditableTextArea } from "./AutoResizeTextarea";
-import { BoardObjects } from "../utils/enums/items";
+import { useClickAndHold } from "../../utils/hooks/useClickAndHold";
+import CustomEditablePreview from "../Other/CustomEditablePreview";
+import { AutoResizeEditableTextArea } from "../Other/AutoResizeTextarea";
+import { BoardObjects } from "../../utils/enums/items";
 import { SmallAddIcon } from "@chakra-ui/icons";
 import { bindActionCreators } from "redux";
 import {
   updateImage,
   updateLabel,
   updateLabelVisibility,
-} from "../utils/slices/pictureSlice";
+} from "../../utils/slices/pictureSlice";
 import { connect, useDispatch } from "react-redux";
-import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
+import { useSmoothDrag } from "../../utils/hooks/useSmoothDrag";
 import {
   ContextMenuContext,
   useContextMenu,
-} from "../utils/hooks/useContextMenu";
+} from "../../utils/hooks/useContextMenu";
 import {
   removeChild,
   removeNode,
   updateSize,
-} from "../utils/slices/nodeActions";
+} from "../../utils/slices/nodeActions";
 
 // Important thing is to keep the aspect ratio of the image
 // Aspect ratio is width to height but the numbers are unpredictable

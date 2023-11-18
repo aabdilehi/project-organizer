@@ -1,23 +1,10 @@
 /** @jsxImportSource @emotion/react */
-import "../App.css";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import "@/App.css";
+import { useState, useEffect } from "react";
 
-import { BoardObjects } from "../utils/enums/items";
-import ResizeObserver from "rc-resize-observer";
-import "../editor.scss";
-import {
-  Box,
-  Editable,
-  ListItem,
-  Menu,
-  MenuDivider,
-  MenuItem,
-  MenuList,
-  Portal,
-  Textarea,
-  useColorModeValue,
-  useDisclosure,
-} from "@chakra-ui/react";
+import { BoardObjects } from "../../utils/enums/items";
+import "@/editor.scss";
+import { ListItem, MenuItem } from "@chakra-ui/react";
 import { bindActionCreators } from "redux";
 import { connect, useDispatch, useSelector } from "react-redux";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -29,8 +16,6 @@ import Highlight from "@tiptap/extension-highlight";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
-import { useContext } from "react";
-import { SelectedNodeContext } from "../App";
 import {
   addChild,
   addNode,
@@ -38,13 +23,14 @@ import {
   removeNode,
   updateContent,
   updateSize,
-} from "../utils/slices/nodeActions";
-import { DocumentC } from "../utils/classes/classes";
+} from "../../utils/slices/nodeActions";
+import { DocumentC } from "../../utils/classes/classes";
 import NodeWrapper from "./NodeWrapper";
 
 const Note = ({
   id,
   scale,
+  animate,
   pX,
   pY,
   sX,
@@ -100,7 +86,7 @@ const Note = ({
       }
 
       // Set to edit mode
-      if (!event.ctrlKey && !!selectedNodes[id]) {
+      if (!event.ctrlKey && !event.shiftKey && !!selectedNodes[id]) {
         editor.setEditable(true);
         editor.commands.focus();
         return;
@@ -168,15 +154,21 @@ const Note = ({
   return (
     <NodeWrapper
       nodeId={id}
-      nodeType={BoardObjects.NOTE}
+      nodeType={"note"}
+      animate={animate}
       canPosition={!editor?.isEditable}
       canResize={true}
-      pX={pX}
-      pY={pY}
       openContextMenu={openContextMenu}
       isInColumn={isInColumn}
+      pX={pX}
+      pY={pY}
+      parent={parent}
       onResize={({ width, height }) => {
-        if (!editor?.isEditable) {
+        console.log(scale);
+        if (
+          width / scale !== sX ||
+          (height / scale !== sY && !editor?.isEditable)
+        ) {
           dispatch(
             updateSize.action({
               id,
@@ -192,18 +184,20 @@ const Note = ({
       onBlur={() => {
         editor?.setEditable(false);
       }}
-      zIndex={2}
+      style={{
+        minHeight: "75px",
+        minWidth: "75px",
+        maxHeight: "1000px",
+        maxWidth: "1000px",
+        cursor: "grab",
+        zIndex: "2",
+        overflow: editor?.isEditable ? "none" : "auto",
+        textAlign: "left",
+        // transition: "none",
+      }}
       h={editor?.isEditable ? "unset" : sY + "px"}
       w={isInColumn ? "full" : sX + "px"}
-      minH={"75px"}
-      maxH={"1000px"}
-      minW={"75px"}
-      maxW={"1000px"}
-      cursor={"grab"}
-      resize={isInColumn ? "vertical" : "both"}
-      overflow={editor?.isEditable ? "none" : "auto"}
       rounded={"sm"}
-      textAlign={"left"}
       menuProps={{
         canCopy: true,
         canCut: true,
@@ -218,7 +212,6 @@ const Note = ({
         style={{
           padding: 0,
           margin: 0,
-          width: "100%",
           height: "fit-content",
           overflow: "none",
           border: "none",
@@ -234,12 +227,12 @@ const mapStateToProps = (state, ownProps) => {
   const { id } = ownProps;
   const note = state.notes[id];
   return {
-    pX: note.pX,
-    pY: note.pY,
-    sX: note.sX,
-    sY: note.sY,
-    content: note.content,
-    parent: note.parent,
+    pX: note ? note.pX : 0,
+    pY: note ? note.pY : 0,
+    sX: note ? note.sX : 200,
+    sY: note ? note.sY : 200,
+    content: note ? note.content : `<p>Something has gone wrong</p>`,
+    parent: note ? note.parent : { id: "root", type: BoardObjects.BOARD },
   };
 };
 

@@ -1,16 +1,8 @@
 import React from "react";
 import DatePicker from "react-datepicker";
-import {
-  Badge,
-  Box,
-  chakra,
-  Textarea,
-  useColorModeValue,
-  useTheme,
-} from "@chakra-ui/react";
+import { chakra, useTheme } from "@chakra-ui/react";
 
-import "../react-datepicker.css";
-import { format } from "date-fns";
+import "@/react-datepicker.css";
 
 const ChakraDatepicker = chakra(DatePicker);
 
@@ -69,12 +61,3 @@ const ChkrDatepicker = ({
 };
 
 export default ChkrDatepicker;
-
-// .react-datepicker__header {
-//   text-align: center;
-//   background-color: red;
-//   border-bottom: 1px solid #aeaeae;
-//   border-top-left-radius: 0.3rem;
-//   padding: 8px 0;
-//   position: relative;
-// }

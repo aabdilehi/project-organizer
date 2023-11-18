@@ -13,11 +13,11 @@ import {
   useDisclosure,
 } from "@chakra-ui/react";
 import React, { useRef } from "react";
-import addItemTut from "../assets/add_item_to_board.gif";
-import dragItemTut from "../assets/drag_to_move.gif";
-import editTextTut from "../assets/edit_text.gif";
-import panBoardTut from "../assets/pan.gif";
-import zoomBoardTut from "../assets/zoom.gif";
+import addItemTut from "@/assets/add_item_to_board.gif";
+import dragItemTut from "@/assets/drag_to_move.gif";
+import editTextTut from "@/assets/edit_text.gif";
+import panBoardTut from "@/assets/pan.gif";
+import zoomBoardTut from "@/assets/zoom.gif";
 
 const HelpIconButton = (props) => {
   const { isOpen, onOpen, onClose } = useDisclosure();

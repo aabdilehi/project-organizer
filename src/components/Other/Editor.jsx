@@ -42,7 +42,7 @@ import {
 } from "@tabler/icons-react";
 import { useColorModeValue } from "@chakra-ui/color-mode";
 import { Tooltip } from "@chakra-ui/tooltip";
-import { useClickAndHold } from "../utils/hooks/useClickAndHold";
+import { useClickAndHold } from "../../utils/hooks/useClickAndHold";
 import { debounce } from "lodash";
 
 export const MenuBar = ({ editor }) => {

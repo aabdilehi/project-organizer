@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
-import "../App.css";
+
+import "../../App.css";
 import { useState, useEffect, useRef, useContext } from "react";
 
-import { BoardObjects, SidebarObjects } from "../utils/enums/items";
+import { BoardObjects, SidebarObjects } from "../../utils/enums/items";
 import {
   Card,
   CardBody,
@@ -10,8 +11,8 @@ import {
   MenuItem,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { AutoResizeEditableInput } from "./AutoResizeTextarea";
-import CustomEditablePreview from "./CustomEditablePreview";
+import { AutoResizeEditableInput } from "../Other/AutoResizeTextarea";
+import CustomEditablePreview from "../Other/CustomEditablePreview";
 // import {
 //   removeBoard,
 //   removeBoardChild,
@@ -21,14 +22,14 @@ import { bindActionCreators } from "redux";
 import { connect, useDispatch, useSelector } from "react-redux";
 import { StarIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
-import { useBoardDrop } from "../utils/hooks/useDrop";
-import { ContextMenuContext } from "../utils/hooks/useContextMenu";
-import { SelectedNodeContext } from "../App";
+import { useBoardDrop } from "../../utils/hooks/useDrop";
+import { ContextMenuContext } from "../../utils/hooks/useContextMenu";
+import { SelectedNodeContext } from "../../App";
 import {
   removeChild,
   removeNode,
   updateTitle,
-} from "../utils/slices/nodeActions";
+} from "../../utils/slices/nodeActions";
 
 const BoardIcon = ({
   id,

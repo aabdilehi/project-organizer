@@ -1,11 +1,11 @@
 import "./App.css";
 import { Box, ChakraProvider, Stack } from "@chakra-ui/react";
 import React, { useContext, useMemo, useState } from "react";
-import Board from "./components/Board";
-import Sidebar from "./components/Sidebar";
+import Board from "./components/Nodes/Board";
+import Sidebar from "./components/Other/Sidebar";
 import theme from "./config/theme";
-import DarkModeIconButton from "./components/DarkModeIconButton";
-import HelpIconButton from "./components/HelpIconButton";
+import DarkModeIconButton from "./components/Other/DarkModeIconButton";
+import HelpIconButton from "./components/Other/HelpIconButton";
 import { Route, Routes } from "react-router-dom";
 import { createContext } from "react";
 import { useCallback } from "react";

@@ -1,6 +1,6 @@
 import { useColorModeValue } from "@chakra-ui/color-mode";
 import { useDisclosure } from "@chakra-ui/hooks";
-import "../editor.scss";
+import "../../editor.scss";
 import {
   Modal,
   ModalOverlay,
@@ -20,19 +20,19 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { bindActionCreators } from "redux";
-import { toggleExpanded } from "../utils/slices/docSlice";
-import { MenuBar } from "./Editor";
+import { toggleExpanded } from "../../utils/slices/docSlice";
+import { MenuBar } from "../Other/Editor";
 import { connect, useDispatch, useSelector } from "react-redux";
-import { BoardObjects } from "../utils/enums/items";
-import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
+import { BoardObjects } from "../../utils/enums/items";
+import { useSmoothDrag } from "../../utils/hooks/useSmoothDrag";
 import { Card, CardBody } from "@chakra-ui/card";
 import { IconFileText } from "@tabler/icons-react";
 import { Editable } from "@chakra-ui/editable";
-import CustomEditablePreview from "./CustomEditablePreview";
-import { AutoResizeEditableInput } from "./AutoResizeTextarea";
+import CustomEditablePreview from "../Other/CustomEditablePreview";
+import { AutoResizeEditableInput } from "../Other/AutoResizeTextarea";
 import { MenuDivider, MenuItem } from "@chakra-ui/react";
-import { ContextMenuContext } from "../utils/hooks/useContextMenu";
-import { SelectedNodeContext } from "../App";
+import { ContextMenuContext } from "../../utils/hooks/useContextMenu";
+import { SelectedNodeContext } from "../../App";
 import {
   addChild,
   addNode,
@@ -40,8 +40,8 @@ import {
   removeNode,
   updateContent,
   updateTitle,
-} from "../utils/slices/nodeActions";
-import { NoteC } from "../utils/classes/classes";
+} from "../../utils/slices/nodeActions";
+import { NoteC } from "../../utils/classes/classes";
 import NodeWrapper from "./NodeWrapper";
 
 const Document = ({

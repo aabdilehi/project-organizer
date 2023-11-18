@@ -53,7 +53,7 @@ export const ContextMenuProvider = ({ children }) => {
 
 export function useContextMenu({ containerRef }) {
   const {
-    menuItems,
+    menuItems = [],
     setMenuItems,
     menuProps,
     setMenuProps,
@@ -76,12 +76,12 @@ export function useContextMenu({ containerRef }) {
     // I think paste should still be custom (?)
     const contextRef = useRef();
     const {
-      canCopy,
-      canCut,
-      canDelete,
-      canPaste,
-      delete: del,
-      paste,
+      canCopy = false,
+      canCut = false,
+      canDelete = false,
+      canPaste = false,
+      delete: del = () => {},
+      paste = () => {},
     } = menuProps;
     // const { selectedNode, setSelectedNode } = useContext(SelectedNodeContext);
 

@@ -161,6 +161,7 @@ export function useSmoothDrag({
   ]);
 
   const animate = () => {
+    // const frameId = requestAnimationFrame(animate);
     if (boardRef.current !== null) {
       if (isDragging.current) {
         lerpedMouseX.current +=
@@ -184,14 +185,13 @@ export function useSmoothDrag({
               lerpedMouseX.current - initialOffsets.current[key].x
             }px, ${lerpedMouseY.current - initialOffsets.current[key].y}px)`;
           }
-          if (
-            lerpedMouseX.current !== mouseX.current &&
-            lerpedMouseY.current !== mouseY.current
-          ) {
-            requestAnimationFrame(animate);
-          }
         });
       }
+      // if (
+      //   lerpedMouseX.current !== mouseX.current &&
+      //   lerpedMouseY.current !== mouseY.current
+      // ) {
+      // }
     }
   };
 

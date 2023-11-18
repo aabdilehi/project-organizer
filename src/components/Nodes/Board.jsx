@@ -1,34 +1,36 @@
 //#region Imports
-import React, { useContext, useEffect, useRef } from "react";
-import { v4 as uuidv4 } from "uuid";
-import {
-  Box,
-  MenuDivider,
-  MenuItem,
-  useColorModeValue,
-} from "@chakra-ui/react";
+
+// React
+import React, { useContext, useEffect, useRef, createContext } from "react";
+
+// Redux
 import { connect, useDispatch } from "react-redux";
-
-import { BoardObjects, SidebarObjects } from "../utils/enums/items";
-
-import BoardIcon from "./BoardIcon";
-
-import Note from "./Note";
-//import { addNote } from "../utils/slices/noteSlice";
-import { addChild, addNode } from "../utils/slices/nodeActions";
 import { bindActionCreators } from "redux";
+import { addChild, addNode } from "../../utils/slices/nodeActions";
 
+// Chakra
+import { Box, MenuItem, useColorModeValue } from "@chakra-ui/react";
+
+// Custom components
+import Note from "./Note";
 import Column from "./Column";
 import Picture from "./Picture";
 import ToDo from "./ToDo";
 import Document from "./Document";
-import { useBoardDrop } from "../utils/hooks/useDrop";
-import { useSmoothBoardControls } from "../utils/hooks/useSmoothBoardControls";
-import { withRouter } from "./ComponentWithRouterProp";
+
+// Custom callbacks
 import {
   ContextMenuContext,
   useContextMenu,
-} from "../utils/hooks/useContextMenu";
+} from "../../utils/hooks/useContextMenu";
+import { useBoardDrop } from "../../utils/hooks/useDrop";
+import { useSmoothBoardControls } from "../../utils/hooks/useSmoothBoardControls";
+import { withRouter } from "../Other/ComponentWithRouterProp";
+import { useSmoothDrag } from "../../utils/hooks/useSmoothDrag";
+
+// Other
+import { v4 as uuidv4 } from "uuid";
+import { BoardObjects, SidebarObjects } from "../../utils/enums/items";
 import {
   BoardC,
   ColumnC,
@@ -36,11 +38,8 @@ import {
   NoteC,
   PictureC,
   TaskC,
-} from "../utils/classes/classes";
-import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
-import { createContext } from "react";
+} from "../../utils/classes/classes";
 
-import useSmoothDrag2 from "../utils/hooks/useSmoothDrag_copy";
 //#endregion
 
 export const DragFunctions = createContext();
@@ -49,7 +48,6 @@ const Board = ({ validBoard, title, router, childRefs }) => {
   //#region Handle initial page setup
   const { id } = router.params;
   const boardId = id ? id : "root";
-
   const dispatch = useDispatch();
 
   // Redirect if board is invalid
@@ -129,7 +127,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
     scale,
   });
 
-  requestAnimationFrame(animate);
+  animate();
 
   //#endregion
 
@@ -497,15 +495,15 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                 //       openContextMenu={handleRightClick}
                 //     />
                 //   );
-                case BoardObjects.TODO:
-                  return (
-                    <ToDo
-                      key={childId}
-                      id={childId}
-                      openContextMenu={handleRightClick}
-                      animate={animate}
-                    />
-                  );
+                // case BoardObjects.TODO:
+                //   return (
+                //     <ToDo
+                //       key={childId}
+                //       id={childId}
+                //       openContextMenu={handleRightClick}
+                //       animate={animate}
+                //     />
+                //   );
                 // case BoardObjects.BOARD:
                 //   return (
                 //     <BoardIcon

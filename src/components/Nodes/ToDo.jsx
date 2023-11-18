@@ -1,9 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import "../App.css";
-import { useState, useEffect, useRef, useContext, useMemo } from "react";
+import "../../App.css";
+import { useState, useEffect, useRef } from "react";
 import {
   Checkbox,
-  Card,
   Stack,
   Badge,
   Tooltip,
@@ -20,18 +19,14 @@ import {
   Input,
   Editable,
   useColorModeValue,
-  MenuItem,
-  Button,
-  Center,
-  EditableInput,
 } from "@chakra-ui/react";
-import { BoardObjects } from "../utils/enums/items";
+import { BoardObjects } from "@/utils/enums/items.jsx";
 import {
   AutoResizeEditableInput,
   AutoResizeTextArea,
-} from "./AutoResizeTextarea.jsx";
+} from "../Other/AutoResizeTextarea.jsx";
 import { AddIcon, CheckIcon, CloseIcon, EditIcon } from "@chakra-ui/icons";
-import ChkrDatepicker from "./Datepicker";
+import ChkrDatepicker from "../Other/Datepicker.jsx";
 import { format, parseISO } from "date-fns";
 import { bindActionCreators } from "redux";
 import {
@@ -40,20 +35,16 @@ import {
   addBadge,
   removeBadge,
   updateBadgeText,
-} from "../utils/slices/taskSlice";
+} from "../../utils/slices/taskSlice.jsx";
 import { connect, useDispatch } from "react-redux";
-import CustomEditablePreview from "./CustomEditablePreview";
-import useSmoothDrag from "../utils/hooks/useSmoothDrag_copy";
-import { ContextMenuContext } from "../utils/hooks/useContextMenu";
-import { BadgeC } from "../utils/classes/classes";
-import { SelectedNodeContext } from "../App";
-import { IconPlus } from "@tabler/icons-react";
+import CustomEditablePreview from "../Other/CustomEditablePreview.jsx";
+import { BadgeC } from "../../utils/classes/classes.js";
 import {
   removeChild,
   removeNode,
   updateContent,
   updateTitle,
-} from "../utils/slices/nodeActions";
+} from "@/utils/slices/nodeActions.ts";
 import NodeWrapper from "./NodeWrapper";
 
 const ToDo = ({

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 
-import { SidebarObjects } from "../utils/enums/items";
+import { SidebarObjects } from "../../utils/enums/items";
 import {
   Button,
   Card,
