@@ -1,27 +1,19 @@
 /** @jsxImportSource @emotion/react */
-import { useContext, useEffect, useRef } from "react";
+import { useRef } from "react";
 import { BoardObjects, SidebarObjects } from "../../utils/enums/items";
-import { v4 as uuidv4 } from "uuid";
-import ResizeObserver from "rc-resize-observer";
 import { bindActionCreators } from "redux";
 import { connect, useDispatch, useSelector } from "react-redux";
 
 import Note from "./Note";
 import {
-  Card,
   CardHeader,
   CardBody,
   Stack,
   Editable,
   useColorModeValue,
-  MenuItem,
 } from "@chakra-ui/react";
 import CustomEditablePreview from "../Other/CustomEditablePreview";
-import Picture from "./Picture";
-import { useSmoothDrag } from "../../utils/hooks/useSmoothDrag";
 import { useColumnDrop } from "../../utils/hooks/useDrop";
-import ToDo from "./ToDo";
-import BoardIcon from "./BoardIcon";
 import { AutoResizeEditableInput } from "../Other/AutoResizeTextarea";
 import Document from "./Document";
 import {
@@ -33,6 +25,7 @@ import {
   updateTitle,
 } from "../../utils/slices/nodeActions";
 import NodeWrapper from "./NodeWrapper";
+import BoardIcon from "./BoardIcon";
 
 const Column = ({
   id,
@@ -47,12 +40,11 @@ const Column = ({
   sY,
   title,
   childRefs,
-  parent,
+  parentId,
+  parentType,
   openContextMenu,
 }) => {
   const columnRef = useRef(null);
-
-  const selectedNodes = useSelector((state) => state.selection);
 
   const dispatch = useDispatch();
 
@@ -77,147 +69,6 @@ const Column = ({
     position: offset,
     scale,
   });
-
-  //#endregion
-
-  //#region Context Menu
-  const boards = useSelector((state) => state.boards);
-  const deleteBoardChildren = (id) => {
-    const board = boards[id];
-    board?.childRefs.forEach(({ childId, childType }) => {
-      switch (childType) {
-        case BoardObjects.BOARD:
-          deleteBoardChildren(childId);
-          dispatch(
-            removeChild.action({ id, type: BoardObjects.BOARD, cId: childId })
-          );
-          dispatch(removeNode.action({ id: childId, type: childType }));
-          break;
-        case BoardObjects.COLUMN:
-        case BoardObjects.NOTE:
-        case BoardObjects.DOCUMENT:
-        case BoardObjects.TODO:
-        case BoardObjects.IMAGE:
-          dispatch(
-            removeChild.action({ id, type: BoardObjects.BOARD, cId: childId })
-          );
-          dispatch(removeNode.action({ id: childId, type: childType }));
-          break;
-        default:
-          break;
-      }
-    });
-  };
-
-  const deleteColumn = (boardId, colId) => {
-    childRefs.forEach(({ childId, childType }) => {
-      switch (childType) {
-        case BoardObjects.BOARD:
-          deleteBoardChildren(childId);
-          dispatch(
-            removeChild.action({
-              id: colId,
-              type: BoardObjects.COLUMN,
-              cId: childId,
-            })
-          );
-          dispatch(removeNode.action({ id: childId, type: childType }));
-          break;
-        case BoardObjects.NOTE:
-        case BoardObjects.DOCUMENT:
-        case BoardObjects.TODO:
-        case BoardObjects.IMAGE:
-          dispatch(
-            removeChild.action({
-              id: colId,
-              type: BoardObjects.COLUMN,
-              cId: childId,
-            })
-          );
-          dispatch(removeNode.action({ id: childId, type: childType }));
-          break;
-        default:
-          break;
-      }
-    });
-
-    dispatch(
-      removeChild.action({ id: boardId, type: BoardObjects.BOARD, cId: colId })
-    );
-    dispatch(removeNode.action({ id: colId, type: BoardObjects.COLUMN }));
-  };
-
-  const pasteNodes = (nodes) => {
-    nodes.forEach((node) => {
-      let copiedNode;
-      switch (node.type) {
-        case BoardObjects.NOTE:
-          copiedNode = {
-            ...node,
-            pX: 0,
-            pY: 0,
-            parent: !!node.parent
-              ? node.parent
-              : { id: id, type: BoardObjects.COLUMN },
-          };
-          break;
-        case BoardObjects.DOCUMENT:
-          copiedNode = {
-            ...node,
-            pX: 0,
-            pY: 0,
-            parent: !!node.parent
-              ? node.parent
-              : { id: id, type: BoardObjects.COLUMN },
-          };
-          break;
-        case BoardObjects.IMAGE:
-          copiedNode = {
-            ...node,
-            pX: 0,
-            pY: 0,
-            parent: !!node.parent
-              ? node.parent
-              : { id: id, type: BoardObjects.COLUMN },
-          };
-          break;
-        case BoardObjects.TODO:
-          copiedNode = {
-            ...node,
-            pX: 0,
-            pY: 0,
-            parent: !!node.parent
-              ? node.parent
-              : { id: id, type: BoardObjects.COLUMN },
-          };
-          break;
-        case BoardObjects.BOARD:
-          copiedNode = {
-            ...node,
-            pX: 0,
-            pY: 0,
-            parent: !!node.parent
-              ? node.parent
-              : { id: id, type: BoardObjects.COLUMN },
-            childRefs: [],
-          };
-          break;
-        default:
-          break;
-      }
-      if (!!copiedNode) {
-        dispatch(addNode.action(copiedNode));
-        dispatch(
-          addChild.action({
-            id,
-            type: BoardObjects.COLUMN,
-            cId: copiedNode.id,
-            cType: copiedNode.type,
-          })
-        );
-      }
-    });
-  };
 
   //#endregion
 
@@ -247,12 +98,6 @@ const Column = ({
         canCut: true,
         canDelete: true,
         canPaste: true,
-        delete: () => {
-          deleteColumn(boardId, id);
-        },
-        paste: (nodes) => {
-          pasteNodes(nodes);
-        },
       }}
       pX={pX}
       pY={pY}
@@ -273,7 +118,8 @@ const Column = ({
       }}
       clickCallback={() => {}}
       holdCallback={() => {}}
-      parent={parent}
+      parentId={parentId}
+      parentType={parentType}
     >
       <CardHeader draggable p={1.5}>
         <Editable
@@ -329,6 +175,8 @@ const Column = ({
                     key={childId}
                     id={childId}
                     openContextMenu={openContextMenu}
+                    parentId={id}
+                    parentType={"column"}
                     animate={animate}
                   />
                 );
@@ -344,33 +192,34 @@ const Column = ({
               //       openContextMenu={openContextMenu}
               //     />
               //   );
-              case BoardObjects.TODO:
+              // case BoardObjects.TODO:
+              //   return (
+              //     <ToDo
+              //       key={childId}
+              //       id={childId}
+              //       openContextMenu={openContextMenu}
+              //       animate={animate}
+              //     />
+              //   );
+              case BoardObjects.BOARD:
                 return (
-                  <ToDo
+                  <BoardIcon
                     key={childId}
                     id={childId}
                     openContextMenu={openContextMenu}
+                    parentId={id}
+                    parentType={"column"}
                     animate={animate}
                   />
                 );
-              // case BoardObjects.BOARD:
-              //   return (
-              //     <BoardIcon
-              //       key={childId}
-              //       boardId={boardId}
-              //       id={childId}
-              //       boardRef={boardRef}
-              //       offset={offset}
-              //       scale={scale}
-              //       openContextMenu={openContextMenu}
-              //     />
-              //   );
               case BoardObjects.DOCUMENT:
                 return (
                   <Document
                     key={childId}
                     id={childId}
                     openContextMenu={openContextMenu}
+                    parentId={id}
+                    parentType={"column"}
                     animate={animate}
                   />
                 );
@@ -394,7 +243,6 @@ const mapStateToProps = (state, ownProps) => {
     pY: column.pY,
     sX: column.sX,
     sY: column.sY,
-    parent: column.parent,
   };
 };
 

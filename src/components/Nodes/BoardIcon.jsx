@@ -1,16 +1,10 @@
 /** @jsxImportSource @emotion/react */
 
 import "../../App.css";
-import { useState, useEffect, useRef, useContext } from "react";
+import { useState, useEffect } from "react";
 
 import { BoardObjects, SidebarObjects } from "../../utils/enums/items";
-import {
-  Card,
-  CardBody,
-  Editable,
-  MenuItem,
-  useColorModeValue,
-} from "@chakra-ui/react";
+import { CardBody, Editable, useColorModeValue } from "@chakra-ui/react";
 import { AutoResizeEditableInput } from "../Other/AutoResizeTextarea";
 import CustomEditablePreview from "../Other/CustomEditablePreview";
 // import {
@@ -19,47 +13,26 @@ import CustomEditablePreview from "../Other/CustomEditablePreview";
 //   updateTitle,
 // } from "../utils/slices/boardSlice";
 import { bindActionCreators } from "redux";
-import { connect, useDispatch, useSelector } from "react-redux";
+import { connect, useDispatch } from "react-redux";
 import { StarIcon } from "@chakra-ui/icons";
 import { useNavigate } from "react-router-dom";
 import { useBoardDrop } from "../../utils/hooks/useDrop";
-import { ContextMenuContext } from "../../utils/hooks/useContextMenu";
-import { SelectedNodeContext } from "../../App";
-import {
-  removeChild,
-  removeNode,
-  updateTitle,
-} from "../../utils/slices/nodeActions";
+import { updateTitle } from "../../utils/slices/nodeActions";
+import NodeWrapper from "./NodeWrapper";
 
 const BoardIcon = ({
   id,
   boardRef,
   pX,
   pY,
-  parent,
+  parentId,
+  parentType,
   openContextMenu,
   title,
-  childRefs,
-  handleDragStart,
-  handleDrag,
-  handleDragEnd,
   animate,
 }) => {
-  const dragRef = useRef(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
-  // Determines sizing and positioning based on whether in column or not
-  const [isInColumn, setIsInColumn] = useState(false);
-
-  //#region Drag hook
-  const item = {
-    id: id,
-    type: BoardObjects.BOARD,
-    parent: parent,
-  };
-
-  if (!!animate) animate();
 
   //#endregion
 
@@ -84,207 +57,57 @@ const BoardIcon = ({
     position: { x: 0, y: 0 },
   });
   //#endregion
-  // Read parent prop and set isInColumn
+
+  // Determines sizing and positioning based on whether in column or not
+  const [isInColumn, setIsInColumn] = useState(false);
   useEffect(() => {
-    if (parent !== undefined) {
-      setIsInColumn(parent.type === BoardObjects.COLUMN);
+    if (parentType !== undefined) {
+      setIsInColumn(parentType === BoardObjects.COLUMN);
     }
-  }, [parent]);
-
-  const boards = useSelector((state) => state.boards);
-  const deleteBoardChildren = (id) => {
-    const board = boards[id];
-    board?.childRefs.forEach(({ childId, childType }) => {
-      switch (childType) {
-        case BoardObjects.BOARD:
-          deleteBoardChildren(childId);
-          dispatch(
-            removeChild.action({ id, type: BoardObjects.BOARD, cId: childId })
-          );
-          dispatch(removeNode.action({ id: childId, type: childType }));
-          break;
-        case BoardObjects.COLUMN:
-        case BoardObjects.NOTE:
-        case BoardObjects.DOCUMENT:
-        case BoardObjects.TODO:
-        case BoardObjects.IMAGE:
-          dispatch(
-            removeChild.action({ id, type: BoardObjects.BOARD, cId: childId })
-          );
-          dispatch(removeNode.action({ id: childId, type: childType }));
-          break;
-        default:
-          break;
-      }
-    });
-  };
-
-  const columns = useSelector((state) => state.columns);
-  const deleteColumn = (boardId, colId) => {
-    const column = columns[colId];
-    column.childRefs.forEach(({ childId, childType }) => {
-      switch (childType) {
-        case BoardObjects.BOARD:
-          deleteBoardChildren(childId);
-          dispatch(
-            removeChild.action({
-              id: colId,
-              type: BoardObjects.COLUMN,
-              cId: childId,
-            })
-          );
-          dispatch(removeNode.action({ id: childId, type: childType }));
-          break;
-        case BoardObjects.NOTE:
-        case BoardObjects.DOCUMENT:
-        case BoardObjects.TODO:
-        case BoardObjects.IMAGE:
-          dispatch(
-            removeChild.action({
-              id: colId,
-              type: BoardObjects.COLUMN,
-              cId: childId,
-            })
-          );
-          dispatch(removeNode.action({ id: childId, type: childType }));
-          break;
-        default:
-          break;
-      }
-    });
-
-    dispatch(
-      removeChild.action({ id: boardId, type: BoardObjects.BOARD, cId: colId })
-    );
-    dispatch(removeNode.action({ id: colId, type: BoardObjects.COLUMN }));
-  };
-
-  const deleteBoard = () => {
-    // childRefs.forEach(({ childId, childType }) => {
-    //   switch (childType) {
-    //     case BoardObjects.BOARD:
-    //       deleteBoardChildren(childId);
-    //       removeBoardChild({ boardId: id, childId });
-    //       removeBoard({ boardId: childId });
-    //       break;
-    //     case BoardObjects.COLUMN:
-    //       deleteColumn(id, childId);
-    //       break;
-    //     case BoardObjects.NOTE:
-    //       removeBoardChild({ boardId: id, childId });
-    //       removeNote({ noteId: childId });
-    //       break;
-    //     case BoardObjects.DOCUMENT:
-    //       removeBoardChild({ boardId: id, childId });
-    //       removeDocument({ documentId: childId });
-    //       break;
-    //     case BoardObjects.TODO:
-    //       removeBoardChild({ boardId: id, childId });
-    //       removeTask({ taskId: childId });
-    //       break;
-    //     case BoardObjects.IMAGE:
-    //       removeBoardChild({ boardId: id, childId });
-    //       removePicture({ pictureId: childId });
-    //       break;
-    //     default:
-    //       break;
-    //   }
-    // });
-    // removeBoardChild({ boardId: boardId, childId: id });
-    // removeBoard({ boardId: id });
-  };
-
-  const { setMenuItems, setMenuProps, copyNodes } =
-    useContext(ContextMenuContext);
-
-  const copyBoard = () => {
-    const board = {
-      // new Id will be assigned
-      type: BoardObjects.BOARD,
-      pX, // need position in case user uses keyboard shortcut
-      pY,
-      title,
-      childRefs: [],
-      // parent does not have to be the same
-    };
-    copyNodes([board]);
-  };
-
-  const cutBoard = () => {
-    copyBoard();
-    deleteBoard();
-  };
-
-  const updateContextMenu = () => {
-    setMenuItems([
-      <MenuItem onClick={cutBoard}>Cut</MenuItem>,
-      <MenuItem onClick={copyBoard}>Copy</MenuItem>,
-      <MenuItem onClick={deleteBoard}>Delete</MenuItem>,
-    ]);
-    setMenuProps({
-      canCopy: true,
-      canCut: true,
-      canDelete: true,
-      delete: deleteBoard,
-    });
-  };
-  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
+  }, [parentId, parentType]);
 
   return (
-    <Card
-      ref={dragRef}
+    <NodeWrapper
+      nodeId={id}
+      nodeType={BoardObjects.BOARD}
+      canPosition={true}
+      animate={animate}
+      canResize={false}
+      pX={pX}
+      pY={pY}
+      parentId={parentId}
+      parentType={parentType}
+      onDragOver={allowDrop}
+      onDrop={drop}
+      openContextMenu={openContextMenu}
+      isInColumn={isInColumn}
+      clickCallback={() => {}}
+      holdCallback={() => {}}
+      style={{
+        background: "none",
+        outline: "none",
+        zIndex: "2",
+        padding: isInColumn ? 1.5 : 0,
+        alignItems: "center",
+        width: isInColumn ? "full" : undefined,
+        minWidth: isInColumn ? "100%" : undefined,
+      }}
+      direction={isInColumn ? "row" : "column"}
       position={isInColumn ? "relative" : "absolute"}
       transform={
         isInColumn ? "translate(0px, 0px)" : `translate(${pX}px, ${pY}px)`
       }
-      zIndex={2}
-      p={isInColumn ? 1.5 : 0}
-      draggable
-      onDragStart={handleDragStart}
-      onDrag={handleDrag}
-      onDragEnd={handleDragEnd}
-      onDrop={(event) => drop(event)}
-      onDragOver={(event) => {
-        allowDrop(event);
-      }}
-      onMouseDown={(e) => {
-        e.stopPropagation();
-        handleSelectNode(e, {
-          id, // new Id will be assigned
-          type: BoardObjects.BOARD,
-          pX, // need position in case user uses keyboard shortcut
-          pY,
-          ref: dragRef,
-          title,
-          childRefs,
-          parent,
-          // parent does not have to be the same
-        });
-      }}
-      direction={isInColumn ? "row" : "column"}
-      alignItems={"center"}
-      bgColor={
-        isInColumn ? useColorModeValue("gray.400", "gray.800") : "transparent"
-      }
-      outline={isInColumn ? "1px solid" : "none"}
-      outlineColor={
-        isInColumn
-          ? useColorModeValue("blackAlpha.500", "whiteAlpha.300")
-          : "none"
-      }
-      border={"none"}
       rounded={"sm"}
       variant={"filled"}
-      w={isInColumn ? "full" : undefined}
-      minW={isInColumn ? "100%" : undefined}
+      menuProps={{
+        canCopy: true,
+        canCut: true,
+        canDelete: true,
+      }}
+      menuItems={[]}
     >
       <CardBody
-        onContextMenu={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          updateContextMenu();
-          openContextMenu(e);
-        }}
+        draggable
         flex={isInColumn ? 0.12 : undefined}
         cursor={"grab"}
         onDoubleClick={() => {
@@ -297,8 +120,6 @@ const BoardIcon = ({
             ? useColorModeValue("gray.300", "gray.700")
             : useColorModeValue("gray.400", "gray.800")
         }
-        outline={!!selectedNode[id] ? "3px solid" : "1px solid"}
-        outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
         rounded={"md"}
       >
         <StarIcon pointerEvents={"none"} w={"100%"} h={"100%"} />
@@ -332,7 +153,7 @@ const BoardIcon = ({
           required={true}
         />
       </Editable>
-    </Card>
+    </NodeWrapper>
   );
 };
 
@@ -343,7 +164,6 @@ const mapStateToProps = (state, ownProps) => {
     pX: board.pX,
     pY: board.pY,
     title: board.title,
-    parent: board.parent,
     childRefs: board.childRefs,
   };
 };

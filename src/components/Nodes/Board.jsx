@@ -12,6 +12,7 @@ import { addChild, addNode } from "../../utils/slices/nodeActions";
 import { Box, MenuItem, useColorModeValue } from "@chakra-ui/react";
 
 // Custom components
+import BoardIcon from "./BoardIcon";
 import Note from "./Note";
 import Column from "./Column";
 import Picture from "./Picture";
@@ -90,10 +91,6 @@ const Board = ({ validBoard, title, router, childRefs }) => {
     const newNote = new NoteC({
       pX: mouseX,
       pY: mouseY,
-      parent: {
-        id: boardId,
-        type: BoardObjects.BOARD,
-      },
     });
     dispatch(addNode.action(newNote));
     dispatch(
@@ -157,124 +154,21 @@ const Board = ({ validBoard, title, router, childRefs }) => {
   //#region Context Menu
   const { handleRightClick, ContextMenu } = useContextMenu({
     containerRef: ref,
+    boardId,
   });
 
-  const { setMenuItems, setMenuProps, copiedNodes } =
+  const { setMenuItems, setMenuProps, setTarget } =
     useContext(ContextMenuContext);
-
-  const boing = (node, mouseX, mouseY) => {
-    let copiedNode;
-    switch (node.type) {
-      case BoardObjects.NOTE:
-        copiedNode = {
-          ...node,
-          pX: mouseX,
-          pY: mouseY,
-          parent: !!node.parent
-            ? node.parent
-            : { id: boardId, type: BoardObjects.BOARD },
-        };
-        break;
-      case BoardObjects.DOCUMENT:
-        copiedNode = {
-          ...node,
-          id: uuidv4(),
-          pX: mouseX,
-          pY: mouseY,
-          parent: !!node.parent
-            ? node.parent
-            : { id: boardId, type: BoardObjects.BOARD },
-        };
-        break;
-      case BoardObjects.IMAGE:
-        copiedNode = {
-          ...node,
-          pX: mouseX,
-          pY: mouseY,
-          parent: !!node.parent
-            ? node.parent
-            : { id: boardId, type: BoardObjects.BOARD },
-        };
-        break;
-      case BoardObjects.TODO:
-        copiedNode = {
-          ...node,
-          id: uuidv4(),
-          pX: mouseX,
-          pY: mouseY,
-          parent: !!node.parent
-            ? node.parent
-            : { id: boardId, type: BoardObjects.BOARD },
-        };
-        break;
-      case BoardObjects.COLUMN:
-        // Need to copy the contents of the column and assign new Ids to them
-        copiedNode = {
-          ...node,
-          id: uuidv4(),
-          pX: mouseX,
-          pY: mouseY,
-          parent: {
-            id: boardId,
-            type: BoardObjects.BOARD,
-          },
-        };
-        break;
-      case BoardObjects.BOARD:
-        copiedNode = {
-          ...node,
-          id: uuidv4(),
-          pX: mouseX,
-          pY: mouseY,
-          parent: {
-            id: boardId,
-            type: BoardObjects.BOARD,
-          },
-        };
-        break;
-      default:
-        break;
-    }
-
-    /// I think the order is messed up here
-    // Maybe go through and only add the nodes that have parent as this board
-    // Then do second pass (things can only ever be 2 levels deep I think?)
-    // Nvm boards can have other boards that have other boards
-    // then i guess do the board idea then just go recursively?
-    if (!!copiedNode) {
-      dispatch(addNode.action(copiedNode));
-      dispatch(
-        addChild.action({
-          id: copiedNode.parent.id,
-          type: copiedNode.parent.type,
-          cId: copiedNode.id,
-          cType: copiedNode.type,
-        })
-      );
-    }
-  };
-
-  const pasteNodes = (nodes, mouseX, mouseY) => {
-    console.log(nodes);
-    nodes?.forEach((node) => {
-      boing(node, mouseX, mouseY);
-    });
-  };
 
   const updateContextMenu = (e) => {
     const { mouseX, mouseY } = getMouse(e);
     setMenuItems([
-      //<MenuItem onClick={() => pasteNodes(mouseX, mouseY)}>Paste</MenuItem>,
       //<MenuDivider />,
       <MenuItem // Note
         onClick={() => {
           const { ...newNote } = new NoteC({
             pX: mouseX,
             pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
           });
           dispatch(addNode.action(newNote));
           dispatch(
@@ -294,10 +188,6 @@ const Board = ({ validBoard, title, router, childRefs }) => {
           const { ...newDocument } = new DocumentC({
             pX: mouseX,
             pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
           });
           dispatch(addNode.action(newDocument));
           dispatch(
@@ -317,10 +207,6 @@ const Board = ({ validBoard, title, router, childRefs }) => {
           const { ...newTask } = new TaskC({
             pX: mouseX,
             pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
           });
           dispatch(addNode.action(newTask));
           dispatch(
@@ -340,11 +226,6 @@ const Board = ({ validBoard, title, router, childRefs }) => {
           const { ...newColumn } = new ColumnC({
             pX: mouseX,
             pY: mouseY,
-            sX: 200,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
           });
           dispatch(addNode.action(newColumn));
           dispatch(
@@ -364,10 +245,6 @@ const Board = ({ validBoard, title, router, childRefs }) => {
           const { ...newBoard } = new BoardC({
             pX: mouseX,
             pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
           });
           dispatch(addNode.action(newBoard));
           dispatch(
@@ -387,10 +264,6 @@ const Board = ({ validBoard, title, router, childRefs }) => {
           const { ...newPicture } = new PictureC({
             pX: mouseX,
             pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
           });
           dispatch(addNode.action(newPicture));
           dispatch(
@@ -408,10 +281,8 @@ const Board = ({ validBoard, title, router, childRefs }) => {
     ]);
     setMenuProps({
       canPaste: true,
-      paste: (nodes) => {
-        pasteNodes(nodes, mouseX, mouseY);
-      },
     });
+    setTarget({ id: boardId, type: BoardObjects.BOARD });
   };
 
   //#endregion
@@ -446,7 +317,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
         }}
         onResize={(e) => e.preventDefault()}
       >
-        <ContextMenu canCopy canCut canDelete />
+        <ContextMenu />
         <Box
           ref={transformRef}
           style={{
@@ -454,11 +325,6 @@ const Board = ({ validBoard, title, router, childRefs }) => {
             transition: "all 0.1s transform 3s",
             width: "100%",
             height: "100%",
-          }}
-          onPaste={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            pasteNodes(0, 0);
           }}
         >
           <DragFunctions.Provider value={dragFunctions}>
@@ -470,6 +336,8 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                       key={childId}
                       id={childId}
                       openContextMenu={handleRightClick}
+                      parentId={boardId}
+                      parentType={"board"}
                       scale={scale}
                       animate={animate}
                     />
@@ -483,6 +351,8 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                       boardRef={ref}
                       offset={position}
                       scale={scale}
+                      parentId={boardId}
+                      parentType={"board"}
                       openContextMenu={handleRightClick}
                       animate={animate}
                     />
@@ -504,20 +374,25 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                 //       animate={animate}
                 //     />
                 //   );
-                // case BoardObjects.BOARD:
-                //   return (
-                //     <BoardIcon
-                //       key={childId}
-                //       id={childId}
-                //       openContextMenu={handleRightClick}
-                //     />
-                //   );
+                case BoardObjects.BOARD:
+                  return (
+                    <BoardIcon
+                      key={childId}
+                      id={childId}
+                      openContextMenu={handleRightClick}
+                      parentId={boardId}
+                      parentType={"board"}
+                      animate={animate}
+                    />
+                  );
                 case BoardObjects.DOCUMENT:
                   return (
                     <Document
                       key={childId}
                       id={childId}
                       openContextMenu={handleRightClick}
+                      parentId={boardId}
+                      parentType={"board"}
                       animate={animate}
                     />
                   );
@@ -542,7 +417,6 @@ const mapStateToProps = (state, ownProps) => {
       validBoard: true,
       title: board.title,
       childRefs: board.childRefs,
-      parent: board.parent,
     };
   }
   return {

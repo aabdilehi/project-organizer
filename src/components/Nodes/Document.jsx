@@ -52,29 +52,20 @@ const Document = ({
   expanded,
   title,
   content,
-  parent,
-  setContextMenu,
+  parentId,
+  parentType,
   openContextMenu,
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [isInColumn, setIsInColumn] = useState(false);
-  const dragRef = useRef(null);
   const dispatch = useDispatch();
-  //#region Drag hook
-  const item = {
-    id: id,
-    type: BoardObjects.DOCUMENT,
-    parent: parent,
-  };
 
-  //#endregion
-
+  // Determines sizing and positioning based on whether in column or not
+  const [isInColumn, setIsInColumn] = useState(false);
   useEffect(() => {
-    if (parent !== undefined) {
-      setIsInColumn(parent.type === BoardObjects.COLUMN);
-      console.log(isInColumn);
+    if (parentType !== undefined) {
+      setIsInColumn(parentType === BoardObjects.COLUMN);
     }
-  }, [parent]);
+  }, [parentId, parentType]);
 
   const editor = useEditor({
     extensions: [
@@ -147,44 +138,6 @@ const Document = ({
     );
   };
 
-  const { setMenuItems, setMenuProps, copyNodes } =
-    useContext(ContextMenuContext);
-
-  const copyDocument = () => {
-    const document = {
-      // new Id will be assigned
-      type: BoardObjects.DOCUMENT,
-      pX, // need position in case user uses keyboard shortcut
-      pY,
-      title,
-      content,
-      expanded,
-      // parent does not have to be the same
-    };
-    copyNodes([document]);
-  };
-
-  const cutDocument = () => {
-    copyDocument();
-    deleteDocument();
-  };
-
-  const updateContextMenu = () => {
-    setMenuItems([
-      <MenuItem onClick={cutDocument}>Cut</MenuItem>,
-      <MenuItem onClick={copyDocument}>Copy</MenuItem>,
-      <MenuItem onClick={deleteDocument}>Delete</MenuItem>,
-      <MenuDivider />,
-      <MenuItem onClick={convertDocument}>Convert to note</MenuItem>,
-    ]);
-    setMenuProps({
-      canCopy: true,
-      canCut: true,
-      canDelete: true,
-      delete: deleteDocument,
-    });
-  };
-
   const selectedNodes = useSelector((state) => state.selection);
 
   return (
@@ -197,6 +150,8 @@ const Document = ({
         canResize={false}
         pX={pX}
         pY={pY}
+        parentId={parentId}
+        parentType={parentType}
         openContextMenu={openContextMenu}
         isInColumn={isInColumn}
         clickCallback={() => {}}
@@ -322,7 +277,6 @@ const mapStateToProps = (state, ownProps) => {
     expanded: doc.expanded, // icon vs card view (not anything to do with opening the modal)
     title: doc.title,
     content: doc.content,
-    parent: doc.parent,
   };
 };
 

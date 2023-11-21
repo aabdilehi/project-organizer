@@ -4,7 +4,6 @@ import {
   removeNode,
   updatePosition,
   updateSize,
-  updateParent,
   updateContent,
   updateTitle,
 } from "./nodeActions";
@@ -32,7 +31,6 @@ const docSlice = createSlice({
     builder.addCase(updateContent.action, updateContent.reducer("document"));
     builder.addCase(updatePosition.action, updatePosition.reducer("document"));
     builder.addCase(updateSize.action, updateSize.reducer("document"));
-    builder.addCase(updateParent.action, updateParent.reducer("document"));
   },
 });
 

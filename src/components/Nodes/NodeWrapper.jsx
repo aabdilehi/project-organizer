@@ -66,7 +66,8 @@ const NodeWrapper = ({
   clickCallback,
   holdCallback,
   openContextMenu,
-  parent,
+  parentId,
+  parentType,
   pX,
   pY,
   isInColumn = false,
@@ -84,12 +85,30 @@ const NodeWrapper = ({
   const handleSelect = (e) => {
     console.log(selectedNodes);
     if (e.shiftKey) {
-      dispatch(addSelectNode({ id: props.nodeId, type: props.nodeType }));
+      dispatch(
+        addSelectNode({
+          id: props.nodeId,
+          type: props.nodeType,
+          parent: { id: parentId, type: parentType },
+        })
+      );
     } else if (e.ctrlKey) {
-      dispatch(toggleSelectNode({ id: props.nodeId, type: props.nodeType }));
+      dispatch(
+        toggleSelectNode({
+          id: props.nodeId,
+          type: props.nodeType,
+          parent: { id: parentId, type: parentType },
+        })
+      );
       return;
     } else {
-      dispatch(selectNode({ id: props.nodeId, type: props.nodeType }));
+      dispatch(
+        selectNode({
+          id: props.nodeId,
+          type: props.nodeType,
+          parent: { id: parentId, type: parentType },
+        })
+      );
       return;
     }
   };
@@ -98,11 +117,31 @@ const NodeWrapper = ({
   useEffect(() => {
     if (selectedNodes !== undefined) {
       setIsSelected(!!selectedNodes[props.nodeId]);
+      console.log(selectedNodes);
     }
   }, [selectedNodes]);
 
+  useEffect(() => {
+    if (selectedNodes !== undefined) {
+      if (
+        !!selectedNodes[props.nodeId] &&
+        !!selectedNodes[props.nodeId].parent &&
+        selectedNodes[props.nodeId].parent.id != parentId
+      ) {
+        dispatch(
+          addSelectNode({
+            id: props.nodeId,
+            type: props.nodeType,
+            parent: { id: parentId, type: parentType },
+          })
+        );
+      }
+    }
+  }, [isSelected, parentId, parentType]);
+
   //#region Context Menu
-  const { setMenuItems, setMenuProps } = useContext(ContextMenuContext);
+  const { setMenuItems, setMenuProps, setTarget } =
+    useContext(ContextMenuContext);
 
   const updateContextMenu = () => {
     setMenuItems(() => {
@@ -111,6 +150,8 @@ const NodeWrapper = ({
     setMenuProps(() => {
       return menuProps;
     });
+
+    setTarget({ id: props.nodeId, type: props.nodeType });
   };
   //#endregion
 
@@ -251,8 +292,8 @@ const NodeWrapper = ({
         transform: isInColumn
           ? "translate(0px, 0px)"
           : `translate(${pX}px, ${pY}px)`,
-        ...style,
         position: isInColumn ? "relative" : "absolute",
+        ...style,
         overflow: "visible",
       }}
       {...props}

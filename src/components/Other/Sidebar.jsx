@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 
-import { SidebarObjects } from "../../utils/enums/items";
+import { SidebarObjects } from "@/utils/enums/items";
 import {
   Button,
   Card,
@@ -12,7 +12,6 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 import {
-  IconArrowBack,
   IconArrowLeft,
   IconCheckbox,
   IconFileText,

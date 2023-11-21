@@ -6,7 +6,6 @@ import {
   removeNode,
   addChild,
   removeChild,
-  updateParent,
   updatePosition,
 } from "../slices/nodeActions";
 
@@ -74,20 +73,12 @@ export function useBoardDrop({
         node = new NoteC({
           pX: xCoord,
           pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
         });
         break;
       case SidebarObjects.IMAGE:
         node = new PictureC({
           pX: xCoord,
           pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
         });
         break;
 
@@ -95,10 +86,6 @@ export function useBoardDrop({
         node = new TaskC({
           pX: xCoord,
           pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
         });
         break;
 
@@ -106,30 +93,18 @@ export function useBoardDrop({
         node = new BoardC({
           pX: xCoord,
           pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
         });
         break;
       case SidebarObjects.COLUMN:
         node = new ColumnC({
           pX: xCoord,
           pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
         });
         break;
       case SidebarObjects.DOCUMENT:
         node = new DocumentC({
           pX: xCoord,
           pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
         });
         break;
     }
@@ -148,6 +123,7 @@ export function useBoardDrop({
   };
 
   const updateNodeParent = (data, pId, pType) => {
+    console.log(data);
     dispatch(
       removeChild.action({
         id: data.parent.id,
@@ -161,14 +137,6 @@ export function useBoardDrop({
         type: pType,
         cId: data.id,
         cType: data.type,
-      })
-    );
-    dispatch(
-      updateParent.action({
-        id: data.id,
-        type: data.type,
-        pId,
-        pType,
       })
     );
   };
@@ -249,20 +217,12 @@ export function useColumnDrop({
         node = new NoteC({
           pX: xCoord,
           pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
         });
         break;
       case SidebarObjects.IMAGE:
         node = new PictureC({
           pX: xCoord,
           pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
         });
         break;
 
@@ -270,10 +230,6 @@ export function useColumnDrop({
         node = new TaskC({
           pX: xCoord,
           pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
         });
         break;
 
@@ -281,10 +237,6 @@ export function useColumnDrop({
         node = new BoardC({
           pX: xCoord,
           pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
         });
         break;
 
@@ -292,10 +244,6 @@ export function useColumnDrop({
         node = new DocumentC({
           pX: xCoord,
           pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
         });
         break;
     }
@@ -327,14 +275,6 @@ export function useColumnDrop({
         type: pType,
         cId: data.id,
         cType: data.type,
-      })
-    );
-    dispatch(
-      updateParent.action({
-        id: data.id,
-        type: data.type,
-        pId,
-        pType,
       })
     );
   };

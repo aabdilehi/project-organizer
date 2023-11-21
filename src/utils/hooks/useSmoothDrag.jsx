@@ -16,7 +16,10 @@ export function useSmoothDrag({
   const nodeData = useSelector((state) => {
     const data = {};
     Object.keys(selectedNodes).forEach((key) => {
-      data[key] = state[`${selectedNodes[key]}s`][key];
+      data[key] = {
+        ...state[`${selectedNodes[key].type}s`][key],
+        parent: selectedNodes[key].parent,
+      };
     });
     return data;
   });
@@ -123,51 +126,14 @@ export function useSmoothDrag({
     isDragging.current = false;
   };
 
-  const animateCallback = useCallback(() => {
-    if (boardRef.current !== null) {
-      if (isDragging.current) {
-        lerpedMouseX.current +=
-          (mouseX.current - lerpedMouseX.current) * lerpValue;
-        lerpedMouseY.current +=
-          (mouseY.current - lerpedMouseY.current) * lerpValue;
-
-        //console.log(initialOffsets.current);
-        Object.keys(selectedNodes).forEach((key) => {
-          const el = document.querySelector(`[nodeId="${key}"]`);
-
-          if (
-            !!el &&
-            lerpedMouseX.current !== 0 &&
-            lerpedMouseY.current !== 0 &&
-            !!initialOffsets.current &&
-            !!initialOffsets.current[key]
-          ) {
-            el.style.position = "absolute";
-            el.style.transform = `translate(${
-              lerpedMouseX.current - initialOffsets.current[key].x
-            }px, ${lerpedMouseY.current - initialOffsets.current[key].y}px)`;
-          }
-        });
-      }
-    }
-
-    requestAnimationFrame(animate);
-  }, [
-    boardRef.current,
-    mouseX.current,
-    mouseY.current,
-    selectedNodes,
-    initialOffsets.current,
-  ]);
-
   const animate = () => {
     // const frameId = requestAnimationFrame(animate);
     if (boardRef.current !== null) {
       if (isDragging.current) {
-        lerpedMouseX.current +=
-          (mouseX.current - lerpedMouseX.current) * lerpValue;
-        lerpedMouseY.current +=
-          (mouseY.current - lerpedMouseY.current) * lerpValue;
+        // lerpedMouseX.current +=
+        //   (mouseX.current - lerpedMouseX.current) * lerpValue;
+        // lerpedMouseY.current +=
+        //   (mouseY.current - lerpedMouseY.current) * lerpValue;
 
         //console.log(initialOffsets.current);
         Object.keys(selectedNodes).forEach((key) => {
@@ -175,18 +141,20 @@ export function useSmoothDrag({
 
           if (
             !!el &&
-            lerpedMouseX.current !== 0 &&
-            lerpedMouseY.current !== 0 &&
+            mouseX.current !== 0 &&
+            mouseY.current !== 0 &&
             !!initialOffsets.current &&
             !!initialOffsets.current[key]
           ) {
             el.style.position = "absolute";
             el.style.transform = `translate(${
-              lerpedMouseX.current - initialOffsets.current[key].x
-            }px, ${lerpedMouseY.current - initialOffsets.current[key].y}px)`;
+              mouseX.current - initialOffsets.current[key].x
+            }px, ${mouseY.current - initialOffsets.current[key].y}px)`;
           }
         });
       }
+
+      requestAnimationFrame(animate);
       // if (
       //   lerpedMouseX.current !== mouseX.current &&
       //   lerpedMouseY.current !== mouseY.current

@@ -149,7 +149,7 @@ export const updateSize = {
   action: updateSizeAction,
   reducer: updateSizeReducer,
 };
-export const updateParent = {
-  action: updateParentAction,
-  reducer: updateParentReducer,
-};
+// export const updateParent = {
+//   action: updateParentAction,
+//   reducer: updateParentReducer,
+// };

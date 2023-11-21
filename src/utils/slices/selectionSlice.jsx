@@ -4,10 +4,10 @@ const selectionSlice = createSlice({
   initialState: {},
   reducers: {
     selectNode: (state, action) => {
-      const { id, type } = action.payload;
+      const { id, type, parent } = action.payload;
       if (!id) return;
       return {
-        [id]: type,
+        [id]: { id, type, parent },
       };
     },
     setSelectedNodes: (state, action) => {
@@ -15,22 +15,23 @@ const selectionSlice = createSlice({
       return nodes;
     },
     addSelectNode: (state, action) => {
-      const { id, type } = action.payload;
-      if (!id) return;
+      // Can also be used to update the selection on data change
+      const { id, type, parent } = action.payload;
+      // if (!id) return;
       return {
         ...state,
-        [id]: type,
+        [id]: { id, type, parent },
       };
     },
     toggleSelectNode: (state, action) => {
-      const { id, type } = action.payload;
+      const { id, type, parent } = action.payload;
       if (!id) return;
       if (!!state[id]) {
         delete state[id];
       } else {
         return {
           ...state,
-          [id]: type,
+          [id]: { id, type, parent },
         };
       }
     },

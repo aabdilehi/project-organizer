@@ -36,7 +36,8 @@ const Note = ({
   sX,
   sY,
   content,
-  parent,
+  parentId,
+  parentType,
   openContextMenu,
 }) => {
   const selectedNodes = useSelector((state) => state.selection);
@@ -127,16 +128,15 @@ const Note = ({
       pY,
       title: `${editor?.getText().slice(0, 10)}...`,
       content,
-      parent,
     });
 
-    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
+    dispatch(removeChild.action({ id: parentId, type: parentType, cId: id }));
     dispatch(removeNode.action({ id, type: BoardObjects.NOTE }));
     dispatch(addNode.action(newDocument));
     dispatch(
       addChild.action({
-        id: parent.id,
-        type: parent.type,
+        id: parentId,
+        type: parentType,
         cId: id,
         cType: BoardObjects.DOCUMENT,
       })
@@ -146,10 +146,10 @@ const Note = ({
   // Determines sizing and positioning based on whether in column or not
   const [isInColumn, setIsInColumn] = useState(false);
   useEffect(() => {
-    if (parent !== undefined) {
-      setIsInColumn(parent.type === BoardObjects.COLUMN);
+    if (parentType !== undefined) {
+      setIsInColumn(parentType === BoardObjects.COLUMN);
     }
-  }, [parent]);
+  }, [parentId, parentType]);
 
   return (
     <NodeWrapper
@@ -162,7 +162,8 @@ const Note = ({
       isInColumn={isInColumn}
       pX={pX}
       pY={pY}
-      parent={parent}
+      parentId={parentId}
+      parentType={parentType}
       onResize={({ width, height }) => {
         console.log(scale);
         if (
@@ -232,7 +233,6 @@ const mapStateToProps = (state, ownProps) => {
     sX: note ? note.sX : 200,
     sY: note ? note.sY : 200,
     content: note ? note.content : `<p>Something has gone wrong</p>`,
-    parent: note ? note.parent : { id: "root", type: BoardObjects.BOARD },
   };
 };
 
