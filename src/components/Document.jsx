@@ -1,6 +1,6 @@
 import { useColorModeValue } from "@chakra-ui/color-mode";
 import { useDisclosure } from "@chakra-ui/hooks";
-import "../../editor.scss";
+import "../editor.scss";
 import {
   Modal,
   ModalOverlay,
@@ -20,19 +20,19 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { bindActionCreators } from "redux";
-import { toggleExpanded } from "../../utils/slices/docSlice";
-import { MenuBar } from "../Other/Editor";
-import { connect, useDispatch, useSelector } from "react-redux";
-import { BoardObjects } from "../../utils/enums/items";
-import { useSmoothDrag } from "../../utils/hooks/useSmoothDrag";
+import { toggleExpanded } from "../utils/slices/docSlice";
+import { MenuBar } from "./Editor";
+import { connect, useDispatch } from "react-redux";
+import { BoardObjects } from "../utils/enums/items";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import { Card, CardBody } from "@chakra-ui/card";
 import { IconFileText } from "@tabler/icons-react";
 import { Editable } from "@chakra-ui/editable";
-import CustomEditablePreview from "../Other/CustomEditablePreview";
-import { AutoResizeEditableInput } from "../Other/AutoResizeTextarea";
+import CustomEditablePreview from "./CustomEditablePreview";
+import { AutoResizeEditableInput } from "./AutoResizeTextarea";
 import { MenuDivider, MenuItem } from "@chakra-ui/react";
-import { ContextMenuContext } from "../../utils/hooks/useContextMenu";
-import { SelectedNodeContext } from "../../App";
+import { ContextMenuContext } from "../utils/hooks/useContextMenu";
+import { SelectedNodeContext } from "../App";
 import {
   addChild,
   addNode,
@@ -40,32 +40,45 @@ import {
   removeNode,
   updateContent,
   updateTitle,
-} from "../../utils/slices/nodeActions";
-import { NoteC } from "../../utils/classes/classes";
+} from "../utils/slices/nodeActions";
+import { NoteC } from "../utils/classes/classes";
 import NodeWrapper from "./NodeWrapper";
 
 const Document = ({
   id,
   pX,
-  animate,
   pY,
   expanded,
   title,
   content,
-  parentId,
-  parentType,
+  parent,
+  setContextMenu,
   openContextMenu,
+  handleDragStart,
+  handleDrag,
+  handleDragEnd,
+  animate,
 }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const dispatch = useDispatch();
-
-  // Determines sizing and positioning based on whether in column or not
   const [isInColumn, setIsInColumn] = useState(false);
+  const dragRef = useRef(null);
+  const dispatch = useDispatch();
+  //#region Drag hook
+  const item = {
+    id: id,
+    type: BoardObjects.DOCUMENT,
+    parent: parent,
+  };
+
+  if (!!animate) animate();
+
+  //#endregion
+
   useEffect(() => {
-    if (parentType !== undefined) {
-      setIsInColumn(parentType === BoardObjects.COLUMN);
+    if (parent !== undefined) {
+      setIsInColumn(parent.type === BoardObjects.COLUMN);
     }
-  }, [parentId, parentType]);
+  }, [parent]);
 
   const editor = useEditor({
     extensions: [
@@ -111,13 +124,7 @@ const Document = ({
     editor.commands.setTextSelection({ from, to });
   }, [content, editor]);
 
-  const deleteDocument = () => {
-    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
-    dispatch(removeNode.action({ id, type: BoardObjects.DOCUMENT }));
-  };
-
   const convertDocument = () => {
-    console.log("HIII");
     const { ...newNote } = new NoteC({
       id,
       pX,
@@ -138,48 +145,76 @@ const Document = ({
     );
   };
 
-  const selectedNodes = useSelector((state) => state.selection);
+  const { setMenuItems, setMenuProps, copyNodes } =
+    useContext(ContextMenuContext);
+
+  const copyDocument = () => {
+    const document = {
+      // new Id will be assigned
+      type: BoardObjects.DOCUMENT,
+      pX, // need position in case user uses keyboard shortcut
+      pY,
+      title,
+      content,
+      expanded,
+      // parent does not have to be the same
+    };
+    copyNodes([document]);
+  };
+
+  const cutDocument = () => {
+    copyDocument();
+  };
+
+  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
 
   return (
     <>
       <NodeWrapper
         nodeId={id}
-        nodeType={BoardObjects.DOCUMENT}
         canPosition={true}
-        animate={animate}
         canResize={false}
         pX={pX}
         pY={pY}
-        parentId={parentId}
-        parentType={parentType}
+        handleDragStart={handleDragStart}
+        handleDrag={handleDrag}
+        handleDragEnd={handleDragEnd}
+        animate={animate}
         openContextMenu={openContextMenu}
         isInColumn={isInColumn}
+        onSelectNode={{
+          id, // new Id will be assigned
+          type: BoardObjects.DOCUMENT,
+          pX, // need position in case user uses keyboard shortcut
+          pY,
+          title,
+          content,
+          expanded,
+          parent, // parent does not have to be the same
+        }}
         clickCallback={() => {}}
         holdCallback={() => {}}
-        style={{
-          background: "none",
-          outline: "none",
-          zIndex: "2",
-          padding: isInColumn ? 1.5 : 0,
-          alignItems: "center",
-          width: isInColumn ? "full" : undefined,
-          minWidth: isInColumn ? "100%" : undefined,
-        }}
+        bg={"none"}
+        outline={"none"}
         menuProps={{
           canCopy: true,
           canCut: true,
           canDelete: true,
-          delete: deleteDocument,
         }}
         menuItems={[
           <MenuItem onClick={convertDocument}>Convert to note</MenuItem>,
         ]}
+        zIndex={2}
+        p={isInColumn ? 1.5 : 0}
         direction={isInColumn ? "row" : "column"}
+        alignItems={"center"}
+        border={"none"}
         rounded={"sm"}
         variant={"filled"}
+        w={isInColumn ? "full" : undefined}
+        minW={isInColumn ? "100%" : undefined}
       >
         <CardBody
-          draggable
           flex={isInColumn ? 0.12 : undefined}
           cursor={"grab"}
           onDoubleClick={onOpen}
@@ -190,7 +225,7 @@ const Document = ({
               ? useColorModeValue("gray.300", "gray.700")
               : useColorModeValue("gray.400", "gray.800")
           }
-          outline={!!selectedNodes[id] ? "3px solid" : "1px solid"}
+          outline={!!selectedNode[id] ? "3px solid" : "1px solid"}
           outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
           rounded={"md"}
         >
@@ -277,6 +312,7 @@ const mapStateToProps = (state, ownProps) => {
     expanded: doc.expanded, // icon vs card view (not anything to do with opening the modal)
     title: doc.title,
     content: doc.content,
+    parent: doc.parent,
   };
 };
 

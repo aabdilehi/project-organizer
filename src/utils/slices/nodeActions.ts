@@ -25,7 +25,6 @@ const removeNodeReducer = (nodeType) => (state, action) => {
   if (!id || type !== nodeType) return;
   delete state[id];
 };
-
 const addChildReducer = (nodeType) => (state, action) => {
   const { id, type, cId, cType } = action.payload;
   if (!id || !cId || !cType || type !== nodeType) return;
@@ -89,7 +88,6 @@ const updatePositionReducer = (nodeType) => (state, action) => {
 };
 const updateSizeReducer = (nodeType) => (state, action) => {
   const { id, type, sX, sY } = action.payload;
-console.log(action.payload);
 
   if (!id || type !== nodeType || !sX || !sY) return;
   const node = state[id];
@@ -124,7 +122,6 @@ export const removeNode = {
   action: removeNodeAction,
   reducer: removeNodeReducer,
 };
-
 export const addChild = {
   action: addChildAction,
   reducer: addChildReducer,
@@ -149,7 +146,7 @@ export const updateSize = {
   action: updateSizeAction,
   reducer: updateSizeReducer,
 };
-// export const updateParent = {
-//   action: updateParentAction,
-//   reducer: updateParentReducer,
-// };
+export const updateParent = {
+  action: updateParentAction,
+  reducer: updateParentReducer,
+};

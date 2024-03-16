@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
-import "../../App.css";
-import { useState, useEffect, useRef } from "react";
+import "../App.css";
+import { useState, useEffect, useRef, useContext, useMemo } from "react";
 import {
   Checkbox,
+  Card,
   Stack,
   Badge,
   Tooltip,
@@ -19,14 +20,18 @@ import {
   Input,
   Editable,
   useColorModeValue,
+  MenuItem,
+  Button,
+  Center,
+  EditableInput,
 } from "@chakra-ui/react";
-import { BoardObjects } from "@/utils/enums/items.jsx";
+import { BoardObjects } from "../utils/enums/items";
 import {
   AutoResizeEditableInput,
   AutoResizeTextArea,
-} from "../Other/AutoResizeTextarea.jsx";
+} from "./AutoResizeTextarea.jsx";
 import { AddIcon, CheckIcon, CloseIcon, EditIcon } from "@chakra-ui/icons";
-import ChkrDatepicker from "../Other/Datepicker.jsx";
+import ChkrDatepicker from "./Datepicker";
 import { format, parseISO } from "date-fns";
 import { bindActionCreators } from "redux";
 import {
@@ -35,21 +40,24 @@ import {
   addBadge,
   removeBadge,
   updateBadgeText,
-} from "../../utils/slices/taskSlice.jsx";
+} from "../utils/slices/taskSlice";
 import { connect, useDispatch } from "react-redux";
-import CustomEditablePreview from "../Other/CustomEditablePreview.jsx";
-import { BadgeC } from "../../utils/classes/classes.js";
+import CustomEditablePreview from "./CustomEditablePreview";
+import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
+import { ContextMenuContext } from "../utils/hooks/useContextMenu";
+import { BadgeC } from "../utils/classes/classes";
+import { SelectedNodeContext } from "../App";
+import { IconPlus } from "@tabler/icons-react";
 import {
   removeChild,
   removeNode,
   updateContent,
   updateTitle,
-} from "@/utils/slices/nodeActions.ts";
-import NodeWrapper from "./NodeWrapper";
+} from "../utils/slices/nodeActions";
+import NodeWrapper from "./NodeWrapper.jsx";
 
 const ToDo = ({
   id,
-  animate,
   pX,
   pY,
   title,
@@ -64,8 +72,14 @@ const ToDo = ({
   taskStatus,
   updateTaskStatus,
   updateDeadline,
+  handleDragStart,
+  handleDrag,
+  handleDragEnd,
+  animate,
 }) => {
   const finalRef = useRef(null);
+
+  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
 
   const dispatch = useDispatch();
   // Modal control
@@ -76,17 +90,69 @@ const ToDo = ({
   const [taskSummary, setTaskSummary] = useState(content);
 
   const [date, setDate] = useState(deadline);
+  const dragRef = useRef(null);
   const [isInColumn, setIsInColumn] = useState(false);
+
+  //#region  Drag behaviour
+  const item = {
+    id: id,
+    type: BoardObjects.TODO,
+    parent: parent,
+  };
+
+  //#endregion
 
   useEffect(() => {
     setIsInColumn(parent.type === BoardObjects.COLUMN);
-    console.log(isInColumn);
   }, [parent]);
 
-  const deleteTask = () => {
-    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
-    dispatch(removeNode.action({ id, type: BoardObjects.TODO }));
+  const { setMenuItems, setMenuProps, copyNodes } =
+    useContext(ContextMenuContext);
+
+  const copyTask = () => {
+    const task = {
+      // new Id will be assigned
+      type: BoardObjects.TODO,
+      pX, // need position in case user uses keyboard shortcut
+      pY,
+      title,
+      deadline,
+      content,
+      taskStatus,
+      badges,
+      parent,
+    };
+    copyNodes([task]);
   };
+
+  const cutTask = () => {
+    copyTask();
+  };
+
+  const updateContextMenu = () => {
+    setMenuItems([]);
+    setMenuProps({
+      canCopy: true,
+      canCut: true,
+      canDelete: true,
+    });
+  };
+
+  const selectData = useMemo(() => {
+    return {
+      id, // new Id will be assigned
+      type: BoardObjects.TODO,
+      pX, // need position in case user uses keyboard shortcut
+      pY,
+      title,
+      deadline,
+      content,
+      taskStatus,
+      badges,
+
+      parent, // parent does not have to be the same
+    };
+  }, [id, pX, pY, title, deadline, content, taskStatus, badges]);
 
   //#region Modal menu
   // can't make this like the context menu in board as it will re-render on every state change
@@ -205,7 +271,6 @@ const ToDo = ({
                   textAlign={"center"}
                   onClick={(e) => {
                     const { ...newBadge } = new BadgeC();
-                    console.log(newBadge);
                     addBadge({ taskId: id, newBadge });
                   }}
                   size="sm"
@@ -252,40 +317,40 @@ const ToDo = ({
   return (
     <NodeWrapper
       nodeId={id}
-      nodeType={"task"}
-      canPosition={true}
-      animate={animate}
-      canResize={false}
-      parent={parent}
-      isInColumn={isInColumn}
       pX={pX}
       pY={pY}
-      parent={parent}
-      clickCallback={() => {}}
-      holdCallback={() => {}}
-      role="group"
-      direction={{ base: "row" }}
-      size={"sm"}
-      pt={2}
-      pr={2}
-      style={{
-        width: isInColumn ? "100%" : "250px",
-        height: "fit-content",
-        minWidth: isInColumn ? "100%" : undefined,
-        maxWidth: "1000px",
-        maxHeight: "1000px",
-        zIndex: 2,
-        alignItems: "flex-start",
-        cursor: "grab",
-      }}
+      isInColumn={isInColumn}
+      animate={animate}
+      menuItems={[]}
       menuProps={{
         canCopy: true,
         canCut: true,
         canDelete: true,
-
-        delete: deleteTask,
       }}
-      menuItems={[]}
+      canPosition={true}
+      clickCallback={() => {}}
+      holdCallback={() => {}}
+      canResize={false}
+      handleDragStart={handleDragStart}
+      handleDrag={handleDrag}
+      handleDragEnd={handleDragEnd}
+      onSelectNode={selectData}
+      openContextMenu={openContextMenu}
+      zIndex={2}
+      role="group"
+      direction={{ base: "row" }}
+      bg={useColorModeValue("gray.400", "gray.800")}
+      size={"sm"}
+      maxW="1000px"
+      maxH="1000px"
+      alignItems="flex-start"
+      pt={2}
+      pr={2}
+      w={isInColumn ? "100%" : "250px"}
+      position={isInColumn ? "relative" : "absolute"}
+      h="fit-content"
+      cursor={"grab"}
+      minW={isInColumn ? "100%;" : ""}
     >
       <Stack direction={{ base: "column" }} pl={5}>
         <Stack
@@ -330,13 +395,14 @@ const ToDo = ({
             p={0}
             style={{
               margin: "0px",
-              minHeight: "1.5em",
+              height: "fit-content",
               padding: "0px",
             }}
             color={useColorModeValue("black", "white")}
             justifyItems={"center"}
           >
             <CustomEditablePreview p={0} m={0} h={"100%"} />
+
             <AutoResizeEditableInput
               p={0}
               m={0}

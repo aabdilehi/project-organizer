@@ -4,6 +4,7 @@ import {
   addNode,
   removeChild,
   removeNode,
+  updateParent,
   updatePosition,
   updateSize,
   updateTitle,
@@ -21,6 +22,7 @@ const columnSlice = createSlice({
     builder.addCase(updateTitle.action, updateTitle.reducer("column"));
     builder.addCase(updatePosition.action, updatePosition.reducer("column"));
     builder.addCase(updateSize.action, updateSize.reducer("column"));
+    builder.addCase(updateParent.action, updateParent.reducer("column"));
   },
 });
 

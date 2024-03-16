@@ -3,7 +3,7 @@ import React from "react";
 
 import { useRef } from "react";
 
-import { useClickAndHold } from "../../utils/hooks/useClickAndHold";
+import { useClickAndHold } from "../utils/hooks/useClickAndHold";
 
 function CustomEditablePreview({ canEdit = true, ...props }) {
   const editRef = useRef();
@@ -16,9 +16,7 @@ function CustomEditablePreview({ canEdit = true, ...props }) {
     }
   };
 
-  const handleHold = (event) => {
-    console.log("Hold", event.target);
-  };
+  const handleHold = (event) => {};
 
   const [mouseDownHandler, mouseUpHandler] = useClickAndHold(
     handleClick,

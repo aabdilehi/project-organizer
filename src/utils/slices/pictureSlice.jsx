@@ -1,5 +1,11 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { addNode, removeNode, updatePosition, updateSize } from "./nodeActions";
+import {
+  addNode,
+  removeNode,
+  updatePosition,
+  updateSize,
+  updateParent,
+} from "./nodeActions";
 
 const pictureSlice = createSlice({
   name: "pictures",
@@ -44,6 +50,7 @@ const pictureSlice = createSlice({
     builder.addCase(removeNode.action, removeNode.reducer("image"));
     builder.addCase(updatePosition.action, updatePosition.reducer("image"));
     builder.addCase(updateSize.action, updateSize.reducer("image"));
+    builder.addCase(updateParent.action, updateParent.reducer("image"));
   },
 });
 

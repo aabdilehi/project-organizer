@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 
-import { SidebarObjects } from "@/utils/enums/items";
+import { SidebarObjects } from "../utils/enums/items";
 import {
   Button,
   Card,
@@ -12,6 +12,7 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 import {
+  IconArrowBack,
   IconArrowLeft,
   IconCheckbox,
   IconFileText,
@@ -29,7 +30,6 @@ const Sidebar = ({ router }) => {
   const [board, setBoard] = useState();
   const bruh = useSelector((state) => state.boards[!!id ? id : "root"]);
   useEffect(() => {
-    console.log(bruh);
     setBoard(bruh);
   }, [id]);
 
@@ -49,7 +49,6 @@ const Sidebar = ({ router }) => {
         w={"full"}
         h={"1.6em"}
         onClick={() => {
-          console.log(board);
           router.navigate(`/`);
         }}
         isDisabled={!board || board.id === "root"}

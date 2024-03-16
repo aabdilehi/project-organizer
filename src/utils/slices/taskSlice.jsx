@@ -5,6 +5,7 @@ import {
   updateTitle,
   updateContent,
   updatePosition,
+  updateParent,
 } from "./nodeActions";
 
 const taskSlice = createSlice({
@@ -36,7 +37,6 @@ const taskSlice = createSlice({
     addBadge: (state, action) => {
       const { taskId, newBadge } = action.payload;
       const task = state[taskId];
-      console.log(newBadge);
       const badges = { ...task.badges };
       badges[newBadge.id] = newBadge;
       return {
@@ -85,6 +85,7 @@ const taskSlice = createSlice({
     builder.addCase(updateTitle.action, updateTitle.reducer("to-do"));
     builder.addCase(updateContent.action, updateContent.reducer("to-do"));
     builder.addCase(updatePosition.action, updatePosition.reducer("to-do"));
+    builder.addCase(updateParent.action, updateParent.reducer("to-do"));
   },
 });
 

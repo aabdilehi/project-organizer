@@ -19,7 +19,8 @@ export function useClickAndHold(
     event.stopPropagation();
 
     selectedRef.current = isSelected;
-    if (!selectedRef.current || (!event.ctrlKey && !event.shiftKey)) {
+    if (!selectedRef.current) {
+      event.stopPropagation();
       selectCallback(event);
     }
     downRef.current = new Date();
@@ -35,6 +36,7 @@ export function useClickAndHold(
     clearTimeout(timerRef.current);
     if (upRef.current - downRef.current < delay) {
       if (selectedRef.current) {
+        event.stopPropagation();
         selectCallback(event);
       }
       clickCallback(event);

@@ -1,12 +1,25 @@
 /** @jsxImportSource @emotion/react */
-import "@/App.css";
-import { useState, useEffect } from "react";
+import "../App.css";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
-import { BoardObjects } from "../../utils/enums/items";
-import "@/editor.scss";
-import { ListItem, MenuItem } from "@chakra-ui/react";
+import { BoardObjects } from "../utils/enums/items";
+import ResizeObserver from "rc-resize-observer";
+import "../editor.scss";
+import {
+  Box,
+  Editable,
+  ListItem,
+  Menu,
+  MenuDivider,
+  MenuItem,
+  MenuList,
+  Portal,
+  Textarea,
+  useColorModeValue,
+  useDisclosure,
+} from "@chakra-ui/react";
 import { bindActionCreators } from "redux";
-import { connect, useDispatch, useSelector } from "react-redux";
+import { connect, useDispatch } from "react-redux";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Color from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
@@ -16,6 +29,8 @@ import Highlight from "@tiptap/extension-highlight";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
+import { useContext } from "react";
+import { SelectedNodeContext } from "../App";
 import {
   addChild,
   addNode,
@@ -23,25 +38,42 @@ import {
   removeNode,
   updateContent,
   updateSize,
-} from "../../utils/slices/nodeActions";
-import { DocumentC } from "../../utils/classes/classes";
+} from "../utils/slices/nodeActions";
+import { DocumentC } from "../utils/classes/classes";
 import NodeWrapper from "./NodeWrapper";
 
 const Note = ({
   id,
   scale,
-  animate,
   pX,
   pY,
   sX,
   sY,
   content,
-  parentId,
-  parentType,
+  parent,
   openContextMenu,
+  handleDragStart,
+  handleDrag,
+  handleDragEnd,
+  animate,
 }) => {
-  const selectedNodes = useSelector((state) => state.selection);
+  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
   const dispatch = useDispatch();
+
+  const isDragging = useRef(false);
+
+  const selectData = useMemo(() => {
+    return {
+      id, // new Id will be assigned
+      type: BoardObjects.NOTE,
+      pX, // need position in case user uses keyboard shortcut
+      pY,
+      sX,
+      sY,
+      content,
+      parent,
+    };
+  }, [id, pX, pY, sX, sY, content, parent]);
 
   const editor = useEditor({
     extensions: [
@@ -87,7 +119,7 @@ const Note = ({
       }
 
       // Set to edit mode
-      if (!event.ctrlKey && !event.shiftKey && !!selectedNodes[id]) {
+      if (!event.ctrlKey && !!selectedNode[id]) {
         editor.setEditable(true);
         editor.commands.focus();
         return;
@@ -96,10 +128,10 @@ const Note = ({
   };
 
   useEffect(() => {
-    if (!selectedNodes[id]) {
+    if (!selectedNode[id]) {
       editor?.setEditable(false);
     }
-  }, [selectedNodes]);
+  }, [selectedNode]);
 
   // Update text and maintain cursor position on re-render
   useEffect(() => {
@@ -116,11 +148,6 @@ const Note = ({
     event.stopPropagation();
   };
 
-  const deleteNote = () => {
-    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
-    dispatch(removeNode.action({ id, type: BoardObjects.NOTE }));
-  };
-
   const convertNote = () => {
     const { ...newDocument } = new DocumentC({
       id,
@@ -128,15 +155,16 @@ const Note = ({
       pY,
       title: `${editor?.getText().slice(0, 10)}...`,
       content,
+      parent,
     });
 
-    dispatch(removeChild.action({ id: parentId, type: parentType, cId: id }));
+    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
     dispatch(removeNode.action({ id, type: BoardObjects.NOTE }));
     dispatch(addNode.action(newDocument));
     dispatch(
       addChild.action({
-        id: parentId,
-        type: parentType,
+        id: parent.id,
+        type: parent.type,
         cId: id,
         cType: BoardObjects.DOCUMENT,
       })
@@ -146,30 +174,25 @@ const Note = ({
   // Determines sizing and positioning based on whether in column or not
   const [isInColumn, setIsInColumn] = useState(false);
   useEffect(() => {
-    if (parentType !== undefined) {
-      setIsInColumn(parentType === BoardObjects.COLUMN);
+    if (parent !== undefined) {
+      setIsInColumn(parent.type === BoardObjects.COLUMN);
     }
-  }, [parentId, parentType]);
+  }, [parent]);
 
   return (
     <NodeWrapper
       nodeId={id}
-      nodeType={"note"}
-      animate={animate}
       canPosition={!editor?.isEditable}
       canResize={true}
-      openContextMenu={openContextMenu}
-      isInColumn={isInColumn}
       pX={pX}
       pY={pY}
-      parentId={parentId}
-      parentType={parentType}
+      handleDragStart={handleDragStart}
+      handleDrag={handleDrag}
+      handleDragEnd={handleDragEnd}
+      openContextMenu={openContextMenu}
+      isInColumn={isInColumn}
       onResize={({ width, height }) => {
-        console.log(scale);
-        if (
-          width / scale !== sX ||
-          (height / scale !== sY && !editor?.isEditable)
-        ) {
+        if (!editor?.isEditable) {
           dispatch(
             updateSize.action({
               id,
@@ -180,39 +203,40 @@ const Note = ({
           );
         }
       }}
+      animate={animate}
       clickCallback={handleClick}
       holdCallback={handleHold}
       onBlur={() => {
         editor?.setEditable(false);
       }}
-      style={{
-        minHeight: "75px",
-        minWidth: "75px",
-        maxHeight: "1000px",
-        maxWidth: "1000px",
-        cursor: "grab",
-        zIndex: "2",
-        overflow: editor?.isEditable ? "none" : "auto",
-        textAlign: "left",
-        // transition: "none",
-      }}
+      zIndex={2}
       h={editor?.isEditable ? "unset" : sY + "px"}
       w={isInColumn ? "full" : sX + "px"}
+      minH={"75px"}
+      maxH={"1000px"}
+      minW={"75px"}
+      maxW={"1000px"}
+      cursor={"grab"}
+      resize={isInColumn ? "vertical" : "both"}
+      overflow={editor?.isEditable ? "none" : "auto"}
       rounded={"sm"}
+      textAlign={"left"}
+      onSelectNode={selectData}
       menuProps={{
         canCopy: true,
         canCut: true,
         canDelete: true,
-        delete: deleteNote,
       }}
       menuItems={[
         <MenuItem onClick={convertNote}>Convert to document</MenuItem>,
       ]}
     >
+      <p>{`Dragging: ${isDragging.current}`}</p>
       <EditorContent
         style={{
           padding: 0,
           margin: 0,
+          width: "100%",
           height: "fit-content",
           overflow: "none",
           border: "none",
@@ -228,11 +252,12 @@ const mapStateToProps = (state, ownProps) => {
   const { id } = ownProps;
   const note = state.notes[id];
   return {
-    pX: note ? note.pX : 0,
-    pY: note ? note.pY : 0,
-    sX: note ? note.sX : 200,
-    sY: note ? note.sY : 200,
-    content: note ? note.content : `<p>Something has gone wrong</p>`,
+    pX: note.pX,
+    pY: note.pY,
+    sX: note.sX,
+    sY: note.sY,
+    content: note.content,
+    parent: note.parent,
   };
 };
 

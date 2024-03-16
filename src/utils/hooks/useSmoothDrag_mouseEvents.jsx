@@ -10,14 +10,14 @@ export function useSmoothDrag({
   lerpValue = 0.35, // speed at which the element should follow the mouse
 }) {
   // offset between top left of dragged element and actual mouse position
-  let initialOffsetX = useRef(0);
-  let initialOffsetY = useRef(0);
+  // let initialOffsetX = useRef(0);
+  // let initialOffsetY = useRef(0);
 
   const { selectedNodeRefs, selectedNode } = useContext(SelectedNodeContext);
   const clonedRefs = useRef();
   const cloneContainer = useRef();
 
-  let [isDragging, setIsDragging] = useState(false);
+  let isDragging = useRef(false);
 
   const initialOffsets = useRef();
 
@@ -33,29 +33,22 @@ export function useSmoothDrag({
   const animationRef = useRef();
 
   const handleDragStart = (event) => {
+    event.stopPropagation();
     initialOffsets.current = {};
     if (boardRef.current === null) {
       return;
     }
     animate();
 
-    setIsDragging(true);
+    isDragging.current = true;
 
     const boundingRect = boardRef.current.getBoundingClientRect();
-    initialOffsetX.current = event.clientX - boundingRect.left;
-    initialOffsetY.current = event.clientY - boundingRect.top;
-
-    mouseX.current =
-      (event.clientX - initialOffsetX.current - boundingRect.left) / scale;
-    mouseY.current =
-      (event.clientY - initialOffsetY.current - boundingRect.top) / scale;
+    mouseX.current = (event.clientX - boundingRect.left) / scale;
+    mouseY.current = (event.clientY - boundingRect.top) / scale;
 
     lerpedMouseX.current = mouseX.current;
     lerpedMouseX.current = mouseY.current;
     cloneContainer.current = document.createElement("div");
-    cloneContainer.current.style.width = "100%";
-    cloneContainer.current.style.height = "100%";
-    cloneContainer.current.style.zIndex = "999";
     cloneContainer.current.style.position = "absolute";
     cloneContainer.current.style.pointerEvents = "none";
     clonedRefs.current = Object.keys(selectedNodeRefs).map((key) => {
@@ -73,7 +66,10 @@ export function useSmoothDrag({
       const dupe = selectedNodeRefs[key].current.cloneNode(true);
       dupe.style.pointerEvents = "none";
       cloneContainer.current.appendChild(dupe);
-      selectedNodeRefs[key].current.style.opacity = "1";
+      selectedNodeRefs[key].current.style.opacity = 0;
+      //selectedNodeRefs[key].current.style.visibility = "hidden";
+      // send initial offset to drop zone
+      // item.offset = { x: initialOffsetX.current, y: initialOffsetY.current };
       selectedNode[key].offset = initialOffsets.current[key];
 
       return dupe;
@@ -94,34 +90,41 @@ export function useSmoothDrag({
   };
 
   const handleDrag = (event) => {
+    event.stopPropagation();
     if (boardRef.current === null) {
       return;
     }
+    // prevent mouse events so that drop can function properly
+    // could not drop in columns without wonky z-index stuff before this
+    // not actually sure why this works
 
+    //elementRef.current.style.pointerEvents = "none";
+
+    // where element should go relative to board bounds, position, size and initial offset
     const boundingRect = boardRef.current.getBoundingClientRect();
-    mouseX.current =
-      (event.clientX - initialOffsetX.current - boundingRect.left) / scale;
-    mouseY.current =
-      (event.clientY - initialOffsetY.current - boundingRect.top) / scale;
+    mouseX.current = (event.clientX - boundingRect.left) / scale;
+    mouseY.current = (event.clientY - boundingRect.top) / scale;
   };
 
   const handleDragEnd = (event) => {
+    event.stopPropagation();
+    //elementRef.current.style.pointerEvents = "all";
     clonedRefs.current.forEach((item) => {
       item.remove();
     });
     cloneContainer.current.remove();
 
     Object.keys(selectedNodeRefs).forEach((key) => {
-      selectedNodeRefs[key].current.style.opacity = "1";
+      selectedNodeRefs[key].current.style.opacity = 1;
     });
 
     clonedRefs.current = undefined;
+    isDragging.current = false;
   };
 
-  let done = false;
   const animate = () => {
     if (boardRef.current !== null) {
-      if (isDragging) {
+      if (isDragging.current) {
         lerpedMouseX.current +=
           (mouseX.current - lerpedMouseX.current) * lerpValue;
         lerpedMouseY.current +=
