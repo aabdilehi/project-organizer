@@ -16,14 +16,10 @@ export function useSmoothDrag({
   transformRef,
   offset = { x: 0, y: 0 }, // board's position after panning
   scale = 1, // board's scale after zooming
-  lerpValue = 0.01, // speed at which the element should follow the mouse
+  lerpValue = 0.35, // speed at which the element should follow the mouse
 }) {
   // offset between top left of dragged element and actual mouse position
   let initialOffset = useRef({ x: 0, y: 0 });
-
-  // linearly interpolated mouse position
-  const lerpedMouseX = useRef(0); // was initial coords
-  const lerpedMouseY = useRef(0); // was initial coords
 
   const container = useRef();
   const originals = useRef([]);
@@ -68,13 +64,8 @@ export function useSmoothDrag({
       dupe.classList.remove("in-column");
       dupe.style.setProperty(
         "transform",
-        `translate(${
-          (elemBounds.left -
-            transformRef.current.getBoundingClientRect().left) /
-          scale
-        }px, ${
-          (elemBounds.top - transformRef.current.getBoundingClientRect().top) /
-          scale
+        `translate(${elemBounds.left + event.offsetX}px, ${
+          elemBounds.top + event.offsetY
         }px)`,
         "important"
       );
@@ -86,8 +77,9 @@ export function useSmoothDrag({
   };
 
   const handleDrag = (event) => {
-    if (!container.current) return;
     requestAnimationFrame(() => {
+      if (!container.current) return;
+      console.log("DRAGGIGN");
       container.current.style.transform = `translate(${
         (event.clientX - initialOffset.current.x) / scale
       }px, ${(event.clientY - initialOffset.current.y) / scale}px)`;
@@ -99,7 +91,6 @@ export function useSmoothDrag({
       container.current.remove();
       container.current = undefined;
     }
-
     originals.current.forEach((elem) => {
       elem?.classList?.remove("dragging");
     });

@@ -8,9 +8,10 @@ import {
   removeChild,
   updateParent,
   updatePosition,
+  offsetPosition,
 } from "../slices/nodeActions";
 
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   BoardC,
   ColumnC,
@@ -19,8 +20,6 @@ import {
   PictureC,
   TaskC,
 } from "../classes/classes";
-import { useContext } from "react";
-import { SelectedNodeContext } from "../../App";
 
 export function useBoardDrop({
   accept,
@@ -30,30 +29,37 @@ export function useBoardDrop({
   scale = 1,
 }) {
   const dispatch = useDispatch();
-  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
+  const state = useSelector((state) => state);
 
   function allowDrop(event) {
+    event.stopPropagation();
     event.preventDefault();
   }
 
   const drop = (event) => {
+    event.stopPropagation();
     event.preventDefault();
+    console.log(event.dataTransfer);
     let data = JSON.parse(event.dataTransfer.getData("application/json"));
     if (Object.values(SidebarObjects).includes(data.type)) {
+      if (!accept.includes(data.type)) {
+        return;
+      }
       createNode(event, data, boardId, BoardObjects.BOARD);
     } else {
-      Object.values(data).forEach((item) => {
+      if (!data.hasOwnProperty("selectedNodes")) return;
+      Object.values(data.selectedNodes).forEach((item) => {
         if (!accept.includes(item.type) || item.id === boardId) {
           return;
         }
         // Something about sidebar objects here
-        if (Object.values(BoardObjects).includes(item.type)) {
+        if (accept.includes(item.type)) {
+          // check if should re-parent
           if (item.parent.id !== boardId) {
             updateNodeParent(item, boardId, BoardObjects.BOARD);
-            updateNodePosition(event, item);
-            handleSelectNode(event, null); // temp fix for issue when selectednode data doesn't match actual node data
+            setNodePosition(event, item, data.offset);
           } else {
-            updateNodePosition(event, item);
+            offsetNodePosition(event, item, data.offset);
           }
         }
       });
@@ -146,35 +152,83 @@ export function useBoardDrop({
   };
 
   const updateNodeParent = (data, pId, pType) => {
+    setTimeout(() => {
+      dispatch(
+        updateParent.action({
+          id: data.id,
+          type: data.type,
+          parent: {
+            id: pId,
+            type: pType,
+          },
+        })
+      );
+      dispatch(
+        removeChild.action({
+          id: data.parent.id,
+          type: data.parent.type,
+          cId: data.id,
+        })
+      );
+      dispatch(
+        addChild.action({
+          id: pId,
+          type: pType,
+          cId: data.id,
+          cType: data.type,
+        })
+      );
+    }, 15);
+  };
+  const updateNodePosition = (event, data) => {
+    const boundingRect = boardRef.current.getBoundingClientRect();
+    const xCoord = (event.clientX - boundingRect.left) / scale;
+    const yCoord = (event.clientY - boundingRect.top) / scale;
+
     dispatch(
-      removeChild.action({
-        id: data.parent.id,
-        type: data.parent.type,
-        cId: data.id,
-      })
-    );
-    dispatch(
-      addChild.action({
-        id: pId,
-        type: pType,
-        cId: data.id,
-        cType: data.type,
-      })
-    );
-    dispatch(
-      updateParent.action({
+      updatePosition.action({
         id: data.id,
         type: data.type,
-        pId,
-        pType,
+        pX: xCoord,
+        pY: yCoord,
       })
     );
   };
 
-  const updateNodePosition = (event, data) => {
+  const offsetNodePosition = (event, data, offset) => {
+    const xCoord = (event.clientX - offset.x) / scale;
+    const yCoord = (event.clientY - offset.y) / scale;
+    dispatch(
+      offsetPosition.action({
+        id: data.id,
+        type: data.type,
+        offsetX: xCoord,
+        offsetY: yCoord,
+      })
+    );
+  };
+
+  const setNodePosition = (event, data, offset) => {
     const boundingRect = boardRef.current.getBoundingClientRect();
-    const xCoord = (event.clientX - boundingRect.left) / scale - data.offset.x;
-    const yCoord = (event.clientY - boundingRect.top) / scale - data.offset.y;
+
+    const node = state[data.type + "s"][data.id];
+    if (!node) {
+      const xCoord = (event.clientX - boundingRect.left) / scale;
+      const yCoord = (event.clientY - boundingRect.top) / scale;
+
+      dispatch(
+        updatePosition.action({
+          id: data.id,
+          type: data.type,
+          pX: xCoord,
+          pY: yCoord,
+        })
+      );
+      return;
+    }
+
+    const xCoord = node.pX - offset.x + event.clientX;
+    const yCoord = node.pY - offset.y + event.clientY;
     dispatch(
       updatePosition.action({
         id: data.id,
@@ -201,13 +255,15 @@ export function useColumnDrop({
 }) {
   const dispatch = useDispatch();
 
-  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
   const allowDrop = (event) => {
+    event.stopPropagation();
     event.preventDefault();
   };
 
   function drop(event) {
     event.stopPropagation();
+    event.preventDefault();
+
     let data = JSON.parse(event.dataTransfer.getData("application/json"));
 
     // Something about sidebar objects here
@@ -217,8 +273,9 @@ export function useColumnDrop({
       }
       createNode(event, data, columnId, BoardObjects.COLUMN);
     } else {
-      Object.values(data).forEach((item) => {
-        if (Object.values(BoardObjects).includes(item.type)) {
+      if (!data.hasOwnProperty("selectedNodes")) return;
+      Object.values(data.selectedNodes).forEach((item) => {
+        if (accept.includes(item.type)) {
           if (
             !accept.includes(item.type) ||
             item.id === columnId ||
@@ -227,7 +284,6 @@ export function useColumnDrop({
             return;
           }
           updateNodeParent(item, columnId, BoardObjects.COLUMN);
-          handleSelectNode(event, null); // temp fix for issue when selectednode data doesn't match actual node data
         }
       });
     }
@@ -310,29 +366,34 @@ export function useColumnDrop({
   };
 
   const updateNodeParent = (data, pId, pType) => {
-    dispatch(
-      removeChild.action({
-        id: data.parent.id,
-        type: data.parent.type,
-        cId: data.id,
-      })
-    );
-    dispatch(
-      addChild.action({
-        id: pId,
-        type: pType,
-        cId: data.id,
-        cType: data.type,
-      })
-    );
-    dispatch(
-      updateParent.action({
-        id: data.id,
-        type: data.type,
-        pId,
-        pType,
-      })
-    );
+    setTimeout(() => {
+      // delay this as removing the node from DOM will unfortunately cancel the drag event before dragend can fire
+      dispatch(
+        updateParent.action({
+          id: data.id,
+          type: data.type,
+          parent: {
+            id: pId,
+            type: pType,
+          },
+        })
+      );
+      dispatch(
+        removeChild.action({
+          id: data.parent.id,
+          type: data.parent.type,
+          cId: data.id,
+        })
+      );
+      dispatch(
+        addChild.action({
+          id: pId,
+          type: pType,
+          cId: data.id,
+          cType: data.type,
+        })
+      );
+    }, 15);
   };
 
   return {

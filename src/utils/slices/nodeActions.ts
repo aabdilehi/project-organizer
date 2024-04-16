@@ -8,6 +8,7 @@ const removeChildAction = createAction<{id: string, type: string, cId: string}>(
 const updateTitleAction = createAction<{id: string, type: string, title: string}>("updateTitle");
 const updateContentAction = createAction<{id: string, type: string, content: string}>("updateContent");
 const updatePositionAction = createAction<{id: string, type: string, pX: number, pY: number}>("updatePosition");
+const offsetPositionAction = createAction<{id: string, type: string, offsetX: number, offsetY: number}>("offsetPosition");
 const updateSizeAction = createAction<{id: string, type: string, sX: number, sY: number}>("updateSize");
 const updateParentAction = createAction<{id: string, type: string, parent: object}>("updateParent");
 
@@ -45,7 +46,13 @@ const removeChildReducer = (nodeType) => (state, action) => {
     return item.childId === cId;
   });
   if (index === -1) return;
-  node.childRefs.splice(index, 1);
+  return {
+    ...state,
+    [id]: {
+      ...node,
+      childRefs: [...node.childRefs.slice(0, index), ...node.childRefs.slice(index + 1)],
+    },
+  };
 };
 const updateTitleReducer = (nodeType) => (state, action) => {
   const { id, type, title } = action.payload;
@@ -86,6 +93,21 @@ const updatePositionReducer = (nodeType) => (state, action) => {
     },
   };
 };
+const offsetPositionReducer = (nodeType) => (state, action) => {
+  const { id, type, offsetX, offsetY } = action.payload;
+
+  if (!id || type !== nodeType || !offsetX || !offsetY) return;
+  const node = state[id];
+
+  return {
+    ...state,
+    [id]: {
+      ...node,
+      pX: state[id].pX + offsetX,
+      pY: state[id].pY + offsetY,
+    },
+  };
+};
 const updateSizeReducer = (nodeType) => (state, action) => {
   const { id, type, sX, sY } = action.payload;
 
@@ -101,14 +123,14 @@ const updateSizeReducer = (nodeType) => (state, action) => {
   };
 };
 const updateParentReducer = (nodeType) => (state, action) => {
-  const { id, type, pId, pType } = action.payload;
-  if (!id || type !== nodeType || !pId || !pType) return;
+  const { id, type, parent } = action.payload;
+  if (!id || type !== nodeType || !parent) return;
   const node = state[id];
   return {
     ...state,
     [id]: {
       ...node,
-      parent: { id: pId, type: pType },
+      parent,
     },
   };
 };
@@ -141,6 +163,10 @@ export const updateContent = {
 export const updatePosition = {
   action: updatePositionAction,
   reducer: updatePositionReducer,
+};
+export const offsetPosition = {
+  action: offsetPositionAction,
+  reducer: offsetPositionReducer,
 };
 export const updateSize = {
   action: updateSizeAction,

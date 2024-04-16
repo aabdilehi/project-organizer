@@ -12,6 +12,7 @@ html, body, #root {
   padding: 0;
   font-family: Arial, Helvetica, sans-serif;
   font-weight: 200;
+  transition: none;
 }
 
 
@@ -22,10 +23,91 @@ html, body, #root {
   width: var(--chakra-sizes-full);
 }
 
-
-.note {
+.clone-container {
+  background-color: rgb(255, 0, 0, 0.3);
+  position: absolute;
+  pointer-events: none;
+  width: 100%;
+  height: 100%;
+  z-index: 99;
+	transition: transform 0.1s cubic-bezier(0.5, 1, 0.89, 1);
 }
 
-.note.in-column {
+.clone-container > * {
+  pointer-events: none;
+}
+
+
+.resize-wrapper {
+  position: relative;
+  z-index: 98;
+  width: 100% !important;
+  min-height: 100% !important;
+}
+
+.resize-handle {
+  opacity: 0.3;
+  position: absolute;
+  z-index: 99;
+  transform: translate(-50%, -50%);
+}
+
+.resize-handle.left, .resize-handle.right {
+  width: 10px;
+  height: calc(100% - 20px);  
+  top: 50%;
+}
+
+.resize-handle.left {  
+  left: 0;
+  background-color: red;
+}
+
+.resize-handle:hover {
+  opacity: 0.8;
+}
+
+
+.node {
+  position: absolute;
+  background-color: #2d3748;
+  border-radius: 0.375rem; 
+  padding: 0;
+  word-wrap: break;
+  transition: none !important;
+  outline: 1px solid grey;
+  color: white;
+}
+
+.node.in-column {
+  position: relative;
+  transform: translate(0px, 0px) !important;
+  width: 100% !important;
   margin-bottom: 5px;
+}
+
+.node.selected {
+  outline: 3px solid green;
+}
+
+.node.dragging {
+  opacity: 0;
+}
+
+.note {
+  resize: none;
+  z-index: 2;
+  min-height: 75px;
+  min-width: 75px;
+  max-height: 1000px;
+  max-height: 1000px;
+  cursor: grab;
+  text-align: left;
+  overflow: hidden;
+}
+
+
+.note.editing {
+  height: unset;
+  overflow: auto;
 }

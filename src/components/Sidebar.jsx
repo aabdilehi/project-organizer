@@ -107,6 +107,7 @@ const SidebarObject = ({ name, type, icon }) => {
 
   const handleDragStart = (event) => {
     // Should set this to plain text but the function reading this is expecting json
+    event.stopPropagation();
     event.dataTransfer.setData("application/json", JSON.stringify({ type }));
   };
 

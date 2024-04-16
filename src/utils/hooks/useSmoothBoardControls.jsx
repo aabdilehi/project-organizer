@@ -11,12 +11,7 @@ export function useSmoothBoardControls(transformRef, boardRef) {
   const lerpedScale = useRef(scale);
   const currentPositionX = useRef(0);
   const currentPositionY = useRef(0);
-  const {
-    copiedNodes,
-    copyNodes,
-    paste,
-    delete: del,
-  } = useContext(ContextMenuContext);
+  const { copyNodes, delete: del } = useContext(ContextMenuContext);
   const { selectedNode, setSelectedNode } = useContext(SelectedNodeContext);
 
   useEffect(() => {
@@ -131,7 +126,12 @@ export function useSmoothBoardControls(transformRef, boardRef) {
     if (transformRef.current !== null) {
       transformRef.current.style.transform = `scale(${lerpedScale.current}) translate(${currentPositionX.current}px, ${currentPositionY.current}px)`;
     }
-    requestAnimationFrame(animate);
+    if (
+      lerpedScale.current >= scale + 0.1 ||
+      lerpedScale.current <= scale - 0.1
+    ) {
+      requestAnimationFrame(animate);
+    }
   };
   return {
     handleWheel,

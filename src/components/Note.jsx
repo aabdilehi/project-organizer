@@ -1,25 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import "../App.css";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
 import { BoardObjects } from "../utils/enums/items";
-import ResizeObserver from "rc-resize-observer";
 import "../editor.scss";
-import {
-  Box,
-  Editable,
-  ListItem,
-  Menu,
-  MenuDivider,
-  MenuItem,
-  MenuList,
-  Portal,
-  Textarea,
-  useColorModeValue,
-  useDisclosure,
-} from "@chakra-ui/react";
+import { ListItem, MenuItem } from "@chakra-ui/react";
 import { bindActionCreators } from "redux";
-import { connect, useDispatch } from "react-redux";
+import { connect, useDispatch, useSelector } from "react-redux";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Color from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
@@ -30,34 +17,18 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import { useContext } from "react";
-import { SelectedNodeContext } from "../App";
 import {
   addChild,
   addNode,
   removeChild,
   removeNode,
   updateContent,
-  updateSize,
 } from "../utils/slices/nodeActions";
 import { DocumentC } from "../utils/classes/classes";
 import NodeWrapper from "./NodeWrapper";
 
-const Note = ({
-  id,
-  scale,
-  pX,
-  pY,
-  sX,
-  sY,
-  content,
-  parent,
-  openContextMenu,
-  handleDragStart,
-  handleDrag,
-  handleDragEnd,
-  animate,
-}) => {
-  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
+const Note = ({ id, pX, pY, sX, sY, content, parent, openContextMenu }) => {
+  const selectedNodes = useSelector((state) => state.selection);
   const dispatch = useDispatch();
 
   const isDragging = useRef(false);
@@ -66,14 +37,9 @@ const Note = ({
     return {
       id, // new Id will be assigned
       type: BoardObjects.NOTE,
-      pX, // need position in case user uses keyboard shortcut
-      pY,
-      sX,
-      sY,
-      content,
       parent,
     };
-  }, [id, pX, pY, sX, sY, content, parent]);
+  }, [id, parent]);
 
   const editor = useEditor({
     extensions: [
@@ -112,41 +78,35 @@ const Note = ({
   });
 
   const handleClick = (event) => {
-    event.stopPropagation();
     if (event.button === 0) {
       if (!editor) {
         return;
       }
 
       // Set to edit mode
-      if (!event.ctrlKey && !!selectedNode[id]) {
+      if (!event.ctrlKey) {
         editor.setEditable(true);
         editor.commands.focus();
         return;
       }
     }
   };
-
-  useEffect(() => {
-    if (!selectedNode[id]) {
-      editor?.setEditable(false);
-    }
-  }, [selectedNode]);
-
   // Update text and maintain cursor position on re-render
   useEffect(() => {
-    if (!editor) return;
-    let { from, to } = editor.state.selection;
-    editor.commands.setContent(content, false, {
+    editor?.commands.setContent(content, false, {
       preserveWhitespace: "full",
     });
-    editor.commands.setTextSelection({ from, to });
-  }, [content, editor]);
+  }, [content]);
+  if (!!editor) {
+    // only allow editing text on selected node
+    editor.setEditable(false);
 
-  const handleHold = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-  };
+    let { from, to } = editor.state.selection;
+    editor.commands.setTextSelection({ from, to });
+  }
+
+  // Determines sizing and positioning based on whether in column or not
+  let isInColumn = parent.type === BoardObjects.COLUMN;
 
   const convertNote = () => {
     const { ...newDocument } = new DocumentC({
@@ -171,56 +131,23 @@ const Note = ({
     );
   };
 
-  // Determines sizing and positioning based on whether in column or not
-  const [isInColumn, setIsInColumn] = useState(false);
-  useEffect(() => {
-    if (parent !== undefined) {
-      setIsInColumn(parent.type === BoardObjects.COLUMN);
-    }
-  }, [parent]);
-
   return (
     <NodeWrapper
       nodeId={id}
+      nodeType={"note"}
       canPosition={!editor?.isEditable}
-      canResize={true}
       pX={pX}
       pY={pY}
-      handleDragStart={handleDragStart}
-      handleDrag={handleDrag}
-      handleDragEnd={handleDragEnd}
+      sX={sX}
+      sY={sY}
       openContextMenu={openContextMenu}
       isInColumn={isInColumn}
-      onResize={({ width, height }) => {
-        if (!editor?.isEditable) {
-          dispatch(
-            updateSize.action({
-              id,
-              type: BoardObjects.NOTE,
-              sX: width / scale,
-              sY: height / scale,
-            })
-          );
-        }
-      }}
-      animate={animate}
       clickCallback={handleClick}
-      holdCallback={handleHold}
       onBlur={() => {
         editor?.setEditable(false);
       }}
-      zIndex={2}
       h={editor?.isEditable ? "unset" : sY + "px"}
-      w={isInColumn ? "full" : sX + "px"}
-      minH={"75px"}
-      maxH={"1000px"}
-      minW={"75px"}
-      maxW={"1000px"}
-      cursor={"grab"}
-      resize={isInColumn ? "vertical" : "both"}
       overflow={editor?.isEditable ? "none" : "auto"}
-      rounded={"sm"}
-      textAlign={"left"}
       onSelectNode={selectData}
       menuProps={{
         canCopy: true,
@@ -231,7 +158,6 @@ const Note = ({
         <MenuItem onClick={convertNote}>Convert to document</MenuItem>,
       ]}
     >
-      <p>{`Dragging: ${isDragging.current}`}</p>
       <EditorContent
         style={{
           padding: 0,

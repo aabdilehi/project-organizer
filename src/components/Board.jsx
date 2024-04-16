@@ -1,5 +1,5 @@
 //#region Imports
-import React, { useContext, useEffect, useRef } from "react";
+import React, { useContext, useEffect, useLayoutEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import {
   Box,
@@ -10,18 +10,11 @@ import {
 import { connect, useDispatch } from "react-redux";
 
 import { BoardObjects, SidebarObjects } from "../utils/enums/items";
-
-import BoardIcon from "./BoardIcon";
-
 import Note from "./Note";
-//import { addNote } from "../utils/slices/noteSlice";
+
 import { addChild, addNode } from "../utils/slices/nodeActions";
 import { bindActionCreators } from "redux";
 
-import Column from "./Column";
-import Picture from "./Picture";
-import ToDo from "./ToDo";
-import Document from "./Document";
 import { useBoardDrop } from "../utils/hooks/useDrop";
 import { useSmoothBoardControls } from "../utils/hooks/useSmoothBoardControls";
 import { withRouter } from "./ComponentWithRouterProp";
@@ -38,6 +31,7 @@ import {
   TaskC,
 } from "../utils/classes/classes";
 import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
+import Column from "./Column";
 //#endregion
 
 const Board = ({ validBoard, title, router, childRefs }) => {
@@ -46,21 +40,6 @@ const Board = ({ validBoard, title, router, childRefs }) => {
   const boardId = id ? id : "root";
 
   const dispatch = useDispatch();
-
-  // Redirect if board is invalid
-  useEffect(() => {
-    if (!validBoard) {
-      router.navigate("/");
-    }
-  }, []);
-
-  // Set title of page to name of board
-  useEffect(() => {
-    if (document.querySelector("title")) {
-      document.querySelector("title").textContent = title ? title : "Home";
-    }
-  }, [document.querySelector("title"), title]);
-  //#endregion
 
   //#region References
   const ref = useRef(null);
@@ -107,7 +86,6 @@ const Board = ({ validBoard, title, router, childRefs }) => {
   const {
     handleWheel,
     handleMouseDown,
-    handleTouchStart,
     animate: boardAnimate,
     scale,
     position,
@@ -118,13 +96,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
 
   //#region Drag behaviour
 
-  const {
-    handleDragStart,
-    handleDrag,
-    handleDragEnd,
-    animate: nodeAnimate,
-    isDragging,
-  } = useSmoothDrag({
+  const { handleDragStart, handleDrag, handleDragEnd } = useSmoothDrag({
     boardRef: ref,
     transformRef: transformRef,
     offset: position,
@@ -161,8 +133,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
     containerRef: ref,
   });
 
-  const { setMenuItems, setMenuProps, copiedNodes } =
-    useContext(ContextMenuContext);
+  const { setMenuItems, setMenuProps } = useContext(ContextMenuContext);
 
   const pasteNodes = (nodes, mouseX, mouseY) => {
     nodes?.forEach((node) => {
@@ -413,23 +384,22 @@ const Board = ({ validBoard, title, router, childRefs }) => {
 
   //#endregion
 
+  const randomRef = useRef();
   //#region Render board
   if (validBoard) {
     return (
-      <Box
+      <div
         ref={ref}
         style={{
           position: "relative",
           width: "100vw",
           height: "100vh",
+          backgroundColor: "cyan",
           overflow: "hidden",
           margin: 0,
         }}
-        bgColor={useColorModeValue("gray.200", "gray.900")}
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
-        // onTouchStart={handleTouchStart}
-        onDoubleClick={handleDoubleClick}
+        onWheel={handleWheel}
         onContextMenu={(e) => {
           e.preventDefault();
           updateContextMenu(e);
@@ -443,36 +413,25 @@ const Board = ({ validBoard, title, router, childRefs }) => {
           event.stopPropagation();
           allowDrop(event);
         }}
+        onDragStart={handleDragStart}
+        onDrag={handleDrag}
+        onDragEnd={handleDragEnd}
         onResize={(e) => e.preventDefault()}
       >
         <ContextMenu canCopy canCut canDelete />
-        <Box
+        <div
           ref={transformRef}
           style={{
             transformOrigin: "top left",
             width: "100%",
             height: "100%",
-          }}
-          onPaste={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            pasteNodes(0, 0);
+            transition: "transform 0.1s cubic-bezier(0.5, 1, 0.89, 1)",
           }}
         >
           {childRefs.map(({ childId, childType }) => {
             switch (childType) {
               case BoardObjects.NOTE:
-                return (
-                  <Note
-                    key={childId}
-                    id={childId}
-                    openContextMenu={handleRightClick}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={nodeAnimate}
-                  />
-                );
+                return <Note key={childId} id={childId} />;
               case BoardObjects.COLUMN:
                 return (
                   <Column
@@ -483,66 +442,14 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                     offset={position}
                     scale={scale}
                     openContextMenu={handleRightClick}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={nodeAnimate}
-                  />
-                );
-              case BoardObjects.IMAGE:
-                return (
-                  <Picture
-                    key={childId}
-                    id={childId}
-                    openContextMenu={handleRightClick}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={nodeAnimate}
-                  />
-                );
-              case BoardObjects.TODO:
-                return (
-                  <ToDo
-                    key={childId}
-                    id={childId}
-                    openContextMenu={handleRightClick}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={nodeAnimate}
-                  />
-                );
-              case BoardObjects.BOARD:
-                return (
-                  <BoardIcon
-                    key={childId}
-                    id={childId}
-                    openContextMenu={handleRightClick}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={nodeAnimate}
-                  />
-                );
-              case BoardObjects.DOCUMENT:
-                return (
-                  <Document
-                    key={childId}
-                    id={childId}
-                    openContextMenu={handleRightClick}
-                    handleDragStart={handleDragStart}
-                    handleDrag={handleDrag}
-                    handleDragEnd={handleDragEnd}
-                    animate={nodeAnimate}
                   />
                 );
               default:
                 break;
             }
           })}
-        </Box>
-      </Box>
+        </div>
+      </div>
     );
   }
   //#endregion

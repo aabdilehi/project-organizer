@@ -1,44 +1,77 @@
-import { Card, useColorModeValue } from "@chakra-ui/react";
-import React, {
-  forwardRef,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useContext, useRef } from "react";
 import { ContextMenuContext } from "../utils/hooks/useContextMenu";
-import { SelectedNodeContext } from "../App";
-import ResizeObserver from "rc-resize-observer";
-import { BoardObjects } from "../utils/enums/items";
-import { useClickAndHold } from "../utils/hooks/useClickandHold_selectNode";
+import {
+  addSelectNode,
+  selectNode,
+  toggleSelectNode,
+} from "../utils/slices/selectionSlice";
+import { useDispatch, useSelector } from "react-redux";
+import ResizeWrapper from "./ResizeWrapper";
 
 const NodeWrapper = ({
   canPosition,
   canResize,
-  handleDragStart,
-  handleDrag,
-  handleDragEnd,
-  animate,
   menuProps,
   menuItems,
   onSelectNode,
   clickCallback,
-  holdCallback,
   openContextMenu,
   parent,
   pX,
   pY,
+  sX,
+  sY,
   isInColumn = false,
   ...props
 }) => {
-  const { selectedNode, handleSelectNode } = useContext(SelectedNodeContext);
-  const dragRef = useRef();
-  const [isSelected, setIsSelected] = useState(false);
-  useEffect(() => {
-    if (selectedNode !== undefined) {
-      setIsSelected(!!selectedNode[props.nodeId]);
+  const nodeRef = useRef();
+
+  //#region Click outside
+  // useLayoutEffect(() => {
+  //   if(!nodeRef.current) return;
+  //   const checkClickInside = (e) => !!nodeRef.current && nodeRef.current.contains(e.target);
+
+  //   const clickOutside = (e) => {
+  //     if(checkClickInside(e)) return;
+  //     dispatch(clearSelectNode)
+  //   }
+  //   window.addEventListener("click", )
+  // }, [])
+  //#endregion
+
+  //#region Select node
+
+  const selectedNodes = useSelector((state) => state.selection);
+  const dispatch = useDispatch();
+
+  const handleSelect = (e) => {
+    console.log(selectedNodes);
+    if (e.shiftKey) {
+      dispatch(addSelectNode(onSelectNode));
+    } else if (e.ctrlKey) {
+      dispatch(toggleSelectNode(onSelectNode));
+      return;
+    } else {
+      dispatch(selectNode(onSelectNode));
+      return;
     }
-  }, [selectedNode]);
+  };
+
+  let isSelected = selectedNodes !== undefined && !!selectedNodes[props.nodeId];
+
+  // update info if out of date i guess
+  if (selectedNodes !== undefined && isSelected) {
+    if (
+      // check info is inconsistent first
+      !!selectedNodes[props.nodeId] &&
+      !!selectedNodes[props.nodeId].parent &&
+      selectedNodes[props.nodeId].parent.id != onSelectNode.parent.id
+    ) {
+      dispatch(addSelectNode(onSelectNode));
+    }
+  }
+
+  //#endregion
 
   //#region Context Menu
   const { setMenuItems, setMenuProps } = useContext(ContextMenuContext);
@@ -53,59 +86,41 @@ const NodeWrapper = ({
   };
   //#endregion
 
-  const [mouseDownHandler, mouseUpHandler] = useClickAndHold(
-    (e) => {
-      if (!!dragRef.current) {
-        handleSelectNode(e, { ref: dragRef, ...onSelectNode });
-      }
-    },
-    isSelected,
-    clickCallback,
-    (event) => {
-      dragRef.current.addEventListener("mousedown", (event) => {});
-    }
-  );
-
-  //if (!!animate) animate();
   return (
-    <ResizeObserver
-      onResize={canResize ? (!!props.onResize ? props.onResize : null) : null}
+    <div
+      ref={nodeRef}
+      data-nodeid={props.nodeId}
+      data-isincolumn={isInColumn}
+      data-selected={isSelected}
+      onClick={(e) => {
+        if (isSelected) {
+          console.log();
+          clickCallback(e);
+        } else {
+          handleSelect(e);
+        }
+      }}
+      draggable={canPosition}
+      className={`node ${props.nodeType}${isInColumn ? " in-column" : ""}${
+        isSelected ? " selected" : ""
+      }`}
+      style={{
+        transform: `translate(${pX}px, ${pY}px)`,
+        height: sY + "px",
+        width: sX + "px",
+      }}
+      tabIndex={-1}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        updateContextMenu();
+        openContextMenu(e);
+      }}
     >
-      <Card
-        ref={dragRef}
-        position={isInColumn ? "relative" : "absolute"}
-        transform={
-          isInColumn ? "translate(0px, 0px)" : `translate(${pX}px, ${pY}px)`
-        }
-        transition={"none"}
-        onFocus={(e) => {
-          e.stopPropagation();
-          handleSelectNode(e, { ref: dragRef, ...onSelectNode });
-        }}
-        onMouseDown={mouseDownHandler}
-        onMouseUp={mouseUpHandler}
-        onDrag={handleDrag}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onSelectNode={onSelectNode}
-        draggable={canPosition}
-        bg={props.bg ? props.bg : useColorModeValue("gray.400", "gray.800")}
-        outline={
-          props.outline ? props.outline : isSelected ? "3px solid" : "1px solid"
-        }
-        outlineColor={useColorModeValue("blackAlpha.500", "whiteAlpha.300")}
-        color={useColorModeValue("black", "white")}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          updateContextMenu();
-          openContextMenu(e);
-        }}
-        {...props}
-      >
+      <ResizeWrapper resizeRef={nodeRef} canResize={canResize}>
         {props.children}
-      </Card>
-    </ResizeObserver>
+      </ResizeWrapper>
+    </div>
   );
 };
 

@@ -132,7 +132,7 @@ export function useContextMenu({ containerRef }) {
     // I think paste should still be custom (?)
     const contextRef = useRef();
     const { canCopy, canCut, canDelete, canPaste, paste } = menuProps;
-    const { selectedNode, setSelectedNode } = useContext(SelectedNodeContext);
+    const { selectedNode } = useContext(SelectedNodeContext);
     const dispatch = useDispatch();
 
     useEffect(() => {

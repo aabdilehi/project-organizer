@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import {
   addNode,
+  offsetPosition,
   removeNode,
   updateContent,
   updateParent,
@@ -16,6 +17,7 @@ const noteSlice = createSlice({
     builder.addCase(addNode.action, addNode.reducer("note"));
     builder.addCase(updateContent.action, updateContent.reducer("note"));
     builder.addCase(updatePosition.action, updatePosition.reducer("note"));
+    builder.addCase(offsetPosition.action, offsetPosition.reducer("note"));
     builder.addCase(updateSize.action, updateSize.reducer("note"));
     builder.addCase(updateParent.action, updateParent.reducer("note"));
     builder.addCase(removeNode.action, removeNode.reducer("note"));
