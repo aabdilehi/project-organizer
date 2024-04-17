@@ -96,7 +96,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
 
   //#region Drag behaviour
 
-  const { handleDragStart, handleDrag, handleDragEnd } = useSmoothDrag({
+  const { handleDragStart, handleDrag, clearPortal } = useSmoothDrag({
     boardRef: ref,
     transformRef: transformRef,
     offset: position,
@@ -125,6 +125,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
     boardRef: ref,
     position,
     scale,
+    clearPortal,
   });
   //#endregion
 
@@ -415,7 +416,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
         }}
         onDragStart={handleDragStart}
         onDrag={handleDrag}
-        onDragEnd={handleDragEnd}
+        onDragEnd={clearPortal}
         onResize={(e) => e.preventDefault()}
       >
         <ContextMenu canCopy canCut canDelete />
@@ -441,6 +442,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                     boardRef={ref}
                     offset={position}
                     scale={scale}
+                    clearPortal={clearPortal}
                     openContextMenu={handleRightClick}
                   />
                 );

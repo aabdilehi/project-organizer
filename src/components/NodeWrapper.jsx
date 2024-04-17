@@ -7,6 +7,7 @@ import {
 } from "../utils/slices/selectionSlice";
 import { useDispatch, useSelector } from "react-redux";
 import ResizeWrapper from "./ResizeWrapper";
+import { updatePosition } from "../utils/slices/nodeActions";
 
 const NodeWrapper = ({
   canPosition,
@@ -48,6 +49,7 @@ const NodeWrapper = ({
     console.log(selectedNodes);
     if (e.shiftKey) {
       dispatch(addSelectNode(onSelectNode));
+      return;
     } else if (e.ctrlKey) {
       dispatch(toggleSelectNode(onSelectNode));
       return;
@@ -73,6 +75,26 @@ const NodeWrapper = ({
 
   //#endregion
 
+  //#region  Would be nice if the stored position of the node would update automatically based on the actual element's position
+  // if (!!nodeRef.current) {
+  //   const nodeBounds = nodeRef?.current?.getBoundingClientRect() ?? undefined;
+  //   if (
+  //     !!nodeBounds &&
+  //     (nodeRef.current.getBoundingClientRect().left !== pX ||
+  //       nodeRef.current.getBoundingClientRect().top !== pY)
+  //   ) {
+  //     dispatch(
+  //       updatePosition.action({
+  //         id: props.nodeId,
+  //         type: props.nodeType,
+  //         pX: nodeBounds.left,
+  //         pY: nodeBounds.top,
+  //       })
+  //     );
+  //   }
+  // }
+  //#endregion
+
   //#region Context Menu
   const { setMenuItems, setMenuProps } = useContext(ContextMenuContext);
 
@@ -94,10 +116,7 @@ const NodeWrapper = ({
       data-selected={isSelected}
       onClick={(e) => {
         if (isSelected) {
-          console.log();
           clickCallback(e);
-        } else {
-          handleSelect(e);
         }
       }}
       draggable={canPosition}
@@ -115,6 +134,21 @@ const NodeWrapper = ({
         e.stopPropagation();
         updateContextMenu();
         openContextMenu(e);
+      }}
+      onDragStartCapture={(e) => {
+        if (!isSelected) {
+          handleSelect(e);
+        }
+      }}
+      onContextMenuCapture={(e) => {
+        if (!isSelected) {
+          handleSelect(e);
+        }
+      }}
+      onClickCapture={(e) => {
+        if (!isSelected) {
+          handleSelect(e);
+        }
       }}
     >
       <ResizeWrapper resizeRef={nodeRef} canResize={canResize}>

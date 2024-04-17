@@ -25,6 +25,7 @@ const Column = ({
   title,
   childRefs,
   parent,
+  clearPortal,
   openContextMenu,
 }) => {
   const dragRef = useRef(null);
@@ -52,6 +53,7 @@ const Column = ({
     boardRef,
     position: offset,
     scale,
+    clearPortal,
   });
 
   //#endregion

@@ -159,6 +159,7 @@ const Note = ({ id, pX, pY, sX, sY, content, parent, openContextMenu }) => {
       ]}
     >
       <EditorContent
+        draggable={false}
         style={{
           padding: 0,
           margin: 0,

@@ -94,7 +94,7 @@ export function useSmoothDrag({
     });
   };
 
-  const handleDragEnd = (event) => {
+  const clearPortal = () => {
     if (!!container.current) {
       container.current.remove();
       container.current = undefined;
@@ -108,6 +108,6 @@ export function useSmoothDrag({
   return {
     handleDragStart,
     handleDrag,
-    handleDragEnd,
+    clearPortal,
   };
 }

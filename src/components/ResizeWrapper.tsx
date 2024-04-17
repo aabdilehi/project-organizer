@@ -47,9 +47,9 @@ export default ({resizeRef, canResize = true, onResize, ...props} : {resizeRef: 
         initialCoords.current = {x: e.clientX, y: e.clientY};
     };
         return (
-            <div className="resize-wrapper">
+            <div draggable={false} className="resize-wrapper">
                 {/* Left */}
-                <div draggable onDragStart={handleDragStart} onDrag={handleDrag} data-resize-type={"horizontal"} data-resize-origin={"left"} className="resize-handle left" tabIndex={99} />
+                {/* <div draggable={false} onDragStart={handleDragStart} onDrag={handleDrag} data-resize-type={"horizontal"} data-resize-origin={"left"} className="resize-handle left" tabIndex={99} /> */}
                 {props.children ?? null}
             </div>
         );

@@ -27,6 +27,7 @@ export function useBoardDrop({
   boardRef,
   position,
   scale = 1,
+  clearPortal,
 }) {
   const dispatch = useDispatch();
   const state = useSelector((state) => state);
@@ -61,6 +62,7 @@ export function useBoardDrop({
           } else {
             offsetNodePosition(event, item, data.offset);
           }
+          clearPortal();
         }
       });
     }
@@ -152,33 +154,31 @@ export function useBoardDrop({
   };
 
   const updateNodeParent = (data, pId, pType) => {
-    setTimeout(() => {
-      dispatch(
-        updateParent.action({
-          id: data.id,
-          type: data.type,
-          parent: {
-            id: pId,
-            type: pType,
-          },
-        })
-      );
-      dispatch(
-        removeChild.action({
-          id: data.parent.id,
-          type: data.parent.type,
-          cId: data.id,
-        })
-      );
-      dispatch(
-        addChild.action({
+    dispatch(
+      updateParent.action({
+        id: data.id,
+        type: data.type,
+        parent: {
           id: pId,
           type: pType,
-          cId: data.id,
-          cType: data.type,
-        })
-      );
-    }, 15);
+        },
+      })
+    );
+    dispatch(
+      removeChild.action({
+        id: data.parent.id,
+        type: data.parent.type,
+        cId: data.id,
+      })
+    );
+    dispatch(
+      addChild.action({
+        id: pId,
+        type: pType,
+        cId: data.id,
+        cType: data.type,
+      })
+    );
   };
   const updateNodePosition = (event, data) => {
     const boundingRect = boardRef.current.getBoundingClientRect();
@@ -252,6 +252,7 @@ export function useColumnDrop({
   boardRef,
   position,
   scale,
+  clearPortal,
 }) {
   const dispatch = useDispatch();
 
@@ -284,6 +285,7 @@ export function useColumnDrop({
             return;
           }
           updateNodeParent(item, columnId, BoardObjects.COLUMN);
+          clearPortal();
         }
       });
     }
@@ -366,34 +368,32 @@ export function useColumnDrop({
   };
 
   const updateNodeParent = (data, pId, pType) => {
-    setTimeout(() => {
-      // delay this as removing the node from DOM will unfortunately cancel the drag event before dragend can fire
-      dispatch(
-        updateParent.action({
-          id: data.id,
-          type: data.type,
-          parent: {
-            id: pId,
-            type: pType,
-          },
-        })
-      );
-      dispatch(
-        removeChild.action({
-          id: data.parent.id,
-          type: data.parent.type,
-          cId: data.id,
-        })
-      );
-      dispatch(
-        addChild.action({
+    // delay this as removing the node from DOM will unfortunately cancel the drag event before dragend can fire
+    dispatch(
+      updateParent.action({
+        id: data.id,
+        type: data.type,
+        parent: {
           id: pId,
           type: pType,
-          cId: data.id,
-          cType: data.type,
-        })
-      );
-    }, 15);
+        },
+      })
+    );
+    dispatch(
+      removeChild.action({
+        id: data.parent.id,
+        type: data.parent.type,
+        cId: data.id,
+      })
+    );
+    dispatch(
+      addChild.action({
+        id: pId,
+        type: pType,
+        cId: data.id,
+        cType: data.type,
+      })
+    );
   };
 
   return {
