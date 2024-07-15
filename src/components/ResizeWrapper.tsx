@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
 
-export default ({resizeRef, canResize = true, onResize, ...props} : {resizeRef: React.MutableRefObject<any>,canResize?: boolean, onResize: (props: any[]) => void}) => {
+export default ({resizeRef, canResize = false, onResize, ...props} : {resizeRef: React.MutableRefObject<any>,canResize?: boolean, onResize: (props: any[]) => void}) => {
 
     const resizeType = useRef();
     const resizeOrigin = useRef();
@@ -8,7 +8,7 @@ export default ({resizeRef, canResize = true, onResize, ...props} : {resizeRef: 
     const initialHeight = useRef(0);
     const initialCoords = useRef({x: 0, y: 0});
     const initialBounds = useRef(0);
-    if(!!resizeRef && !!resizeRef.current) {
+    if(!!resizeRef && !!resizeRef.current && canResize) {
 
         const handleDrag = (e) => {
             // Get initial width/height

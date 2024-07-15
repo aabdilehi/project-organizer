@@ -6,6 +6,7 @@ import {
   updateContent,
   updatePosition,
   updateParent,
+  offsetPosition,
 } from "./nodeActions";
 
 const taskSlice = createSlice({
@@ -85,6 +86,7 @@ const taskSlice = createSlice({
     builder.addCase(updateTitle.action, updateTitle.reducer("to-do"));
     builder.addCase(updateContent.action, updateContent.reducer("to-do"));
     builder.addCase(updatePosition.action, updatePosition.reducer("to-do"));
+    builder.addCase(offsetPosition.action, offsetPosition.reducer("to-do"));
     builder.addCase(updateParent.action, updateParent.reducer("to-do"));
   },
 });

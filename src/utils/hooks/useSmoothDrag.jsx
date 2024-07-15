@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { SelectedNodeContext } from "../../App";
 import { cloneElement } from "react";
 import { useSelector } from "react-redux";
 
@@ -19,7 +18,7 @@ export function useSmoothDrag({
   lerpValue = 0.01, // speed at which the element should follow the mouse
 }) {
   // offset between top left of dragged element and actual mouse position
-  let initialOffset = useRef({ x: 0, y: 0 });
+  let initialPosition = useRef({ x: 0, y: 0 });
 
   // linearly interpolated mouse position
   const lerpedMouseX = useRef(0); // was initial coords
@@ -29,6 +28,7 @@ export function useSmoothDrag({
   const originals = useRef([]);
 
   const selectedNodes = useSelector((state) => state.selection);
+  const [draggedNodes, setDraggedNodes] = useState();
 
   const handleDragStart = (event) => {
     event.stopPropagation();
@@ -37,34 +37,43 @@ export function useSmoothDrag({
     }
 
     // Initial click pos
-    initialOffset.current = {
+    initialPosition.current = {
       x: event.clientX,
       y: event.clientY,
     };
 
-    // remove or hide drag preview image
-    const prev = document.createElement("span");
-    prev.style.display = "none";
-    // set data
-    event.dataTransfer.dropEffect = "move";
-    event.dataTransfer.setDragImage(prev, 0, 0);
-    event.dataTransfer.setData(
-      "application/json",
-      JSON.stringify({
-        offset: initialOffset.current,
-        selectedNodes,
-      })
-    );
-
+    setDraggedNodes(selectedNodes);
+    const selectedNodeOffsets = {};
     // create drag container
     container.current = document.createElement("div");
     container.current.classList.add("clone-container");
     originals.current = Object.keys(selectedNodes).map((item) => {
-      const elem = document.querySelector(`[data-nodeid='${item}']`);
-      if (!elem) return;
+      const elem = document.querySelector(`#${CSS.escape(item)}`);
+      console.log(elem);
+
+      if (!elem) {
+        selectedNodeOffsets[item] = {
+          ...selectedNodes[item],
+          offset: { x: 0, y: 0 },
+        };
+        return;
+      }
       const dupe = elem.cloneNode(true);
       elem.classList.add("dragging");
       const elemBounds = elem.getBoundingClientRect();
+      selectedNodeOffsets[item] = {
+        ...selectedNodes[item],
+        offset: {
+          x:
+            elemBounds.left -
+            event.clientX -
+            transformRef.current.getBoundingClientRect().left,
+          y:
+            elemBounds.top -
+            event.clientY -
+            transformRef.current.getBoundingClientRect().top,
+        },
+      };
       dupe.classList.remove("in-column");
       dupe.style.setProperty(
         "transform",
@@ -82,15 +91,30 @@ export function useSmoothDrag({
       return elem;
     });
 
+    // remove or hide drag preview image
+    const prev = document.createElement("span");
+    prev.style.display = "none";
+    // set data
+    event.dataTransfer.dropEffect = "move";
+    event.dataTransfer.setDragImage(prev, 0, 0);
+    event.dataTransfer.setData(
+      "application/json",
+      JSON.stringify({
+        initial: initialPosition.current,
+        selectedNodes: selectedNodeOffsets,
+      })
+    );
+
     transformRef.current.appendChild(container.current);
   };
 
   const handleDrag = (event) => {
-    if (!container.current) return;
+    if (!container.current || !container.current?.style) return;
     requestAnimationFrame(() => {
+      if (!container.current) return;
       container.current.style.transform = `translate(${
-        (event.clientX - initialOffset.current.x) / scale
-      }px, ${(event.clientY - initialOffset.current.y) / scale}px)`;
+        (event.clientX - initialPosition.current.x) / scale
+      }px, ${(event.clientY - initialPosition.current.y) / scale}px)`;
     });
   };
 
@@ -99,7 +123,7 @@ export function useSmoothDrag({
       container.current.remove();
       container.current = undefined;
     }
-
+    setDraggedNodes(undefined);
     originals.current.forEach((elem) => {
       elem?.classList?.remove("dragging");
     });
@@ -109,5 +133,6 @@ export function useSmoothDrag({
     handleDragStart,
     handleDrag,
     clearPortal,
+    draggedNodes,
   };
 }

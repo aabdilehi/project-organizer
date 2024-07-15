@@ -25,14 +25,13 @@ import {
   updateContent,
 } from "../utils/slices/nodeActions";
 import { DocumentC } from "../utils/classes/classes";
-import NodeWrapper from "./NodeWrapper";
+import NodeWrapper from "./NodeWrapper.tsx";
+import CustomEditablePreview from "./CustomEditablePreview.tsx";
 
 const Note = ({ id, pX, pY, sX, sY, content, parent, openContextMenu }) => {
-  const selectedNodes = useSelector((state) => state.selection);
   const dispatch = useDispatch();
-
-  const isDragging = useRef(false);
-
+  const [canEdit, setCanEdit] = useState(false);
+  const selected = useSelector((state) => !!state.selection[id]);
   const selectData = useMemo(() => {
     return {
       id, // new Id will be assigned
@@ -65,6 +64,10 @@ const Note = ({ id, pX, pY, sX, sY, content, parent, openContextMenu }) => {
       }),
     ],
     content: content,
+    editable: false,
+    onBlur: ({ editor }) => {
+      editor.setEditable(false);
+    },
     onUpdate: ({ editor }) => {
       dispatch(
         updateContent.action({
@@ -73,37 +76,27 @@ const Note = ({ id, pX, pY, sX, sY, content, parent, openContextMenu }) => {
           content: editor.getHTML(),
         })
       );
+
+      let { from, to } = editor.state.selection;
+      editor.commands.setTextSelection({ from, to });
     },
-    editable: false, // set to false by default then enable on single click
   });
 
   const handleClick = (event) => {
+    console.log("NOTE");
     if (event.button === 0) {
       if (!editor) {
         return;
       }
 
       // Set to edit mode
-      if (!event.ctrlKey) {
+      if (!event.ctrlKey && !event.shiftKey && selected) {
         editor.setEditable(true);
         editor.commands.focus();
         return;
       }
     }
   };
-  // Update text and maintain cursor position on re-render
-  useEffect(() => {
-    editor?.commands.setContent(content, false, {
-      preserveWhitespace: "full",
-    });
-  }, [content]);
-  if (!!editor) {
-    // only allow editing text on selected node
-    editor.setEditable(false);
-
-    let { from, to } = editor.state.selection;
-    editor.commands.setTextSelection({ from, to });
-  }
 
   // Determines sizing and positioning based on whether in column or not
   let isInColumn = parent.type === BoardObjects.COLUMN;
@@ -133,21 +126,16 @@ const Note = ({ id, pX, pY, sX, sY, content, parent, openContextMenu }) => {
 
   return (
     <NodeWrapper
-      nodeId={id}
-      nodeType={"note"}
+      id={id}
+      type={"note"}
       canPosition={!editor?.isEditable}
+      canResize={true}
       pX={pX}
       pY={pY}
       sX={sX}
       sY={sY}
-      openContextMenu={openContextMenu}
+      className={editor?.isEditable ? "editing" : undefined}
       isInColumn={isInColumn}
-      clickCallback={handleClick}
-      onBlur={() => {
-        editor?.setEditable(false);
-      }}
-      h={editor?.isEditable ? "unset" : sY + "px"}
-      overflow={editor?.isEditable ? "none" : "auto"}
       onSelectNode={selectData}
       menuProps={{
         canCopy: true,
@@ -155,21 +143,28 @@ const Note = ({ id, pX, pY, sX, sY, content, parent, openContextMenu }) => {
         canDelete: true,
       }}
       menuItems={[
-        <MenuItem onClick={convertNote}>Convert to document</MenuItem>,
+        <button
+          type="button"
+          className="context-menu-item"
+          onClick={convertNote}
+        >
+          Convert to document
+        </button>,
       ]}
     >
       <EditorContent
-        draggable={false}
         style={{
           padding: 0,
           margin: 0,
           width: "100%",
           height: "fit-content",
+          minHeight: sY + "px",
           overflow: "none",
           border: "none",
-          pointerEvents: editor?.isEditable ? "unset" : "none",
         }}
         editor={editor}
+        onMouseUp={(e) => e.preventDefault()}
+        onClick={handleClick}
       />
     </NodeWrapper>
   );

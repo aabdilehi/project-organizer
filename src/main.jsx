@@ -5,7 +5,6 @@ import { PersistGate } from "redux-persist/integration/react";
 import App from "./App";
 import "./index.css";
 import { store, persistor } from "./store.jsx";
-import { ContextMenuProvider } from "./utils/hooks/useContextMenu";
 
 import { BrowserRouter as Router } from "react-router-dom";
 
@@ -14,9 +13,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <PersistGate loading={null} persistor={persistor}>
       <React.StrictMode>
         <Router>
-          <ContextMenuProvider>
-            <App />
-          </ContextMenuProvider>
+          <App />
         </Router>
       </React.StrictMode>
     </PersistGate>

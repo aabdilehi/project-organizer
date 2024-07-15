@@ -1,37 +1,22 @@
 //#region Imports
-import React, { useContext, useEffect, useLayoutEffect, useRef } from "react";
+import React, { useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
-import {
-  Box,
-  MenuDivider,
-  MenuItem,
-  useColorModeValue,
-} from "@chakra-ui/react";
 import { connect, useDispatch } from "react-redux";
 
-import { BoardObjects, SidebarObjects } from "../utils/enums/items";
+import { BoardObjects } from "../utils/enums/items";
 import Note from "./Note";
 
 import { addChild, addNode } from "../utils/slices/nodeActions";
 import { bindActionCreators } from "redux";
 
-import { useBoardDrop } from "../utils/hooks/useDrop";
+import { useDrop } from "../utils/hooks/useDrop";
 import { useSmoothBoardControls } from "../utils/hooks/useSmoothBoardControls";
 import { withRouter } from "./ComponentWithRouterProp";
-import {
-  ContextMenuContext,
-  useContextMenu,
-} from "../utils/hooks/useContextMenu";
-import {
-  BoardC,
-  ColumnC,
-  DocumentC,
-  NoteC,
-  PictureC,
-  TaskC,
-} from "../utils/classes/classes";
+import { useContextMenu } from "../utils/hooks/useContextMenu.tsx";
+import { NoteC } from "../utils/classes/classes";
 import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import Column from "./Column";
+import { clearSelectNode } from "../utils/slices/selectionSlice";
 //#endregion
 
 const Board = ({ validBoard, title, router, childRefs }) => {
@@ -83,58 +68,38 @@ const Board = ({ validBoard, title, router, childRefs }) => {
   };
 
   //#region Pan and zoom behaviour
-  const {
-    handleWheel,
-    handleMouseDown,
-    animate: boardAnimate,
-    scale,
-    position,
-  } = useSmoothBoardControls(transformRef, ref);
+  const { handleWheel, handleMouseDown, scale, position } =
+    useSmoothBoardControls(transformRef, ref);
 
-  boardAnimate();
   //#endregion
 
   //#region Drag behaviour
 
-  const { handleDragStart, handleDrag, clearPortal } = useSmoothDrag({
-    boardRef: ref,
-    transformRef: transformRef,
-    offset: position,
-    scale,
-  });
+  const { handleDragStart, handleDrag, clearPortal, draggedNodes } =
+    useSmoothDrag({
+      boardRef: ref,
+      transformRef: transformRef,
+      offset: position,
+      scale,
+    });
 
   //#endregion
 
   //#region Drop behaviour
-  const { drop, allowDrop } = useBoardDrop({
-    accept: [
-      BoardObjects.BOARD,
-      BoardObjects.NOTE,
-      BoardObjects.COLUMN,
-      BoardObjects.TODO,
-      BoardObjects.IMAGE,
-      BoardObjects.DOCUMENT,
-      SidebarObjects.NOTE,
-      SidebarObjects.COLUMN,
-      SidebarObjects.IMAGE,
-      SidebarObjects.TODO,
-      SidebarObjects.BOARD,
-      SidebarObjects.DOCUMENT,
-    ],
-    boardId,
-    boardRef: ref,
-    position,
-    scale,
-    clearPortal,
-  });
+  const { dropOnBoard, dropOnColumn, allowDropOnBoard, allowDropOnColumn } =
+    useDrop({
+      boardRef: ref,
+      scale,
+      clearPortal,
+      draggedNodes,
+    });
   //#endregion
 
   //#region Context Menu
   const { handleRightClick, ContextMenu } = useContextMenu({
+    boardId,
     containerRef: ref,
   });
-
-  const { setMenuItems, setMenuProps } = useContext(ContextMenuContext);
 
   const pasteNodes = (nodes, mouseX, mouseY) => {
     nodes?.forEach((node) => {
@@ -230,158 +195,16 @@ const Board = ({ validBoard, title, router, childRefs }) => {
     });
   };
 
-  const updateContextMenu = (e) => {
-    const { mouseX, mouseY } = getMouse(e);
-    setMenuItems([
-      //<MenuItem onClick={() => pasteNodes(mouseX, mouseY)}>Paste</MenuItem>,
-      //<MenuDivider />,
-      <MenuItem // Note
-        onClick={() => {
-          const { ...newNote } = new NoteC({
-            pX: mouseX,
-            pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
-          });
-          dispatch(addNode.action(newNote));
-          dispatch(
-            addChild.action({
-              id: boardId,
-              type: BoardObjects.BOARD,
-              cId: newNote.id,
-              cType: newNote.type,
-            })
-          );
-        }}
-      >
-        New Note
-      </MenuItem>,
-      <MenuItem // Document
-        onClick={() => {
-          const { ...newDocument } = new DocumentC({
-            pX: mouseX,
-            pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
-          });
-          dispatch(addNode.action(newDocument));
-          dispatch(
-            addChild.action({
-              id: boardId,
-              type: BoardObjects.BOARD,
-              cId: newDocument.id,
-              cType: newDocument.type,
-            })
-          );
-        }}
-      >
-        New Document
-      </MenuItem>,
-      <MenuItem // Task
-        onClick={() => {
-          const { ...newTask } = new TaskC({
-            pX: mouseX,
-            pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
-          });
-          dispatch(addNode.action(newTask));
-          dispatch(
-            addChild.action({
-              id: boardId,
-              type: BoardObjects.BOARD,
-              cId: newTask.id,
-              cType: newTask.type,
-            })
-          );
-        }}
-      >
-        New Task
-      </MenuItem>,
-      <MenuItem // Column
-        onClick={() => {
-          const { ...newColumn } = new ColumnC({
-            pX: mouseX,
-            pY: mouseY,
-            sX: 200,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
-          });
-          dispatch(addNode.action(newColumn));
-          dispatch(
-            addChild.action({
-              id: boardId,
-              type: BoardObjects.BOARD,
-              cId: newColumn.id,
-              cType: newColumn.type,
-            })
-          );
-        }}
-      >
-        New Column
-      </MenuItem>,
-      <MenuItem // Board
-        onClick={() => {
-          const { ...newBoard } = new BoardC({
-            pX: mouseX,
-            pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
-          });
-          dispatch(addNode.action(newBoard));
-          dispatch(
-            addChild.action({
-              id: boardId,
-              type: BoardObjects.BOARD,
-              cId: newBoard.id,
-              cType: newBoard.type,
-            })
-          );
-        }}
-      >
-        New Board
-      </MenuItem>,
-      <MenuItem // Picture
-        onClick={() => {
-          const { ...newPicture } = new PictureC({
-            pX: mouseX,
-            pY: mouseY,
-            parent: {
-              id: boardId,
-              type: BoardObjects.BOARD,
-            },
-          });
-          dispatch(addNode.action(newPicture));
-          dispatch(
-            addChild.action({
-              id: boardId,
-              type: BoardObjects.BOARD,
-              cId: newPicture.id,
-              cType: newPicture.type,
-            })
-          );
-        }}
-      >
-        New Image
-      </MenuItem>,
-    ]);
-    setMenuProps({
-      canPaste: true,
-      paste: (nodes) => {
-        pasteNodes(nodes, mouseX, mouseY);
-      },
-    });
-  };
+  // const updateContextMenu = (e) => {
+  //   const { mouseX, mouseY } = getMouse(e);
+  //   setMenuItems();
+  //   setMenuProps({
+  //     canPaste: true,
+  //     paste: (nodes) => {
+  //       pasteNodes(nodes, mouseX, mouseY);
+  //     },
+  //   });
+  // };
 
   //#endregion
 
@@ -391,44 +214,32 @@ const Board = ({ validBoard, title, router, childRefs }) => {
     return (
       <div
         ref={ref}
-        style={{
-          position: "relative",
-          width: "100vw",
-          height: "100vh",
-          backgroundColor: "cyan",
-          overflow: "hidden",
-          margin: 0,
-        }}
+        className="board"
         onMouseDown={handleMouseDown}
         onWheel={handleWheel}
+        onClick={(e) => {
+          if (e.target == transformRef.current || e.target == ref.current) {
+            dispatch(clearSelectNode());
+          }
+        }}
         onContextMenu={(e) => {
           e.preventDefault();
-          updateContextMenu(e);
           handleRightClick(e);
         }}
         onDrop={(event) => {
           event.stopPropagation();
-          drop(event);
+          dropOnBoard(event, boardId);
         }}
         onDragOver={(event) => {
-          event.stopPropagation();
-          allowDrop(event);
+          allowDropOnBoard(event);
         }}
         onDragStart={handleDragStart}
         onDrag={handleDrag}
         onDragEnd={clearPortal}
         onResize={(e) => e.preventDefault()}
       >
-        <ContextMenu canCopy canCut canDelete />
-        <div
-          ref={transformRef}
-          style={{
-            transformOrigin: "top left",
-            width: "100%",
-            height: "100%",
-            transition: "transform 0.1s cubic-bezier(0.5, 1, 0.89, 1)",
-          }}
-        >
+        <ContextMenu />
+        <div ref={transformRef} className="board-transform">
           {childRefs.map(({ childId, childType }) => {
             switch (childType) {
               case BoardObjects.NOTE:
@@ -443,6 +254,9 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                     offset={position}
                     scale={scale}
                     clearPortal={clearPortal}
+                    draggedNodes={draggedNodes}
+                    drop={dropOnColumn}
+                    allowDrop={allowDropOnColumn}
                     openContextMenu={handleRightClick}
                   />
                 );

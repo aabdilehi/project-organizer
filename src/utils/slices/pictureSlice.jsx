@@ -5,6 +5,7 @@ import {
   updatePosition,
   updateSize,
   updateParent,
+  offsetPosition,
 } from "./nodeActions";
 
 const pictureSlice = createSlice({
@@ -49,6 +50,7 @@ const pictureSlice = createSlice({
     builder.addCase(addNode.action, addNode.reducer("image"));
     builder.addCase(removeNode.action, removeNode.reducer("image"));
     builder.addCase(updatePosition.action, updatePosition.reducer("image"));
+    builder.addCase(offsetPosition.action, offsetPosition.reducer("image"));
     builder.addCase(updateSize.action, updateSize.reducer("image"));
     builder.addCase(updateParent.action, updateParent.reducer("image"));
   },

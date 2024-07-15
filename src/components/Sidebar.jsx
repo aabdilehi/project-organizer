@@ -2,14 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 
 import { SidebarObjects } from "../utils/enums/items";
-import {
-  Button,
-  Card,
-  Center,
-  Stack,
-  Text,
-  useColorModeValue,
-} from "@chakra-ui/react";
+import { Button } from "@chakra-ui/react";
 import React from "react";
 import {
   IconArrowBack,
@@ -34,39 +27,29 @@ const Sidebar = ({ router }) => {
   }, [id]);
 
   return (
-    <Stack
-      bgColor={useColorModeValue("gray.300", "gray.700")}
-      m={0}
-      p={2.5}
-      flex={1}
-      direction={"column"}
-      h="full"
-      minH="100%"
-      w={"100px"}
-      alignItems="center"
-    >
-      <Button
-        w={"full"}
-        h={"1.6em"}
+    <div className="sidebar">
+      <button
+        type="button"
+        className="sidebar-button"
         onClick={() => {
           router.navigate(`/`);
         }}
-        isDisabled={!board || board.id === "root"}
+        disabled={!board || board.id === "root"}
       >
         <IconHome />
-      </Button>
-      <Button
-        w={"full"}
-        h={"1.6em"}
+      </button>
+      <button
+        type="button"
+        className="sidebar-button"
         onClick={() => {
           router.navigate(
             board.parent.id === "root" ? `/` : `/${board.parent.id}`
           );
         }}
-        isDisabled={!board || !board.parent}
+        disabled={!board || !board.parent}
       >
         <IconArrowLeft />
-      </Button>
+      </button>
 
       <SidebarObject
         name="Board"
@@ -98,7 +81,7 @@ const Sidebar = ({ router }) => {
         type={SidebarObjects.IMAGE}
         icon={<IconPhoto />}
       />
-    </Stack>
+    </div>
   );
 };
 
@@ -112,32 +95,15 @@ const SidebarObject = ({ name, type, icon }) => {
   };
 
   return (
-    <Card
+    <div
+      className="sidebar-item"
       draggable
       onDragStart={handleDragStart}
-      h={"fit-content"}
-      p={2}
-      w="full"
       ref={ref}
-      dir="column"
-      fontSize={15}
-      alignItems={"center"}
-      bgColor={useColorModeValue("gray.200", "gray.600")}
-      _hover={useColorModeValue(
-        { bgColor: "gray.100", cursor: "pointer" },
-        { bgColor: "gray.500", cursor: "pointer" }
-      )}
     >
-      <Center
-        css={css`
-          height: auto;
-          width: auto;
-        `}
-      >
-        {icon}
-      </Center>
-      <Text>{name}</Text>
-    </Card>
+      {icon}
+      <p>{name}</p>
+    </div>
   );
 };
 

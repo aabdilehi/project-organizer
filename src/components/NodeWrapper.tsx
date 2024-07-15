@@ -1,5 +1,4 @@
 import React, { useContext, useRef } from "react";
-import { ContextMenuContext } from "../utils/hooks/useContextMenu";
 import {
   addSelectNode,
   selectNode,
@@ -10,20 +9,39 @@ import ResizeWrapper from "./ResizeWrapper";
 import { updatePosition } from "../utils/slices/nodeActions";
 
 const NodeWrapper = ({
-  canPosition,
-  canResize,
-  menuProps,
-  menuItems,
+  id,
+  type,
+  className,
+  canPosition = true,
+  canResize = false,
+  menuItems = [],
+  menuProps = {},
   onSelectNode,
-  clickCallback,
   openContextMenu,
   parent,
-  pX,
-  pY,
-  sX,
-  sY,
+  pX = 0,
+  pY = 0,
+  sX = 200,
+  sY = 200,
   isInColumn = false,
   ...props
+}: {
+  id: string;
+  type: string;
+  className?: string;
+  canPosition: boolean;
+  openContextMenu: (params?: any[]) => void;
+  canResize: boolean;
+  pX: Number;
+  pY: Number;
+  sX?: Number;
+  sY?: Number;
+  parent: { id: string; type: string };
+  clickCallback?: (params?: any[]) => void;
+  onSelectNode: { [key: string]: any };
+  menuProps?: { [menuProp: string]: boolean };
+  menuItems?: Element[];
+  isInColumn?: boolean;
 }) => {
   const nodeRef = useRef();
 
@@ -46,7 +64,6 @@ const NodeWrapper = ({
   const dispatch = useDispatch();
 
   const handleSelect = (e) => {
-    console.log(selectedNodes);
     if (e.shiftKey) {
       dispatch(addSelectNode(onSelectNode));
       return;
@@ -59,15 +76,15 @@ const NodeWrapper = ({
     }
   };
 
-  let isSelected = selectedNodes !== undefined && !!selectedNodes[props.nodeId];
+  let isSelected = selectedNodes !== undefined && !!selectedNodes[id];
 
   // update info if out of date i guess
   if (selectedNodes !== undefined && isSelected) {
     if (
       // check info is inconsistent first
-      !!selectedNodes[props.nodeId] &&
-      !!selectedNodes[props.nodeId].parent &&
-      selectedNodes[props.nodeId].parent.id != onSelectNode.parent.id
+      !!selectedNodes[id] &&
+      !!selectedNodes[id].parent &&
+      selectedNodes[id].parent.id != onSelectNode.parent.id
     ) {
       dispatch(addSelectNode(onSelectNode));
     }
@@ -85,8 +102,8 @@ const NodeWrapper = ({
   //   ) {
   //     dispatch(
   //       updatePosition.action({
-  //         id: props.nodeId,
-  //         type: props.nodeType,
+  //         id: id,
+  //         type,
   //         pX: nodeBounds.left,
   //         pY: nodeBounds.top,
   //       })
@@ -94,62 +111,44 @@ const NodeWrapper = ({
   //   }
   // }
   //#endregion
-
-  //#region Context Menu
-  const { setMenuItems, setMenuProps } = useContext(ContextMenuContext);
-
-  const updateContextMenu = () => {
-    setMenuItems(() => {
-      return menuItems;
-    });
-    setMenuProps(() => {
-      return menuProps;
-    });
-  };
-  //#endregion
-
   return (
     <div
       ref={nodeRef}
-      data-nodeid={props.nodeId}
+      id={id}
       data-isincolumn={isInColumn}
       data-selected={isSelected}
       onClick={(e) => {
-        if (isSelected) {
-          clickCallback(e);
+        e.stopPropagation();
+        if (!isSelected) {
+          handleSelect(e);
         }
       }}
       draggable={canPosition}
-      className={`node ${props.nodeType}${isInColumn ? " in-column" : ""}${
+      className={`node ${type}${isInColumn ? " in-column" : ""}${
         isSelected ? " selected" : ""
-      }`}
+      }${!!className ? " " + className : ""}`}
       style={{
         transform: `translate(${pX}px, ${pY}px)`,
-        height: sY + "px",
-        width: sX + "px",
+        height: !!sY ? sY + "px" : undefined,
+        width: !!sX ? sX + "px" : undefined,
       }}
       tabIndex={-1}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        updateContextMenu();
-        openContextMenu(e);
+      onContextMenuCapture={(e) => {
+        if (!isSelected) {
+          handleSelect(e);
+        }
+      }}
+      onTouchStart={(e) => {
+        if (!isSelected) {
+          handleSelect(e);
+        }
       }}
       onDragStartCapture={(e) => {
         if (!isSelected) {
           handleSelect(e);
         }
       }}
-      onContextMenuCapture={(e) => {
-        if (!isSelected) {
-          handleSelect(e);
-        }
-      }}
-      onClickCapture={(e) => {
-        if (!isSelected) {
-          handleSelect(e);
-        }
-      }}
+      {...props}
     >
       <ResizeWrapper resizeRef={nodeRef} canResize={canResize}>
         {props.children}

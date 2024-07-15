@@ -9,8 +9,7 @@ import HelpIconButton from "./components/HelpIconButton";
 import { Route, Routes } from "react-router-dom";
 import { createContext } from "react";
 import { useCallback } from "react";
-
-export const SelectedNodeContext = createContext(undefined);
+import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 
 function App() {
   // const [currentBoard, setCurrentBoard] = useState(null);
@@ -21,92 +20,53 @@ function App() {
 
   // I know this is not great but I need an easy way to access AND set the value
   // Since it is state, it would have re-rendered anyway if I changed it so who cares (?)
-  const [selectedNode, setSelectedNode] = useState([]);
-
-  const handleSelectNode = useCallback(
-    (e, value) => {
-      if (!value) {
-        setSelectedNode([]);
-        return;
-      }
-
-      const index = selectedNode.indexOf(value);
-
-      if (e.ctrlKey) {
-        if (index == -1) {
-          setSelectedNode((prev) => {
-            return [...prev, value];
-          });
-        }
-        const a = selectedNode.splice(index, 1);
-        setSelectedNode(a);
-      } else if (e.shiftKey) {
-        if (index == -1) {
-          const a = [...selectedNode, value];
-          setSelectedNode(a);
-        }
-      } else {
-        const a = [value];
-        setSelectedNode(a);
-      }
-    },
-    [selectedNode, setSelectedNode]
-  );
-
-  const contextValue = useMemo(
-    () => ({
-      selectedNode,
-      handleSelectNode,
-    }),
-    [selectedNode, setSelectedNode, handleSelectNode]
-  );
+  const isDarkMode = window.document.documentElement.classList.contains("dark");
+  const toggleDarkMode = () => {
+    const document = window.document.documentElement;
+    if (!document) return;
+    document.classList.toggle("dark");
+    return;
+  };
 
   return (
-    <SelectedNodeContext.Provider value={contextValue}>
-      <ChakraProvider theme={theme}>
-        <Box position="absolute" top={2} right={2} zIndex={"popover"}>
-          <DarkModeIconButton m={1} />
-          <HelpIconButton m={1} />
-        </Box>
-        <Routes>
-          <Route path="/*">
-            <Route
-              index
-              element={
-                <Stack
-                  w={"full"}
-                  m={0}
-                  p={0}
-                  gap={0}
-                  direction="row"
-                  id="container"
-                >
-                  <Sidebar />
-                  <Board></Board>
-                </Stack>
-              }
-            />
+    <>
+      <div
+        style={{ position: "absolute", zIndex: 99, right: "12px", top: "12px" }}
+      >
+        <button onClick={toggleDarkMode}>
+          {isDarkMode ? <IconMoonFilled /> : <IconSunFilled />}
+        </button>
+      </div>
+      <Routes>
+        <Route path="/*">
+          <Route
+            index
+            element={
+              <div
+                style={{ display: "flex", flexDirection: "row", width: "100%" }}
+                id="container"
+              >
+                <Sidebar />
+                <Board />
+              </div>
+            }
+          />
 
-            <Route
-              path=":id"
-              element={
-                <Stack
-                  w={"full"}
-                  m={0}
-                  p={0}
-                  gap={0}
-                  direction="row"
-                  id="container"
-                >
-                  <Sidebar />
-                  <Board></Board>
-                </Stack>
-              }
-            />
-          </Route>
-        </Routes>
-      </ChakraProvider>
-    </SelectedNodeContext.Provider>
+          <Route
+            path=":id"
+            element={
+              <div
+                style={{ display: "flex", flexDirection: "row", width: "100%" }}
+                id="container"
+              >
+                <Sidebar />
+                <Board />
+              </div>
+            }
+          />
+        </Route>
+      </Routes>
+    </>
   );
 }
 

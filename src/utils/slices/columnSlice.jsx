@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import {
   addChild,
   addNode,
+  offsetPosition,
   removeChild,
   removeNode,
   updateParent,
@@ -21,6 +22,7 @@ const columnSlice = createSlice({
     builder.addCase(removeChild.action, removeChild.reducer("column"));
     builder.addCase(updateTitle.action, updateTitle.reducer("column"));
     builder.addCase(updatePosition.action, updatePosition.reducer("column"));
+    builder.addCase(offsetPosition.action, offsetPosition.reducer("column"));
     builder.addCase(updateSize.action, updateSize.reducer("column"));
     builder.addCase(updateParent.action, updateParent.reducer("column"));
   },
