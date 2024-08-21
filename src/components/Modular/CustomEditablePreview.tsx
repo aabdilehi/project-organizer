@@ -138,18 +138,16 @@ function CustomEditablePreview({
   };
 
   return (
-    <div style={{ width: "100%" }}>
+    <div className="editable">
       <As
-        ref={previewRef}
         onClick={edit}
         style={{
           display: editing ? "none" : undefined,
           width: "100%",
-          overflow: "hidden",
-          padding: "0px",
-          margin: "0px",
+          padding: "0",
+          margin: "0",
+          outline: "2px solid transparent",
           border: "none",
-          outline: "none",
           wordWrap: "break-word",
           whiteSpace: "pre-wrap",
           ...textStyle,
@@ -164,10 +162,10 @@ function CustomEditablePreview({
           display: editing ? undefined : "none",
           width: "100%",
           overflow: "hidden",
-          padding: "0",
           margin: "0",
+          padding: "0",
           border: "none",
-          outline: "none",
+          outline: "2px solid blue",
           wordWrap: "break-word",
           whiteSpace: "pre-wrap",
           pointerEvents: editing ? "all" : "none",
@@ -208,16 +206,15 @@ function CustomEditablePreview({
             whiteSpace: "inherit",
             margin: "inherit",
             padding: "inherit",
-            outline: "inherit",
+            outline: "none",
             border: "inherit",
-
             appearance: "none",
             display: editing ? undefined : "none",
             resize: "none",
             backgroundColor: "inherit",
             color: "inherit",
           }}
-        ></textarea>
+        />
       </As>
     </div>
   );

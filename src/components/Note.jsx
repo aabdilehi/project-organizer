@@ -25,20 +25,13 @@ import {
   updateContent,
 } from "../utils/slices/nodeActions";
 import { DocumentC } from "../utils/classes/classes";
-import NodeWrapper from "./NodeWrapper.tsx";
-import CustomEditablePreview from "./CustomEditablePreview.tsx";
+import NodeWrapper from "./Modular/NodeWrapper.tsx";
+import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
 
-const Note = ({ id, pX, pY, sX, sY, content, parent, openContextMenu }) => {
+const Note = ({ id, pX, pY, sX, sY, content, parent }) => {
   const dispatch = useDispatch();
-  const [canEdit, setCanEdit] = useState(false);
   const selected = useSelector((state) => !!state.selection[id]);
-  const selectData = useMemo(() => {
-    return {
-      id, // new Id will be assigned
-      type: BoardObjects.NOTE,
-      parent,
-    };
-  }, [id, parent]);
+  const nodeRef = useRef();
 
   const editor = useEditor({
     extensions: [
@@ -126,6 +119,7 @@ const Note = ({ id, pX, pY, sX, sY, content, parent, openContextMenu }) => {
 
   return (
     <NodeWrapper
+      ref={nodeRef}
       id={id}
       type={"note"}
       canPosition={!editor?.isEditable}
@@ -134,23 +128,9 @@ const Note = ({ id, pX, pY, sX, sY, content, parent, openContextMenu }) => {
       pY={pY}
       sX={sX}
       sY={sY}
+      parent={parent}
       className={editor?.isEditable ? "editing" : undefined}
       isInColumn={isInColumn}
-      onSelectNode={selectData}
-      menuProps={{
-        canCopy: true,
-        canCut: true,
-        canDelete: true,
-      }}
-      menuItems={[
-        <button
-          type="button"
-          className="context-menu-item"
-          onClick={convertNote}
-        >
-          Convert to document
-        </button>,
-      ]}
     >
       <EditorContent
         style={{

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 
-import { SidebarObjects } from "../utils/enums/items";
+import { BoardObjects, SidebarObjects } from "../utils/enums/items";
 import { Button } from "@chakra-ui/react";
 import React from "react";
 import {
@@ -15,7 +15,7 @@ import {
   IconPhoto,
   IconStack2,
 } from "@tabler/icons-react";
-import { withRouter } from "./ComponentWithRouterProp";
+import { withRouter } from "./Modular/ComponentWithRouterProp";
 import { useSelector } from "react-redux";
 
 const Sidebar = ({ router }) => {
@@ -43,7 +43,10 @@ const Sidebar = ({ router }) => {
         className="sidebar-button"
         onClick={() => {
           router.navigate(
-            board.parent.id === "root" ? `/` : `/${board.parent.id}`
+            board.parent.id === "root" ||
+              board.parent.type !== BoardObjects.BOARD
+              ? `/`
+              : `/${board.parent.id}`
           );
         }}
         disabled={!board || !board.parent}
@@ -91,7 +94,7 @@ const SidebarObject = ({ name, type, icon }) => {
   const handleDragStart = (event) => {
     // Should set this to plain text but the function reading this is expecting json
     event.stopPropagation();
-    event.dataTransfer.setData("application/json", JSON.stringify({ type }));
+    event.dataTransfer.setData("custom/sidebar", JSON.stringify({ type }));
   };
 
   return (

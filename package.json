@@ -27,6 +27,7 @@
     "@uselessdev/datepicker": "^2.7.0",
     "date-fns": "^2.29.3",
     "framer-motion": "^6.5.1",
+    "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-datepicker": "^4.10.0",
     "react-dom": "^18.2.0",
@@ -35,6 +36,7 @@
     "redux": "^4.2.1",
     "redux-persist": "^6.0.0",
     "redux-state-sync": "^3.1.4",
+    "sanitize-html": "^2.13.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

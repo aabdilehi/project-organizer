@@ -32,10 +32,10 @@ export function useSmoothDrag({
 
   const handleDragStart = (event) => {
     event.stopPropagation();
+
     if (boardRef.current === null) {
       return;
     }
-
     // Initial click pos
     initialPosition.current = {
       x: event.clientX,
@@ -49,7 +49,7 @@ export function useSmoothDrag({
     container.current.classList.add("clone-container");
     originals.current = Object.keys(selectedNodes).map((item) => {
       const elem = document.querySelector(`#${CSS.escape(item)}`);
-      console.log(elem);
+      //console.log(elem);
 
       if (!elem) {
         selectedNodeOffsets[item] = {
@@ -98,7 +98,7 @@ export function useSmoothDrag({
     event.dataTransfer.dropEffect = "move";
     event.dataTransfer.setDragImage(prev, 0, 0);
     event.dataTransfer.setData(
-      "application/json",
+      "custom/board",
       JSON.stringify({
         initial: initialPosition.current,
         selectedNodes: selectedNodeOffsets,

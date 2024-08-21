@@ -4,12 +4,13 @@ import React, { useContext, useMemo, useState } from "react";
 import Board from "./components/Board";
 import Sidebar from "./components/Sidebar";
 import theme from "./config/theme";
-import DarkModeIconButton from "./components/DarkModeIconButton";
-import HelpIconButton from "./components/HelpIconButton";
+import DarkModeIconButton from "./components/Modular/DarkModeIconButton";
+import HelpIconButton from "./components/Modular/HelpIconButton";
 import { Route, Routes } from "react-router-dom";
 import { createContext } from "react";
 import { useCallback } from "react";
 import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
+import { Modal } from "./components/Modular/Modal";
 
 function App() {
   // const [currentBoard, setCurrentBoard] = useState(null);
@@ -28,6 +29,8 @@ function App() {
     return;
   };
 
+  // const [open, setOpen] = useState(true);
+
   return (
     <>
       <div
@@ -37,6 +40,9 @@ function App() {
           {isDarkMode ? <IconMoonFilled /> : <IconSunFilled />}
         </button>
       </div>
+      {/* <Modal open={open} setOpen={(boolean) => setOpen(boolean)}>
+        <p>Swag</p>
+      </Modal> */}
       <Routes>
         <Route path="/*">
           <Route

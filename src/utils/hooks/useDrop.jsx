@@ -21,6 +21,7 @@ import {
   TaskC,
 } from "../classes/classes";
 import { useCallback, useRef } from "react";
+import { ColumnClass, NoteClass } from "../classes/new-classes";
 
 const columnAcceptedTypes = [
   BoardObjects.NOTE,
@@ -60,27 +61,37 @@ export function useDrop({ boardRef, scale = 1, draggedNodes, clearPortal }) {
     event.preventDefault();
   }
 
+  // "board", "sidebar" (or some other form of differentiating between existing nodes and new nodes, eg. "node/new", "node/existing")
   function dropOnBoard(event, id) {
     event.stopPropagation();
     event.preventDefault();
 
-    let data = JSON.parse(event.dataTransfer.getData("application/json"));
-    if (Object.values(SidebarObjects).includes(data.type)) {
-      if (!boardAcceptedTypes.includes(data.type)) {
-        return;
-      }
+    console.log(event.dataTransfer.types);
+
+    //#region Drop from sidebar
+    let data = event.dataTransfer.getData("custom/sidebar");
+    if (data) {
+      data = JSON.parse(data);
+      if (!boardAcceptedTypes.includes(data.type)) return;
       createNode(event, data, id, BoardObjects.BOARD);
-    } else {
+      return;
+    }
+    //#endregion
+
+    //#region Drop from board/column
+    data = event.dataTransfer.getData("custom/board");
+    if (data) {
+      data = JSON.parse(data);
       if (!data.hasOwnProperty("selectedNodes")) return;
       Object.values(data.selectedNodes).forEach((item) => {
         if (
           !boardAcceptedTypes.includes(item.type) ||
           item.id === id ||
-          !!handledNodes.current.find((node) => node.id === item.id)
+          handledNodes.current.find((node) => node.id === item.id)
         ) {
           return;
         }
-        // Something about sidebar objects here
+
         if (boardAcceptedTypes.includes(item.type)) {
           // check if should re-parent
           if (item.parent.id !== id) {
@@ -93,56 +104,67 @@ export function useDrop({ boardRef, scale = 1, draggedNodes, clearPortal }) {
         }
       });
     }
+    //#endregion
+
+    //#region Drop text
+    data = event.dataTransfer.getData("plain/text");
+    if (data) {
+      createNode(event, { type: BoardObjects.NOTE }, id, BoardObjects.BOARD, {
+        content: data,
+      });
+    }
+    handledNodes.current = [];
   }
 
-  const allowDropOnColumn = useCallback(
-    (event, id) => {
-      // assume sidebar if no dragged nodes (can probably add validation but eh)
-      if (!draggedNodes) {
+  const allowDropOnColumn = (event) => {
+    if (event.dataTransfer.types.length <= 0) return;
+
+    switch (event.dataTransfer.types[0]) {
+      case "custom/sidebar":
+      case "custom/board":
+        //case "text/plain": // can make note node for this
+        // assume sidebar if no dragged nodes (can probably add validation but eh)
         event.stopPropagation();
         event.preventDefault();
-      }
-      handledNodes.current = [];
-      // determine here what can be handled based on accepted types
-      Object.values(draggedNodes).forEach((item) => {
-        if (columnAcceptedTypes.includes(item.type)) {
-          if (
-            !columnAcceptedTypes.includes(item.type) ||
-            item.id === id ||
-            item.parent.id === id
-          ) {
-            return;
-          }
-          handledNodes.current = [...handledNodes.current, item];
-        }
-      });
-    },
-    [draggedNodes]
-  );
+      default:
+        return;
+    }
+  };
 
   function dropOnColumn(event, id) {
-    let data = JSON.parse(event.dataTransfer.getData("application/json"));
-
-    // Something about sidebar objects here
-    if (Object.values(SidebarObjects).includes(data.type)) {
+    //#region Drop from sidebar
+    let data = event.dataTransfer.getData("custom/sidebar");
+    if (data) {
+      data = JSON.parse(data);
       if (!columnAcceptedTypes.includes(data.type)) {
         return;
       }
       event.stopPropagation();
       event.preventDefault();
       createNode(event, data, id, BoardObjects.COLUMN);
-    } else {
-      console.log(handledNodes.current);
+      return;
+    }
+    //#endregion
+
+    //#region Drop from board/column
+    data = event.dataTransfer.getData("custom/board");
+    if (data) {
+      data = JSON.parse(data);
+      handledNodes.current = [];
+      // determine here what can be handled based on accepted types
       if (!data.hasOwnProperty("selectedNodes")) return;
       Object.values(data.selectedNodes).forEach((item) => {
-        if (!handledNodes.current.find((node) => node.id === item.id)) return;
+        if (!columnAcceptedTypes.includes(item.type) || item.id === id) return;
+        if (handledNodes.current.find((node) => node.id === item.id)) return;
         updateNodeParent(item, id, BoardObjects.COLUMN);
+        handledNodes.current = [...handledNodes.current, item];
       });
       clearPortal();
     }
+    //#endregion
   }
 
-  function createNode(event, data, pId, pType) {
+  function createNode(event, data, pId, pType, extraData = {}) {
     if (boardRef == null) return;
     const boundingRect = boardRef.current.getBoundingClientRect();
     const xCoord = event.clientX - boundingRect.left;
@@ -151,14 +173,15 @@ export function useDrop({ boardRef, scale = 1, draggedNodes, clearPortal }) {
 
     switch (data.type) {
       case SidebarObjects.NOTE:
-        node = new NoteC({
+        node = new NoteClass({
           pX: xCoord,
           pY: yCoord,
           parent: {
             id: pId,
             type: pType,
           },
-        });
+          ...extraData,
+        }).serialize();
         break;
       case SidebarObjects.IMAGE:
         node = new PictureC({
@@ -193,14 +216,14 @@ export function useDrop({ boardRef, scale = 1, draggedNodes, clearPortal }) {
         });
         break;
       case SidebarObjects.COLUMN:
-        node = new ColumnC({
+        node = new ColumnClass({
           pX: xCoord,
           pY: yCoord,
           parent: {
             id: pId,
             type: pType,
           },
-        });
+        }).serialize();
         break;
       case SidebarObjects.DOCUMENT:
         node = new DocumentC({
@@ -226,7 +249,6 @@ export function useDrop({ boardRef, scale = 1, draggedNodes, clearPortal }) {
       );
     }
   }
-
   function updateNodeParent(data, pId, pType) {
     dispatch(
       updateParent.action({

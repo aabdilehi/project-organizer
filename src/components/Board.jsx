@@ -11,12 +11,14 @@ import { bindActionCreators } from "redux";
 
 import { useDrop } from "../utils/hooks/useDrop";
 import { useSmoothBoardControls } from "../utils/hooks/useSmoothBoardControls";
-import { withRouter } from "./ComponentWithRouterProp";
+import { withRouter } from "./Modular/ComponentWithRouterProp.jsx";
 import { useContextMenu } from "../utils/hooks/useContextMenu.tsx";
 import { NoteC } from "../utils/classes/classes";
 import { useSmoothDrag } from "../utils/hooks/useSmoothDrag";
 import Column from "./Column";
 import { clearSelectNode } from "../utils/slices/selectionSlice";
+import BoardIcon from "./BoardIcon.jsx";
+import Document from "./Document.jsx";
 //#endregion
 
 const Board = ({ validBoard, title, router, childRefs }) => {
@@ -27,19 +29,34 @@ const Board = ({ validBoard, title, router, childRefs }) => {
   const dispatch = useDispatch();
 
   //#region References
-  const ref = useRef(null);
-  const transformRef = useRef(null);
+  const ref = useRef();
+  const transformRef = useRef();
   //#endregion
 
-  const getMouse = (e) => {
+  const calculateRelativePosition = (x, y) => {
     const boundingRect = ref.current.getBoundingClientRect();
-    const mouseX = (e.clientX - boundingRect.left) / scale - position.x;
-    const mouseY = (e.clientY - boundingRect.top) / scale - position.y;
+    const newX = (x - boundingRect.left) / scale - position.x;
+    const newY = (y - boundingRect.top) / scale - position.y;
 
     return {
-      mouseX,
-      mouseY,
+      x: newX,
+      y: newY,
     };
+  };
+
+  const calculateAbsolutePosition = (x, y) => {
+    const boundingRect = ref.current.getBoundingClientRect();
+    const newX = x + position.x;
+    const newY = y + position.y;
+
+    return {
+      x: newX,
+      y: newY,
+    };
+  };
+
+  const getMouse = (e) => {
+    return calculateRelativePosition(e.clientX, e.clientY);
   };
 
   const handleDoubleClick = (e) => {
@@ -47,7 +64,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
       return;
     }
 
-    const { mouseX, mouseY } = getMouse(e);
+    const { x: mouseX, y: mouseY } = getMouse(e);
     const newNote = new NoteC({
       pX: mouseX,
       pY: mouseY,
@@ -99,6 +116,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
   const { handleRightClick, ContextMenu } = useContextMenu({
     boardId,
     containerRef: ref,
+    calculatePosition: calculateRelativePosition,
   });
 
   const pasteNodes = (nodes, mouseX, mouseY) => {
@@ -214,7 +232,7 @@ const Board = ({ validBoard, title, router, childRefs }) => {
     return (
       <div
         ref={ref}
-        className="board"
+        className="actualboard"
         onMouseDown={handleMouseDown}
         onWheel={handleWheel}
         onClick={(e) => {
@@ -224,6 +242,9 @@ const Board = ({ validBoard, title, router, childRefs }) => {
         }}
         onContextMenu={(e) => {
           e.preventDefault();
+          if (e.target == transformRef.current || e.target == ref.current) {
+            dispatch(clearSelectNode());
+          }
           handleRightClick(e);
         }}
         onDrop={(event) => {
@@ -248,18 +269,24 @@ const Board = ({ validBoard, title, router, childRefs }) => {
                 return (
                   <Column
                     key={childId}
-                    boardId={boardId}
                     id={childId}
-                    boardRef={ref}
-                    offset={position}
-                    scale={scale}
-                    clearPortal={clearPortal}
-                    draggedNodes={draggedNodes}
                     drop={dropOnColumn}
                     allowDrop={allowDropOnColumn}
-                    openContextMenu={handleRightClick}
+                    dropOnBoard={dropOnBoard}
+                    allowDropOnBoard={allowDropOnBoard}
                   />
                 );
+              case BoardObjects.BOARD:
+                return (
+                  <BoardIcon
+                    key={childId}
+                    id={childId}
+                    drop={dropOnBoard}
+                    allowDrop={allowDropOnBoard}
+                  />
+                );
+              case BoardObjects.DOCUMENT:
+                return <Document key={childId} id={childId} />;
               default:
                 break;
             }

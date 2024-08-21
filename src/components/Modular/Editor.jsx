@@ -1,5 +1,3 @@
-import { Textarea } from "@chakra-ui/textarea";
-
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TextAlign from "@tiptap/extension-text-align";
@@ -12,7 +10,6 @@ import TextStyle from "@tiptap/extension-text-style";
 import Underline from "@tiptap/extension-underline";
 
 import React, { useRef } from "react";
-import { IconButton } from "@chakra-ui/button";
 import {
   IconAlignCenter,
   IconAlignJustified,
@@ -40,9 +37,6 @@ import {
   IconTextColor,
   IconUnderline,
 } from "@tabler/icons-react";
-import { useColorModeValue } from "@chakra-ui/color-mode";
-import { Tooltip } from "@chakra-ui/tooltip";
-import { useClickAndHold } from "../utils/hooks/useClickAndHold";
 import { debounce } from "lodash";
 
 export const MenuBar = ({ editor }) => {

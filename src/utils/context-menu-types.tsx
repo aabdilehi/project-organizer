@@ -8,19 +8,29 @@ import {
   removeChild,
   removeNode,
 } from "./slices/nodeActions";
-import { ColumnClass, NodeClass, NoteClass } from "./classes/new-classes";
+import {
+  BoardClass,
+  ColumnClass,
+  DocumentClass,
+  NodeClass,
+  NoteClass,
+} from "./classes/new-classes";
+import sanitizeHtml from "sanitize-html";
 
 const convertNoteToDocument = (note) => {
   if (!note) return;
 
-  const { ...newDocument } = new DocumentC({
+  const sanitizedContent = sanitizeHtml(note.content, { allowedTags: [] });
+  console.log(sanitizedContent);
+
+  const { ...newDocument } = new DocumentClass({
     id: note.id,
     pX: note.pX,
     pY: note.pY,
     title:
-      note.content.length > 10
-        ? `${note.content.slice(0, 10)}...`
-        : note.content,
+      sanitizedContent.length > 10
+        ? `${sanitizedContent.slice(0, 10)}...`
+        : sanitizedContent,
     content: note.content,
     parent: note.parent,
   });
@@ -61,11 +71,62 @@ const convertSelectedNodesToDocuments = () => {
     }
   }
 };
+
+const convertDocumentToNote = (document) => {
+  if (!document) return;
+
+  const { ...newNote } = new NoteClass({
+    id: document.id,
+    pX: document.pX,
+    pY: document.pY,
+    content: document.content,
+    parent: document.parent,
+  });
+
+  store.dispatch(
+    removeChild.action({
+      id: document.parent.id,
+      type: document.parent.type,
+      cId: document.id,
+    })
+  );
+  store.dispatch(
+    removeNode.action({ id: document.id, type: BoardObjects.DOCUMENT })
+  );
+  store.dispatch(addNode.action(newNote));
+  store.dispatch(
+    addChild.action({
+      id: document.parent.id,
+      type: document.parent.type,
+      cId: document.id,
+      cType: BoardObjects.NOTE,
+    })
+  );
+};
+
+const convertSelectedNodesToNotes = () => {
+  // I do not like accessing the state like this outside of components but to work around this would be such a huge pain
+  const state = store.getState();
+  const selectedNodes = state.selection;
+  const documents = state.documents;
+
+  for (const id in selectedNodes) {
+    if (Object.prototype.hasOwnProperty.call(selectedNodes, id)) {
+      const document = documents[id];
+
+      // it should be documents but does not hurt to check
+      if (!document) return;
+
+      convertDocumentToNote(document);
+    }
+  }
+};
+
 export const NodeTypeMap: { [key in BoardObjects]: typeof NodeClass } = {
   [BoardObjects.NONE]: NodeClass,
   [BoardObjects.NOTE]: NoteClass,
   [BoardObjects.COLUMN]: ColumnClass,
-  [BoardObjects.BOARD]: NodeClass,
+  [BoardObjects.BOARD]: BoardClass,
   [BoardObjects.TODO]: NodeClass,
   [BoardObjects.IMAGE]: NodeClass,
   [BoardObjects.DOCUMENT]: NodeClass,
@@ -77,7 +138,7 @@ const createNode = (
   x?: number,
   y?: number
 ) => {
-  const { ...newNode } = new NodeTypeMap[type]({ parent, pX: x, pY: y });
+  const newNode = new NodeTypeMap[type]({ parent, pX: x, pY: y }).serialize();
   store.dispatch(addNode.action(newNode));
   store.dispatch(
     addChild.action({
@@ -128,6 +189,11 @@ export const NullContextMenu: ContextMenu = {
       onClick: (id: string, x: number, y: number) =>
         createNode(BoardObjects.COLUMN, { id, type: BoardObjects.BOARD }, x, y),
     },
+    {
+      label: "New Board",
+      onClick: (id: string, x: number, y: number) =>
+        createNode(BoardObjects.BOARD, { id, type: BoardObjects.BOARD }, x, y),
+    },
   ],
 };
 
@@ -141,6 +207,14 @@ export const NoteContextMenu: ContextMenu = {
   ],
 };
 
+export const DocumentContextMenu: ContextMenu = {
+  canCopy: true,
+  canCut: true,
+  canPaste: false,
+  canDelete: true,
+  items: [{ label: "Convert to Note", onClick: convertSelectedNodesToNotes }],
+};
+
 export const ColumnContextMenu: ContextMenu = {
   canCopy: true,
   canCut: true,
@@ -151,10 +225,10 @@ export const ColumnContextMenu: ContextMenu = {
 
 // Board Icon
 export const BoardIconContextMenu: ContextMenu = {
-  canCopy: false,
-  canCut: false,
+  canCopy: true,
+  canCut: true,
   canPaste: true,
-  canDelete: false,
+  canDelete: true,
   items: [],
 };
 
@@ -165,7 +239,7 @@ export const ContextMenuTypes: ContextMenuMap = {
   [BoardObjects.COLUMN]: ColumnContextMenu,
   [BoardObjects.TODO]: NullContextMenu,
   [BoardObjects.IMAGE]: NullContextMenu,
-  [BoardObjects.DOCUMENT]: NullContextMenu,
+  [BoardObjects.DOCUMENT]: DocumentContextMenu,
 };
 
 export const reduceContextMenu = (types: BoardObjects[]) => {

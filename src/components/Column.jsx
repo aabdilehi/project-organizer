@@ -1,145 +1,82 @@
 /** @jsxImportSource @emotion/react */
-import { useContext, useMemo, useRef } from "react";
-import { BoardObjects, SidebarObjects } from "../utils/enums/items";
+import { useLayoutEffect, useRef, useState } from "react";
+import { BoardObjects } from "../utils/enums/items";
 import { bindActionCreators } from "redux";
 import { connect, useDispatch, useSelector } from "react-redux";
+import { debounce } from "lodash";
 
 import Note from "./Note";
-import { Editable, EditableInput, useColorModeValue } from "@chakra-ui/react";
 
-import CustomEditablePreview2 from "./CustomEditablePreview.tsx";
-import { addChild, addNode, updateTitle } from "../utils/slices/nodeActions";
-import ResizeWrapper from "./ResizeWrapper";
-import NodeWrapper from "./NodeWrapper.tsx";
+import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
+import { updateTitle } from "../utils/slices/nodeActions";
+import NodeWrapper from "./Modular/NodeWrapper.tsx";
+import BoardIcon from "./BoardIcon.jsx";
+import Document from "./Document.jsx";
 
 const previewStyle = {
   fontWeight: "800",
+  borderRadius: "10px",
 };
 
 const Column = ({
   id,
-  boardId,
-  boardRef,
   pX,
   pY,
-  offset,
-  scale,
   sX,
-  sY,
   title,
   childRefs,
   parent,
-  clearPortal,
-  draggedNodes,
   drop,
   allowDrop,
-  openContextMenu,
+  dropOnBoard,
+  allowDropOnBoard,
 }) => {
-  const dragRef = useRef(null);
-  const columnRef = useRef(null);
+  const nodeRef = useRef();
+  const columnRef = useRef();
 
   const dispatch = useDispatch();
 
   const selectedNodes = useSelector((state) => state.selection);
 
-  const pasteNodes = (nodes) => {
-    nodes.forEach((node) => {
-      let copiedNode;
-      switch (node.type) {
-        case BoardObjects.NOTE:
-          copiedNode = {
-            ...node,
-            pX: 0,
-            pY: 0,
-            parent: !!node.parent
-              ? node.parent
-              : { id: id, type: BoardObjects.COLUMN },
-          };
-          break;
-        case BoardObjects.DOCUMENT:
-          copiedNode = {
-            ...node,
-            pX: 0,
-            pY: 0,
-            parent: !!node.parent
-              ? node.parent
-              : { id: id, type: BoardObjects.COLUMN },
-          };
-          break;
-        case BoardObjects.IMAGE:
-          copiedNode = {
-            ...node,
-            pX: 0,
-            pY: 0,
-            parent: !!node.parent
-              ? node.parent
-              : { id: id, type: BoardObjects.COLUMN },
-          };
-          break;
-        case BoardObjects.TODO:
-          copiedNode = {
-            ...node,
-            pX: 0,
-            pY: 0,
-            parent: !!node.parent
-              ? node.parent
-              : { id: id, type: BoardObjects.COLUMN },
-          };
-          break;
-        case BoardObjects.BOARD:
-          copiedNode = {
-            ...node,
-            pX: 0,
-            pY: 0,
-            parent: !!node.parent
-              ? node.parent
-              : { id: id, type: BoardObjects.COLUMN },
-            childRefs: [],
-          };
-          break;
-        default:
-          break;
-      }
-      if (!!copiedNode) {
-        dispatch(addNode.action(copiedNode));
-        dispatch(
-          addChild.action({
-            id,
-            type: BoardObjects.COLUMN,
-            cId: copiedNode.id,
-            cType: copiedNode.type,
-          })
-        );
-      }
-    });
+  const [activeDropZone, setDropZoneActive] = useState(false);
+
+  // Really annoying as this event sucks at bubbling properly so i have to do this
+
+  const onDragOver = (event) => {
+    if (
+      event.target == nodeRef.current ||
+      nodeRef.current.contains(event.target)
+    ) {
+      setDropZoneActive(true);
+    } else {
+      setDropZoneActive(false);
+    }
   };
 
-  //#endregion
-  const selectData = useMemo(() => {
-    return {
-      id, // new Id will be assigned
-      type: BoardObjects.COLUMN,
-      parent,
+  useLayoutEffect(() => {
+    if (nodeRef.current) {
+      window.addEventListener("dragenter", onDragOver);
+    }
+    return () => {
+      if (nodeRef.current) {
+        window.removeEventListener("dragenter", onDragOver);
+      }
     };
-  }, [id, parent]);
+  }, []);
+
+  //#endregion
 
   return (
     <NodeWrapper
+      ref={nodeRef}
       canPosition={true}
       canResize={false}
       id={id}
       type={"column"}
+      parent={parent}
       pX={pX}
       pY={pY}
       sX={sX}
-      openContextMenu={openContextMenu}
-      onSelectNode={selectData}
-      menuProps={{
-        canCopy: true,
-        canCut: true,
-        canPaste: true,
-        canDelete: true,
-      }}
       onDragOver={(event) => {
         allowDrop(event, id);
       }}
@@ -147,31 +84,29 @@ const Column = ({
         drop(event, id);
       }}
     >
-      <div style={{ maxWidth: "100%", padding: "6px" }}>
-        <CustomEditablePreview2
-          as={"h1"}
-          canEdit={!!selectedNodes[id]}
-          text={title}
-          textStyle={previewStyle}
-          onChange={(value) =>
-            dispatch(
-              updateTitle.action({
-                id,
-                type: BoardObjects.COLUMN,
-                title: value,
-              })
-            )
-          }
-        />
-      </div>
-      <div
+      <CustomEditablePreview
+        as={"h1"}
+        canEdit={!!selectedNodes[id]}
+        text={title}
+        textStyle={previewStyle}
+        onChange={(value) =>
+          dispatch(
+            updateTitle.action({
+              id,
+              type: BoardObjects.COLUMN,
+              title: value,
+            })
+          )
+        }
+      />
+      <span
         ref={columnRef}
         style={{
           width: "100%",
           alignItems: "center",
           border: "2px dashed grey",
           borderRadius: "12px",
-          minHeight: "120px",
+          minHeight: childRefs.length > 0 ? undefined : "80px",
           display: "flex",
           flexDirection: "column",
         }}
@@ -180,11 +115,22 @@ const Column = ({
           switch (childType) {
             case BoardObjects.NOTE:
               return <Note key={childId} id={childId} />;
+            case BoardObjects.BOARD:
+              return (
+                <BoardIcon
+                  key={childId}
+                  id={childId}
+                  drop={dropOnBoard}
+                  allowDrop={allowDropOnBoard}
+                />
+              );
+            case BoardObjects.DOCUMENT:
+              return <Document key={childId} id={childId} />;
             default:
               break;
           }
         })}
-      </div>
+      </span>
     </NodeWrapper>
   );
 };
