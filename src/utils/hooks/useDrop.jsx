@@ -21,17 +21,23 @@ import {
   TaskC,
 } from "../classes/classes";
 import { useCallback, useRef } from "react";
-import { ColumnClass, NoteClass } from "../classes/new-classes";
+import {
+  BoardClass,
+  ColumnClass,
+  DocumentClass,
+  NoteClass,
+  TaskClass,
+} from "../classes/new-classes";
 
 const columnAcceptedTypes = [
   BoardObjects.NOTE,
-  BoardObjects.TODO,
+  BoardObjects.TASK,
   BoardObjects.IMAGE,
   BoardObjects.BOARD,
   BoardObjects.DOCUMENT,
   SidebarObjects.NOTE,
   SidebarObjects.IMAGE,
-  SidebarObjects.TODO,
+  SidebarObjects.TASK,
   SidebarObjects.BOARD,
   SidebarObjects.DOCUMENT,
 ];
@@ -40,18 +46,18 @@ const boardAcceptedTypes = [
   BoardObjects.BOARD,
   BoardObjects.NOTE,
   BoardObjects.COLUMN,
-  BoardObjects.TODO,
+  BoardObjects.TASK,
   BoardObjects.IMAGE,
   BoardObjects.DOCUMENT,
   SidebarObjects.NOTE,
   SidebarObjects.COLUMN,
   SidebarObjects.IMAGE,
-  SidebarObjects.TODO,
+  SidebarObjects.TASK,
   SidebarObjects.BOARD,
   SidebarObjects.DOCUMENT,
 ];
 
-export function useDrop({ boardRef, scale = 1, draggedNodes, clearPortal }) {
+export function useDrop({ boardRef, scale = 1 }) {
   const dispatch = useDispatch();
   const state = useSelector((state) => state);
   const handledNodes = useRef([]);
@@ -82,6 +88,7 @@ export function useDrop({ boardRef, scale = 1, draggedNodes, clearPortal }) {
     data = event.dataTransfer.getData("custom/board");
     if (data) {
       data = JSON.parse(data);
+      console.log(data);
       if (!data.hasOwnProperty("selectedNodes")) return;
       Object.values(data.selectedNodes).forEach((item) => {
         if (
@@ -100,7 +107,6 @@ export function useDrop({ boardRef, scale = 1, draggedNodes, clearPortal }) {
           } else {
             setNodePosition(event, item);
           }
-          clearPortal();
         }
       });
     }
@@ -159,7 +165,6 @@ export function useDrop({ boardRef, scale = 1, draggedNodes, clearPortal }) {
         updateNodeParent(item, id, BoardObjects.COLUMN);
         handledNodes.current = [...handledNodes.current, item];
       });
-      clearPortal();
     }
     //#endregion
   }
@@ -194,26 +199,25 @@ export function useDrop({ boardRef, scale = 1, draggedNodes, clearPortal }) {
         });
         break;
 
-      case SidebarObjects.TODO:
-        node = new TaskC({
+      case SidebarObjects.TASK:
+        node = new TaskClass({
           pX: xCoord,
           pY: yCoord,
           parent: {
             id: pId,
             type: pType,
           },
-        });
+        }).serialize();
         break;
-
       case SidebarObjects.BOARD:
-        node = new BoardC({
+        node = new BoardClass({
           pX: xCoord,
           pY: yCoord,
           parent: {
             id: pId,
             type: pType,
           },
-        });
+        }).serialize();
         break;
       case SidebarObjects.COLUMN:
         node = new ColumnClass({
@@ -226,14 +230,14 @@ export function useDrop({ boardRef, scale = 1, draggedNodes, clearPortal }) {
         }).serialize();
         break;
       case SidebarObjects.DOCUMENT:
-        node = new DocumentC({
+        node = new DocumentClass({
           pX: xCoord,
           pY: yCoord,
           parent: {
             id: pId,
             type: pType,
           },
-        });
+        }).serialize();
         break;
     }
 

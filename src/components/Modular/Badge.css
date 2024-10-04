@@ -1,0 +1,99 @@
+.badge {
+  padding: 7px 9px;
+  border-radius: 13px;
+  background-color: var(--secondary-color);
+  color: var(--primary-color);
+  font-weight: 600;
+  font-size: 0.9em;
+  width: fit-content;
+  height: fit-content;
+}
+
+.badge.edit {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+
+.badge.green {
+  background-color: rgb(137, 209, 137);
+  color: rgb(56, 123, 56);
+}
+
+.badge.red {
+  background-color: lightcoral;
+  color: brown;
+}
+
+.badge.blue {
+  background-color: lightskyblue;
+  color: darkslateblue;
+}
+
+.badge.orange {
+  background-color: coral;
+  color: rgb(194, 56, 5);
+}
+
+html.dark .badge.green {
+  background-color: rgb(56, 123, 56);
+  color: rgb(137, 209, 137);
+}
+
+html.dark .badge.red {
+  background-color: brown;
+  color: lightcoral;
+}
+
+html.dark .badge.blue {
+  background-color: darkslateblue;
+  color: lightskyblue;
+}
+
+html.dark .badge.orange {
+  background-color: rgb(194, 56, 5);
+  color: coral;
+}
+
+@media (prefers-color-scheme: dark) {
+  .badge.green {
+    background-color: rgb(56, 123, 56);
+    color: rgb(137, 209, 137);
+  }
+
+  .badge.red {
+    background-color: brown;
+    color: lightcoral;
+  }
+
+  .badge.blue {
+    background-color: darkslateblue;
+    color: lightskyblue;
+  }
+
+  .badge.orange {
+    background-color: rgb(194, 56, 5);
+    color: coral;
+  }
+
+  html.light .badge.green {
+    background-color: rgb(137, 209, 137);
+    color: rgb(56, 123, 56);
+  }
+
+  html.light .badge.red {
+    background-color: lightcoral;
+    color: brown;
+  }
+
+  html.light .badge.blue {
+    background-color: lightskyblue;
+    color: darkslateblue;
+  }
+
+  html.light .badge.orange {
+    background-color: coral;
+    color: rgb(194, 56, 5);
+  }
+}

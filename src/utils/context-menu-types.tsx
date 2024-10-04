@@ -14,6 +14,7 @@ import {
   DocumentClass,
   NodeClass,
   NoteClass,
+  TaskClass,
 } from "./classes/new-classes";
 import sanitizeHtml from "sanitize-html";
 
@@ -127,9 +128,9 @@ export const NodeTypeMap: { [key in BoardObjects]: typeof NodeClass } = {
   [BoardObjects.NOTE]: NoteClass,
   [BoardObjects.COLUMN]: ColumnClass,
   [BoardObjects.BOARD]: BoardClass,
-  [BoardObjects.TODO]: NodeClass,
+  [BoardObjects.TASK]: TaskClass,
   [BoardObjects.IMAGE]: NodeClass,
-  [BoardObjects.DOCUMENT]: NodeClass,
+  [BoardObjects.DOCUMENT]: DocumentClass,
 };
 
 const createNode = (
@@ -223,11 +224,18 @@ export const ColumnContextMenu: ContextMenu = {
   items: [],
 };
 
-// Board Icon
 export const BoardIconContextMenu: ContextMenu = {
   canCopy: true,
   canCut: true,
   canPaste: true,
+  canDelete: true,
+  items: [],
+};
+
+export const TaskContextMenu: ContextMenu = {
+  canCopy: true,
+  canCut: true,
+  canPaste: false,
   canDelete: true,
   items: [],
 };
@@ -237,7 +245,7 @@ export const ContextMenuTypes: ContextMenuMap = {
   [BoardObjects.NOTE]: NoteContextMenu,
   [BoardObjects.BOARD]: BoardIconContextMenu,
   [BoardObjects.COLUMN]: ColumnContextMenu,
-  [BoardObjects.TODO]: NullContextMenu,
+  [BoardObjects.TASK]: TaskContextMenu,
   [BoardObjects.IMAGE]: NullContextMenu,
   [BoardObjects.DOCUMENT]: DocumentContextMenu,
 };

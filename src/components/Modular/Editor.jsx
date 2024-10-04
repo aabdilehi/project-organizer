@@ -11,33 +11,34 @@ import Underline from "@tiptap/extension-underline";
 
 import React, { useRef } from "react";
 import {
-  IconAlignCenter,
-  IconAlignJustified,
-  IconAlignLeft,
-  IconAlignRight,
-  IconArrowBackUp,
-  IconArrowForwardUp,
-  IconBlockquote,
-  IconBold,
-  IconBraces,
-  IconClearFormatting,
-  IconCode,
-  IconH1,
-  IconH2,
-  IconH3,
-  IconH4,
-  IconHighlight,
-  IconItalic,
-  IconLineDashed,
-  IconList,
-  IconListNumbers,
-  IconStrikethrough,
-  IconSubscript,
-  IconSuperscript,
-  IconTextColor,
-  IconUnderline,
-} from "@tabler/icons-react";
+  TbAlignCenter as IconAlignCenter,
+  TbAlignJustified as IconAlignJustified,
+  TbAlignLeft as IconAlignLeft,
+  TbAlignRight as IconAlignRight,
+  TbArrowBackUp as IconArrowBackUp,
+  TbArrowForwardUp as IconArrowForwardUp,
+  TbBlockquote as IconBlockquote,
+  TbBold as IconBold,
+  TbBraces as IconBraces,
+  TbClearFormatting as IconClearFormatting,
+  TbCode as IconCode,
+  TbH1 as IconH1,
+  TbH2 as IconH2,
+  TbH3 as IconH3,
+  TbH4 as IconH4,
+  TbHighlight as IconHighlight,
+  TbItalic as IconItalic,
+  TbLineDashed as IconLineDashed,
+  TbList as IconList,
+  TbListNumbers as IconListNumbers,
+  TbStrikethrough as IconStrikethrough,
+  TbSubscript as IconSubscript,
+  TbSuperscript as IconSuperscript,
+  TbTextColor as IconTextColor,
+  TbUnderline as IconUnderline,
+} from "react-icons/tb";
 import { debounce } from "lodash";
+import { EditorButton } from "./EditorButton";
 
 export const MenuBar = ({ editor }) => {
   if (!editor) {
@@ -67,722 +68,282 @@ export const MenuBar = ({ editor }) => {
     // Open color input using its click function
     highlightInputRef.current?.click();
   };
-  const [mouseDownHandler, mouseUpHandler] = useClickAndHold(
-    highlightClickCallback,
-    highlightHoldCallback
-  );
+
+  const timeOutRef = useRef(null);
+
+  const mouseDown = (event) => {
+    timeOutRef.current = setTimeout(() => {
+      // Execute hold as 400ms have passed
+      highlightHoldCallback();
+
+      // Clean up for next time
+      clearTimeout(timeOutRef.current);
+      timeOutRef.current = null;
+    }, 400);
+  };
+
+  const mouseUp = (event) => {
+    if (timeOutRef.current) {
+      // Execute click as timeout still running
+      highlightClickCallback();
+
+      // Clean up for next time
+      clearTimeout(timeOutRef.current);
+      timeOutRef.current = null;
+    }
+  };
   //#endregion
   return (
-    <>
-      <Tooltip openDelay={250} label="Undo">
-        <IconButton
-          aria-label="undo"
-          icon={
-            <IconArrowBackUp
-              size={"18"}
-              color={
-                editor.isActive("undo")
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"sm"}
-          roundedRight={"none"}
+    <div className="editor-toolbar">
+      <div className="editor-button-group">
+        <EditorButton
+          label="Undo"
+          icon={IconArrowBackUp}
           onClick={() => editor.chain().focus().undo().run()}
           disabled={!editor.can().chain().focus().undo().run()}
-          colorScheme={useColorModeValue("whiteAlpha", "blackAlpha")}
-          backgroundColor={useColorModeValue("white", "blackAlpha.300")}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Redo">
-        <IconButton
-          aria-label="redo"
-          icon={
-            <IconArrowForwardUp
-              size={"18"}
-              color={
-                editor.isActive("redo")
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"sm"}
-          roundedLeft={"none"}
-          mr={1}
+        <EditorButton
+          label="Redo"
+          icon={IconArrowForwardUp}
           onClick={() => editor.chain().focus().redo().run()}
           disabled={!editor.can().chain().focus().redo().run()}
-          colorScheme={useColorModeValue("whiteAlpha", "blackAlpha")}
-          backgroundColor={useColorModeValue("white", "blackAlpha.300")}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Bold">
-        <IconButton
-          aria-label="bold"
-          icon={
-            <IconBold
-              size={"18"}
-              color={
-                editor.isActive("bold")
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"sm"}
-          roundedRight={"none"}
+      </div>
+      <div className="editor-button-group">
+        <EditorButton
+          label={"Bold"}
+          icon={IconBold}
           onClick={() => editor.chain().focus().toggleBold().run()}
           disabled={!editor.can().chain().focus().toggleBold().run()}
-          className={editor.isActive("bold") ? "is-active" : ""}
-          colorScheme={
-            editor.isActive("bold")
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("bold")
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("bold")}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Italic">
-        <IconButton
-          aria-label="italic"
-          icon={
-            <IconItalic
-              size={"18"}
-              color={
-                editor.isActive("italic")
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"none"}
+        <EditorButton
+          label="Italic"
+          icon={IconItalic}
           onClick={() => editor.chain().focus().toggleItalic().run()}
           disabled={!editor.can().chain().focus().toggleItalic().run()}
-          className={editor.isActive("italic") ? "is-active" : ""}
-          colorScheme={
-            editor.isActive("italic")
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("italic")
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("italic")}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Strikethrough">
-        <IconButton
-          aria-label="strike"
-          icon={
-            <IconStrikethrough
-              size={"18"}
-              color={
-                editor.isActive("strike")
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"none"}
+        <EditorButton
+          label="Strikethrough"
+          icon={IconStrikethrough}
           onClick={() => editor.chain().focus().toggleStrike().run()}
           disabled={!editor.can().chain().focus().toggleStrike().run()}
-          colorScheme={
-            editor.isActive("strike")
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("strike")
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("strike")}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Underline">
-        <IconButton
-          aria-label="underline"
-          icon={
-            <IconUnderline
-              size={"18"}
-              color={
-                editor.isActive("underline")
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"none"}
+        <EditorButton
+          label="Underline"
+          icon={IconUnderline}
           onClick={() => editor.chain().focus().toggleUnderline().run()}
           disabled={!editor.can().chain().focus().toggleUnderline().run()}
-          colorScheme={
-            editor.isActive("underline")
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("underline")
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("underline")}
         />
-      </Tooltip>
-      <label
-        style={{
-          position: "relative",
-        }}
-        htmlFor="hidden-color-input"
-      >
-        <Tooltip openDelay={250} label="Text Colour">
-          <IconButton
-            aria-label="text-colour"
-            icon={
-              <IconTextColor
-                size={"18"}
-                color={
-                  editor.getAttributes("textStyle").color
-                    ? editor.getAttributes("textStyle").color
-                    : useColorModeValue("black", "white")
-                }
-              />
-            }
-            size={"sm"}
-            rounded={"none"}
-            onClick={() => colourInputRef.current?.click()}
-            colorScheme={useColorModeValue("whiteAlpha", "blackAlpha")}
-            backgroundColor={useColorModeValue("white", "blackAlpha.300")}
-            color={editor.getAttributes("textStyle").color}
-          />
-        </Tooltip>
-        <input
-          id="hidden-color-input"
-          name="hidden-color-input"
+        <label
           style={{
-            position: "absolute",
-            opacity: 0,
-            left: "-3px",
-            top: "30px",
-            padding: 0,
-            margin: 0,
-            width: 0,
-            height: 0,
+            position: "relative",
           }}
-          ref={colourInputRef}
-          type="color"
-          onChange={(event) => {
-            // @ts-ignore
-            handleTextColour(event.target.value);
-          }}
-          value={editor.getAttributes("textStyle").color}
-        />
-      </label>
-
-      <label
-        style={{
-          position: "relative",
-        }}
-        htmlFor="hidden-highlight-input"
-      >
-        <Tooltip
-          openDelay={250}
-          whiteSpace={"pre-line"}
-          label={`Click to highlight.\nHold to choose colour.`}
+          htmlFor="hidden-color-input"
         >
-          <IconButton
-            aria-label="highlight"
-            icon={
-              <IconHighlight
-                size={"18"}
-                color={
-                  editor.isActive("highlight")
-                    ? useColorModeValue("black", "white")
-                    : highlightInputRef.current?.value
-                }
-              />
+          <EditorButton
+            label="Text Colour"
+            icon={IconTextColor}
+            iconColor={
+              editor.getAttributes("textStyle").color
+                ? editor.getAttributes("textStyle").color
+                : undefined
             }
-            size={"sm"}
-            rounded={"none"}
-            onMouseDown={mouseDownHandler}
-            onMouseUp={mouseUpHandler}
+            onClick={() => colourInputRef.current?.click()}
+          />
+          <input
+            id="hidden-color-input"
+            name="hidden-color-input"
+            style={{
+              position: "absolute",
+              opacity: 0,
+              left: "-3px",
+              top: "30px",
+              padding: 0,
+              margin: 0,
+              width: 0,
+              height: 0,
+            }}
+            ref={colourInputRef}
+            type="color"
+            onChange={(event) => {
+              // @ts-ignore
+              handleTextColour(event.target.value);
+            }}
+            value={editor.getAttributes("textStyle").color}
+          />
+        </label>
+
+        <label
+          style={{
+            position: "relative",
+          }}
+          htmlFor="hidden-highlight-input"
+        >
+          <EditorButton
+            label={`Click to highlight.\nHold to choose colour.`}
+            icon={IconHighlight}
+            ariaLabel="highlight"
+            onMouseDown={mouseDown}
+            onMouseUp={mouseUp}
             disabled={!editor.can().chain().focus().toggleHighlight().run()}
-            colorScheme={
+            active={editor.isActive("highlight")}
+            iconColor={
               editor.isActive("highlight")
-                ? "blue"
-                : useColorModeValue("whiteAlpha", "blackAlpha")
+                ? undefined
+                : highlightInputRef.current?.value
             }
             backgroundColor={
               editor.isActive("highlight")
                 ? highlightInputRef.current?.value
-                : useColorModeValue("white", "blackAlpha.300")
+                : undefined
             }
           />
-        </Tooltip>
-        <input
-          name="hidden-highlight-input"
-          style={{
-            position: "absolute",
-            opacity: 0,
-            left: "-3px",
-            top: "30px",
-            padding: 0,
-            margin: 0,
-            width: 0,
-            height: 0,
-          }}
-          ref={highlightInputRef}
-          type="color"
-          onChange={(event) => {
-            handleHighlightColour(event.target.value);
-          }}
-          defaultValue={"#ffe066"}
-        />
-      </label>
-      <Tooltip openDelay={250} label="Clear formatting">
-        <IconButton
-          aria-label="clear-formatting"
-          icon={
-            <IconClearFormatting
-              size={"18"}
-              color={useColorModeValue("black", "white")}
-            />
-          }
-          size={"sm"}
-          rounded={"none"}
+          <input
+            name="hidden-highlight-input"
+            style={{
+              position: "absolute",
+              opacity: 0,
+              left: "-3px",
+              top: "30px",
+              padding: 0,
+              margin: 0,
+              width: 0,
+              height: 0,
+            }}
+            ref={highlightInputRef}
+            type="color"
+            onChange={(event) => {
+              handleHighlightColour(event.target.value);
+            }}
+            defaultValue={"#ffe066"}
+          />
+        </label>
+        <EditorButton
+          label="Clear formatting"
+          icon={IconClearFormatting}
           onClick={() => editor.chain().focus().unsetAllMarks().run()}
           disabled={!editor.can().chain().focus().unsetAllMarks().run()}
-          colorScheme={useColorModeValue("whiteAlpha", "blackAlpha")}
-          backgroundColor={useColorModeValue("white", "blackAlpha.300")}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Code">
-        <IconButton
-          aria-label="code"
-          icon={
-            <IconCode
-              size={"18"}
-              color={
-                editor.isActive("code")
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"sm"}
-          roundedLeft={"none"}
-          mr={1}
+        <EditorButton
+          label="Code"
+          icon={IconCode}
           onClick={() => editor.chain().focus().toggleCode().run()}
+          active={editor.isActive("code")}
           disabled={!editor.can().chain().focus().toggleCode().run()}
-          colorScheme={
-            editor.isActive("code")
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("code")
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
         />
-      </Tooltip>
-
-      <Tooltip openDelay={250} label="Heading 1">
-        <IconButton
-          aria-label="h1"
-          icon={
-            <IconH1
-              size={"18"}
-              color={
-                editor.isActive("heading", { level: 1 })
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"sm"}
-          roundedRight={"none"}
+      </div>
+      <div className="editor-button-group">
+        <EditorButton
+          label="Heading 1"
+          icon={IconH1}
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 1 }).run()
           }
-          colorScheme={
-            editor.isActive("heading", { level: 1 })
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("heading", { level: 1 })
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("heading", { level: 1 })}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Heading 2">
-        <IconButton
-          aria-label="h2"
-          icon={
-            <IconH2
-              size={"18"}
-              color={
-                editor.isActive("heading", { level: 2 })
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"none"}
+        <EditorButton
+          label="Heading 2"
+          icon={IconH2}
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 2 }).run()
           }
-          colorScheme={
-            editor.isActive("heading", { level: 2 })
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("heading", { level: 2 })
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("heading", { level: 2 })}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Heading 3">
-        <IconButton
-          aria-label="h3"
-          icon={
-            <IconH3
-              size={"18"}
-              color={
-                editor.isActive("heading", { level: 3 })
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"none"}
+        <EditorButton
+          label="Heading 3"
+          icon={IconH3}
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 3 }).run()
           }
-          colorScheme={
-            editor.isActive("heading", { level: 3 })
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("heading", { level: 3 })
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("heading", { level: 3 })}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Heading 4">
-        <IconButton
-          aria-label="h4"
-          icon={
-            <IconH4
-              size={"18"}
-              color={
-                editor.isActive("heading", { level: 4 })
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"none"}
+        <EditorButton
+          label="Heading 4"
+          icon={IconH4}
           onClick={() =>
             editor.chain().focus().toggleHeading({ level: 4 }).run()
           }
-          colorScheme={
-            editor.isActive("heading", { level: 4 })
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("heading", { level: 4 })
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("heading", { level: 4 })}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Superscript">
-        <IconButton
-          aria-label="superscript"
-          icon={
-            <IconSuperscript
-              size={"18"}
-              color={
-                editor.isActive("superscript")
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"none"}
+        <EditorButton
+          label="Superscript"
+          icon={IconSuperscript}
           onClick={() => editor.chain().focus().toggleSuperscript().run()}
-          colorScheme={
-            editor.isActive("superscript")
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("superscript")
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("superscript")}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Subscript">
-        <IconButton
-          aria-label="subscript"
-          icon={
-            <IconSubscript
-              size={"18"}
-              color={
-                editor.isActive("subscript")
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"sm"}
-          roundedLeft={"none"}
-          mr={1}
+        <EditorButton
+          label="Subscript"
+          icon={IconSubscript}
           onClick={() => editor.chain().focus().toggleSubscript().run()}
-          colorScheme={
-            editor.isActive("subscript")
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("subscript")
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("subscript")}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Block quote">
-        <IconButton
-          aria-label="blockquote"
-          icon={
-            <IconBlockquote
-              size={"18"}
-              color={
-                editor.isActive("blockquote")
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"sm"}
-          roundedRight={"none"}
+      </div>
+      <div className="editor-button-group">
+        <EditorButton
+          label="Blockquote"
+          icon={IconBlockquote}
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          colorScheme={
-            editor.isActive("blockquote")
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("blockquote")
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("blockquote")}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Unordered list">
-        <IconButton
-          aria-label="bulletList"
-          icon={
-            <IconList
-              size={"18"}
-              color={
-                editor.isActive("bulletList")
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"none"}
+
+        <EditorButton
+          label="Unordered list"
+          icon={IconList}
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          colorScheme={
-            editor.isActive("bulletList")
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("bulletList")
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("bulletList")}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Ordered list">
-        <IconButton
-          aria-label="orderedList"
-          icon={
-            <IconListNumbers
-              size={"18"}
-              color={
-                editor.isActive("orderedList")
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"none"}
+
+        <EditorButton
+          label="Ordered list"
+          icon={IconListNumbers}
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          colorScheme={
-            editor.isActive("orderedList")
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("orderedList")
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("orderedList")}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Code block">
-        <IconButton
-          aria-label="codeBlock"
-          icon={
-            <IconBraces
-              size={"18"}
-              color={
-                editor.isActive("codeBlock")
-                  ? "currentColor"
-                  : useColorModeValue("black", "white")
-              }
-            />
-          }
-          size={"sm"}
-          rounded={"none"}
+
+        <EditorButton
+          label="Code block"
+          icon={IconBraces}
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={editor.isActive("codeBlock") ? "is-active" : ""}
-          colorScheme={
-            editor.isActive("codeBlock")
-              ? "blue"
-              : useColorModeValue("whiteAlpha", "blackAlpha")
-          }
-          backgroundColor={
-            editor.isActive("codeBlock")
-              ? undefined
-              : useColorModeValue("white", "blackAlpha.300")
-          }
+          active={editor.isActive("codeBlock")}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Horizontal Rule">
-        <IconButton
-          aria-label="horizontal-rule"
-          icon={
-            <IconLineDashed
-              size={"18"}
-              color={useColorModeValue("black", "white")}
-            />
-          }
-          size={"sm"}
-          rounded={"sm"}
-          roundedLeft={"none"}
-          mr={1}
+
+        <EditorButton
+          label="Horizontal rule"
+          icon={IconLineDashed}
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          colorScheme={useColorModeValue("whiteAlpha", "blackAlpha")}
-          backgroundColor={useColorModeValue("white", "blackAlpha.300")}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Align Left">
-        <IconButton
-          aria-label="text-align-left"
-          icon={
-            <IconAlignLeft
-              size={"18"}
-              color={useColorModeValue("black", "white")}
-            />
-          }
-          size={"sm"}
-          rounded={"sm"}
-          roundedRight={"none"}
+      </div>
+      <div className="editor-button-group">
+        <EditorButton
+          label="Text align left"
+          icon={IconAlignLeft}
           onClick={() => editor.chain().focus().setTextAlign("left").run()}
-          className={editor.isActive({ textAlign: "left" }) ? "is-active" : ""}
-          colorScheme={useColorModeValue("whiteAlpha", "blackAlpha")}
-          backgroundColor={useColorModeValue("white", "blackAlpha.300")}
+          active={editor.isActive({ textAlign: "left" })}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Align Center">
-        <IconButton
-          aria-label="text-align-center"
-          icon={
-            <IconAlignCenter
-              size={"18"}
-              color={useColorModeValue("black", "white")}
-            />
-          }
-          size={"sm"}
-          rounded={"none"}
+        <EditorButton
+          label="Text align center"
+          icon={IconAlignCenter}
           onClick={() => editor.chain().focus().setTextAlign("center").run()}
-          className={
-            editor.isActive({ textAlign: "center" }) ? "is-active" : ""
-          }
-          colorScheme={useColorModeValue("whiteAlpha", "blackAlpha")}
-          backgroundColor={useColorModeValue("white", "blackAlpha.300")}
+          active={editor.isActive({ textAlign: "center" })}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Align Right">
-        <IconButton
-          aria-label="text-align-right"
-          icon={
-            <IconAlignRight
-              size={"18"}
-              color={useColorModeValue("black", "white")}
-            />
-          }
-          size={"sm"}
-          rounded={"none"}
+        <EditorButton
+          label="Text align right"
+          icon={IconAlignRight}
           onClick={() => editor.chain().focus().setTextAlign("right").run()}
-          className={editor.isActive({ textAlign: "right" }) ? "is-active" : ""}
-          colorScheme={useColorModeValue("whiteAlpha", "blackAlpha")}
-          backgroundColor={useColorModeValue("white", "blackAlpha.300")}
+          active={editor.isActive({ textAlign: "right" })}
         />
-      </Tooltip>
-      <Tooltip openDelay={250} label="Justify">
-        <IconButton
-          aria-label="stretch-text"
-          icon={
-            <IconAlignJustified
-              size={"18"}
-              color={useColorModeValue("black", "white")}
-            />
-          }
-          size={"sm"}
-          rounded={"sm"}
-          roundedLeft={"none"}
+        <EditorButton
+          label="Text align justify"
+          icon={IconAlignJustified}
           onClick={() => editor.chain().focus().setTextAlign("justify").run()}
-          className={
-            editor.isActive({ textAlign: "justify" }) ? "is-active" : ""
-          }
-          colorScheme={useColorModeValue("whiteAlpha", "blackAlpha")}
-          backgroundColor={useColorModeValue("white", "blackAlpha.300")}
+          active={editor.isActive({ textAlign: "justify" })}
         />
-      </Tooltip>
-    </>
+      </div>
+    </div>
   );
 };
 

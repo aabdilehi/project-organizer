@@ -2,40 +2,44 @@ import { useContext, useEffect } from "react";
 import { useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { clearSelectNode } from "../slices/selectionSlice";
+import {
+  copySelection,
+  deleteSelection,
+  pasteToSelectedNodes,
+} from "../node-helper-functions";
 
-export function useSmoothBoardControls(transformRef, boardRef) {
+export function useSmoothBoardControls(boardId, transformRef, boardRef) {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const lerpedScale = useRef(scale);
   const currentPositionX = useRef(0);
   const currentPositionY = useRef(0);
 
-  // useEffect(() => {
-  //   const handleKeyDown = (e) => {
-  //     if (e.ctrlKey) {
-  //       switch (e.key) {
-  //         case "v":
-  //           break;
-  //         case "c":
-  //           const c = Object.values(selectedNode);
-  //           copyNodes(c);
-  //           break;
-  //         case "x":
-  //           Object.values(selectedNode).forEach((item) => {
-  //             del();
-  //           });
-  //           copyNodes(Object.values(selectedNode));
-  //           break;
-  //         default:
-  //           break;
-  //       }
-  //     }
-  //   };
-  //   window.addEventListener("keydown", handleKeyDown);
-  //   return () => {
-  //     window.removeEventListener("keydown", handleKeyDown);
-  //   };
-  // }, [selectedNode]);
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey) {
+        switch (e.key) {
+          case "v":
+            pasteToSelectedNodes(boardId, 0, 0);
+            break;
+          case "c":
+            copySelection(boardId);
+            dispatch(clearSelectNode());
+            break;
+          case "x":
+            copySelection(boardId);
+            deleteSelection();
+            break;
+          default:
+            break;
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
   const dispatch = useDispatch();
 
   const handleWheel = (event) => {
@@ -43,6 +47,8 @@ export function useSmoothBoardControls(transformRef, boardRef) {
       event.target === boardRef.current ||
       event.target.parentNode === boardRef.current
     ) {
+      console.log(event.deltaY);
+
       const newScale = Math.max(0.05, scale + event.deltaY * -0.0025);
       lerpedScale.current += (newScale - scale) * 0.2;
       setScale((prev) => {
@@ -52,7 +58,9 @@ export function useSmoothBoardControls(transformRef, boardRef) {
         return prev;
       });
       requestAnimationFrame(() => {
-        transformRef.current.style.transform = `scale(${scale}) translate(${currentPositionX.current}px, ${currentPositionY.current}px)`;
+        transformRef.current.style.transform = `scale(${scale}) translate(${
+          currentPositionX.current / scale
+        }px, ${currentPositionY.current / scale}px)`;
       });
     }
   };
@@ -64,7 +72,7 @@ export function useSmoothBoardControls(transformRef, boardRef) {
     )
       return;
     if (event.button === 0) {
-      dispatch(clearSelectNode);
+      dispatch(clearSelectNode());
     }
 
     if (event.button === 1) {
@@ -78,7 +86,9 @@ export function useSmoothBoardControls(transformRef, boardRef) {
           requestAnimationFrame(() => {
             currentPositionX.current = event.pageX - startX;
             currentPositionY.current = event.pageY - startY;
-            transformRef.current.style.transform = `scale(${scale}) translate(${currentPositionX.current}px, ${currentPositionY.current}px)`;
+            transformRef.current.style.transform = `scale(${scale}) translate(${
+              currentPositionX.current / scale
+            }px, ${currentPositionY.current / scale}px)`;
           });
         }
       };

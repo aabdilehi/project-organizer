@@ -73,22 +73,30 @@ function CustomEditablePreview({
   textStyle,
   onChange,
   changeOnSubmit = true,
+  adjustSelf = false,
+  width,
+  style,
   ...props
 }: {
   canEdit?: boolean;
-  as?: React.ElementType;
+  as?: HTMLParagraphElement | HTMLHeadingElement | undefined;
   text?: string;
   textStyle?: React.CSSProperties;
   changeOnSubmit?: boolean;
+  adjustSelf?: boolean;
   onChange?: (value: string) => void;
+  width?: number;
+  style?: React.CSSProperties;
 }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(text || "");
   const textAreaRef = useRef<HTMLTextAreaElement>();
-  const previewRef = useRef();
+  const textAreaWidth = useRef<number>();
+  const previewRef = useRef<typeof As>();
 
   const submitChanges = () => {
     if (value !== text) {
+      console.log("YOOOOO");
       onChange(value);
     }
     if (editing) {
@@ -112,15 +120,22 @@ function CustomEditablePreview({
       // wanted to put this in the edit function but needed to ensure that this runs AFTER dom is loaded post state change
       updateTextAreaSize();
       textAreaRef.current.focus();
+    } else {
+      textAreaWidth;
+      submitChanges();
     }
   }, [editing]);
+
+  useEffect(() => {
+    setValue(text);
+  }, [text]);
 
   // UPDATE SIZE ON CHANGE -> USE TEXT AREA SCROLL HEIGHT
   // UPDATE SIZE ON RESIZE -> MANUAL UPDATE FUNCTION PASSED UP TO PARENT
   const updateTextAreaSize = () => {
-    if (!textAreaRef.current) return;
-
+    if (!textAreaRef.current || !previewRef.current) return;
     // "Reset" text area height then fit to content
+
     textAreaRef.current.style.height = "1px";
     textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
 
@@ -138,18 +153,22 @@ function CustomEditablePreview({
   };
 
   return (
-    <div className="editable">
+    <div className="editable" style={{ width, ...style }}>
       <As
         onClick={edit}
+        ref={previewRef}
         style={{
           display: editing ? "none" : undefined,
           width: "100%",
-          padding: "0",
           margin: "0",
           outline: "2px solid transparent",
           border: "none",
           wordWrap: "break-word",
           whiteSpace: "pre-wrap",
+          overflow: "auto",
+          overflowWrap: "anywhere",
+          padding: "3px",
+          boxSizing: "border-box",
           ...textStyle,
         }}
       >
@@ -166,9 +185,9 @@ function CustomEditablePreview({
           padding: "0",
           border: "none",
           outline: "2px solid blue",
-          wordWrap: "break-word",
           whiteSpace: "pre-wrap",
           pointerEvents: editing ? "all" : "none",
+          boxSizing: "border-box",
           ...textStyle,
         }}
       >
@@ -177,7 +196,23 @@ function CustomEditablePreview({
           key={textAreaKey}
           ref={textAreaRef}
           rows={1}
+          cols={
+            adjustSelf
+              ? Math.max(
+                  10,
+                  Math.ceil(
+                    textAreaRef?.current?.value.length +
+                      2 +
+                      Math.ceil(
+                        (textAreaRef?.current?.value.match(/[mw]/g) || [])
+                          .length / 3
+                      )
+                  )
+                )
+              : undefined
+          }
           value={value}
+          wrap="hard"
           disabled={!editing}
           onChange={handleChange}
           onMouseUp={(e) => e.preventDefault}
@@ -205,9 +240,10 @@ function CustomEditablePreview({
             textAlign: "inherit",
             whiteSpace: "inherit",
             margin: "inherit",
-            padding: "inherit",
+            padding: "0",
+            boxSizing: "inherit",
             outline: "none",
-            border: "inherit",
+            border: "none",
             appearance: "none",
             display: editing ? undefined : "none",
             resize: "none",

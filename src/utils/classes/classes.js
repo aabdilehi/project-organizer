@@ -87,7 +87,7 @@ export class TaskC {
     parent,
   }) {
     this.id = uuidv4();
-    this.type = BoardObjects.TODO;
+    this.type = BoardObjects.TASK;
     this.pX = pX;
     this.pY = pY;
     this.title = title;

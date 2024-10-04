@@ -3,7 +3,7 @@ export const enum BoardObjects {
   NOTE = "note",
   COLUMN = "column",
   BOARD = "board",
-  TODO = "to-do",
+  TASK = "task",
   IMAGE = "image",
   DOCUMENT = "document",
 }
@@ -11,7 +11,7 @@ export const enum BoardObjects {
 export const enum SidebarObjects {
   NOTE = "new-note",
   COLUMN = "new-column",
-  TODO = "new-to-do",
+  TASK = "new-task",
   IMAGE = "new-image",
   BOARD = "new-board",
   DOCUMENT = "new-document",

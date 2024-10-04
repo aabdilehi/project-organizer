@@ -1,4 +1,4 @@
-import { QuestionIcon } from "@chakra-ui/icons";
+import { FaRegQuestionCircle as QuestionIcon } from "react-icons/fa";
 import {
   Box,
   IconButton,

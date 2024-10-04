@@ -3,20 +3,17 @@ const dragSlice = createSlice({
   name: "drag",
   initialState: {},
   reducers: {
-    setDragData: (state, action) => {
-      const { type, data } = action.payload;
-      if (!type || !data) return;
-      return {
-        type,
-        data,
-      };
+    setDraggedNodes: (state, action) => {
+      const data = action.payload;
+      if (!data) return;
+      return data;
     },
-    clearDragData: () => {
+    clearDraggedNodes: () => {
       return {};
     },
   },
 });
 
-export const { setDragData, clearDragData } = dragSlice.actions;
+export const { setDraggedNodes, clearDraggedNodes } = dragSlice.actions;
 
 export default dragSlice.reducer;

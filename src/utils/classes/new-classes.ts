@@ -24,11 +24,13 @@ export class NodeClass {
 
 
 export class NoteClass extends NodeClass {
-    size: {x: number, y: number};
+    sX: number;
+    sY: number;
     content: string;
     constructor({id = undefined, pX = 0, pY = 0, sX = 200, sY = 200, content = `<p>New note</p>`, parent} : {id? : string, pX?: number, pY?: number, sX?: number, sY?: number, content?: string, parent: {id: string, type: BoardObjects}}) {
         super({id, type: BoardObjects.NOTE, pX, pY, parent});
-        this.size = {x: sX, y: sY};
+        this.sX = sX;
+        this.sY=  sY;
         this.content = content;
     }
 }
@@ -41,7 +43,38 @@ export class DocumentClass extends NodeClass {
         this.content = content;
     }
 }
+export class BadgeClass {
+    id: string;
+    text: string;
+    color: string;
+    constructor(text: string = "New Badge", color?: string) {
+      this.id = uuidv4();
+      this.text = text;
+      this.color = color ?? "red"; // random colour eventually
+    }
+    serialize() {
+        // everything except this method and the constructor
+        const {constructor, serialize, ...badge} = Object.assign(this, {});
+        return badge;
+    }
+    
+  }
+export class TaskClass extends NodeClass {
+    title: string;
+    status: boolean;
+    content: string | undefined;
+    badges: BadgeClass[] | [];
+    deadline: Date | undefined;
 
+    constructor({id = undefined, pX = 0, pY = 0, title = "New Task", content, status = false, badges = [], deadline, parent} : {id? : string, pX?: number, pY?: number, title?: string, content?: string, status?: boolean, badges?: BadgeClass[], deadline?: Date, parent: {id: string, type: BoardObjects}}) {
+        super({id, type: BoardObjects.TASK, pX, pY, parent});
+        this.title = title;
+        this.status = status;
+        this.content = content;
+        this.badges = badges;
+        this.deadline = deadline;
+    }
+}
 export class BoardClass extends NodeClass {
     title: string;
     childRefs: NodeClass[];
@@ -56,7 +89,7 @@ export class ColumnClass extends NodeClass {
     sX: number;
     title: string;
     childRefs: NodeClass[];
-    constructor({id, pX = 0, pY = 0, sX = 200, title = "New column", parent, childRefs = []} : {id? : string, pX?: number, pY?: number, sX?: number, title?: string, parent: {id: string, type: BoardObjects}, childRefs?: NodeClass[]}) {
+    constructor({id, pX = 0, pY = 0, sX = 300, title = "New column", parent, childRefs = []} : {id? : string, pX?: number, pY?: number, sX?: number, title?: string, parent: {id: string, type: BoardObjects}, childRefs?: NodeClass[]}) {
         super({id, type: BoardObjects.COLUMN, pX, pY, parent});
         this.sX = sX;
         this.title = title;

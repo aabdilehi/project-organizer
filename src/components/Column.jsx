@@ -12,6 +12,7 @@ import { updateTitle } from "../utils/slices/nodeActions";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import BoardIcon from "./BoardIcon.jsx";
 import Document from "./Document.jsx";
+import Task from "./Task.jsx";
 
 const previewStyle = {
   fontWeight: "800",
@@ -27,6 +28,8 @@ const Column = ({
   childRefs,
   parent,
   drop,
+  onContextMenu,
+  onDragStart,
   allowDrop,
   dropOnBoard,
   allowDropOnBoard,
@@ -78,16 +81,20 @@ const Column = ({
       pY={pY}
       sX={sX}
       onDragOver={(event) => {
+        if (!allowDrop) return;
         allowDrop(event, id);
       }}
       onDrop={(event) => {
+        if (!drop) return;
         drop(event, id);
       }}
+      onContextMenu={onContextMenu}
     >
       <CustomEditablePreview
         as={"h1"}
         canEdit={!!selectedNodes[id]}
         text={title}
+        width={sX}
         textStyle={previewStyle}
         onChange={(value) =>
           dispatch(
@@ -105,7 +112,7 @@ const Column = ({
           width: "100%",
           alignItems: "center",
           border: "2px dashed grey",
-          borderRadius: "12px",
+          borderRadius: "8px",
           minHeight: childRefs.length > 0 ? undefined : "80px",
           display: "flex",
           flexDirection: "column",
@@ -114,7 +121,23 @@ const Column = ({
         {childRefs.map(({ childId, childType }) => {
           switch (childType) {
             case BoardObjects.NOTE:
-              return <Note key={childId} id={childId} />;
+              return (
+                <Note
+                  key={childId}
+                  id={childId}
+                  onContextMenu={onContextMenu}
+                  columnWidth={sX}
+                />
+              );
+            case BoardObjects.TASK:
+              return (
+                <Task
+                  key={childId}
+                  id={childId}
+                  onContextMenu={onContextMenu}
+                  columnWidth={sX}
+                />
+              );
             case BoardObjects.BOARD:
               return (
                 <BoardIcon
@@ -122,10 +145,18 @@ const Column = ({
                   id={childId}
                   drop={dropOnBoard}
                   allowDrop={allowDropOnBoard}
+                  onContextMenu={onContextMenu}
                 />
               );
             case BoardObjects.DOCUMENT:
-              return <Document key={childId} id={childId} />;
+              return (
+                <Document
+                  key={childId}
+                  id={childId}
+                  onContextMenu={onContextMenu}
+                  columnWidth={sX}
+                />
+              );
             default:
               break;
           }
@@ -138,13 +169,13 @@ const Column = ({
 const mapStateToProps = (state, ownProps) => {
   const { id } = ownProps;
   const column = state.columns[id];
+
   return {
     title: column.title,
     childRefs: column.childRefs,
     pX: column.pX,
     pY: column.pY,
     sX: column.sX,
-    sY: column.sY,
     parent: column.parent,
   };
 };

@@ -9,7 +9,7 @@ import { EditorContent } from "@tiptap/react";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { useNavigate } from "react-router-dom";
 import React, { useLayoutEffect, useRef, useState } from "react";
-import { StarIcon } from "@chakra-ui/icons";
+import { TbStar as StarIcon } from "react-icons/tb";
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
 import { updateTitle } from "../utils/slices/nodeActions.ts";
 import { Modal } from "./Modular/Modal";
@@ -21,7 +21,16 @@ const previewStyle = {
   borderRadius: "5px",
 };
 
-const BoardIcon = ({ id, pX, pY, title, parent, allowDrop, drop }) => {
+const BoardIcon = ({
+  id,
+  pX,
+  pY,
+  title,
+  parent,
+  allowDrop,
+  drop,
+  onContextMenu,
+}) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const nodeRef = useRef();
@@ -68,6 +77,7 @@ const BoardIcon = ({ id, pX, pY, title, parent, allowDrop, drop }) => {
         pY={pY}
         parent={parent}
         isInColumn={isInColumn}
+        onContextMenu={onContextMenu}
       >
         <div
           className={activeDropZone ? "icon-wrapper dropzone" : "icon-wrapper"}
@@ -76,9 +86,11 @@ const BoardIcon = ({ id, pX, pY, title, parent, allowDrop, drop }) => {
           }}
           onDrop={(event) => {
             event.stopPropagation();
+            if (!drop) return;
             drop(event, id);
           }}
           onDragOver={(event) => {
+            if (!allowDrop) return;
             allowDrop(event);
           }}
         >

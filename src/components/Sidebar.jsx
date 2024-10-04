@@ -5,16 +5,16 @@ import { BoardObjects, SidebarObjects } from "../utils/enums/items";
 import { Button } from "@chakra-ui/react";
 import React from "react";
 import {
-  IconArrowBack,
-  IconArrowLeft,
-  IconCheckbox,
-  IconFileText,
-  IconHome,
-  IconLayoutDashboard,
-  IconNote,
-  IconPhoto,
-  IconStack2,
-} from "@tabler/icons-react";
+  TbArrowBack as IconArrowBack,
+  TbArrowLeft as IconArrowLeft,
+  TbCheckbox as IconCheckbox,
+  TbFileText as IconFileText,
+  TbHome as IconHome,
+  TbLayoutDashboard as IconLayoutDashboard,
+  TbNote as IconNote,
+  TbPhoto as IconPhoto,
+  TbStack2 as IconStack2,
+} from "react-icons/tb";
 import { withRouter } from "./Modular/ComponentWithRouterProp";
 import { useSelector } from "react-redux";
 
@@ -36,7 +36,7 @@ const Sidebar = ({ router }) => {
         }}
         disabled={!board || board.id === "root"}
       >
-        <IconHome />
+        <IconHome size={25} />
       </button>
       <button
         type="button"
@@ -51,44 +51,40 @@ const Sidebar = ({ router }) => {
         }}
         disabled={!board || !board.parent}
       >
-        <IconArrowLeft />
+        <IconArrowLeft size={25} />
       </button>
 
       <SidebarObject
         name="Board"
         type={SidebarObjects.BOARD}
-        icon={<IconLayoutDashboard />}
+        icon={IconLayoutDashboard}
       />
-      <SidebarObject
-        name="Note"
-        type={SidebarObjects.NOTE}
-        icon={<IconNote />}
-      />
+      <SidebarObject name="Note" type={SidebarObjects.NOTE} icon={IconNote} />
       <SidebarObject
         name="Document"
         type={SidebarObjects.DOCUMENT}
-        icon={<IconFileText />}
+        icon={IconFileText}
       />
       <SidebarObject
         name="Column"
         type={SidebarObjects.COLUMN}
-        icon={<IconStack2 />}
+        icon={IconStack2}
       />
       <SidebarObject
         name="To-do"
-        type={SidebarObjects.TODO}
-        icon={<IconCheckbox />}
+        type={SidebarObjects.TASK}
+        icon={IconCheckbox}
       />
       <SidebarObject
         name="Image"
         type={SidebarObjects.IMAGE}
-        icon={<IconPhoto />}
+        icon={IconPhoto}
       />
     </div>
   );
 };
 
-const SidebarObject = ({ name, type, icon }) => {
+const SidebarObject = ({ name, type, icon: Icon }) => {
   const ref = useRef(null);
 
   const handleDragStart = (event) => {
@@ -104,7 +100,7 @@ const SidebarObject = ({ name, type, icon }) => {
       onDragStart={handleDragStart}
       ref={ref}
     >
-      {icon}
+      <Icon size={25} />
       <p>{name}</p>
     </div>
   );

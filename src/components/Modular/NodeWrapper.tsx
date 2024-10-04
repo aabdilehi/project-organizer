@@ -2,6 +2,7 @@ import React, {
   forwardRef,
   LegacyRef,
   ReactElement,
+  useCallback,
   useContext,
   useRef,
 } from "react";
@@ -14,6 +15,7 @@ import { useDispatch, useSelector } from "react-redux";
 import ResizeWrapper from "./ResizeWrapper";
 import { updatePosition } from "../../utils/slices/nodeActions";
 import { StoreState } from "../../utils/enums/state-type";
+import { BoardObjects } from "../../utils/enums/items";
 
 const NodeWrapper = forwardRef(
   (
@@ -29,6 +31,9 @@ const NodeWrapper = forwardRef(
       sX,
       sY,
       isInColumn = false,
+      preview = false,
+      columnWidth,
+      onContextMenu,
       ...props
     }: {
       id: string;
@@ -45,6 +50,9 @@ const NodeWrapper = forwardRef(
       menuProps?: { [menuProp: string]: boolean };
       menuItems?: Element[];
       isInColumn?: boolean;
+      columnWidth?: Number;
+      preview?: boolean;
+      onContextMenu?: React.MouseEventHandler<HTMLDivElement> | undefined;
       children?: ReactElement[];
     },
     nodeRef: LegacyRef<HTMLDivElement>
@@ -64,7 +72,24 @@ const NodeWrapper = forwardRef(
 
     //#region Select node
 
-    const selectedNodes = useSelector((state: StoreState) => state.selection);
+    const [selected, selectData]: [
+      boolean,
+      {
+        id: string;
+        type: BoardObjects;
+        parent: {
+          id: string;
+          type: BoardObjects;
+        };
+      }
+    ] = useSelector((state: StoreState) => [
+      state.selection.hasOwnProperty(id),
+      state.selection[id],
+    ]);
+
+    const dragging: boolean = useSelector((state: StoreState) =>
+      state.drag.hasOwnProperty(id)
+    );
     const dispatch = useDispatch();
 
     const handleSelect = (e) => {
@@ -79,21 +104,23 @@ const NodeWrapper = forwardRef(
         return;
       }
     };
-
-    let isSelected = selectedNodes !== undefined && !!selectedNodes[id];
-
     // update info if out of date i guess
-    if (selectedNodes !== undefined && isSelected) {
-      if (
-        // check info is inconsistent first
-        !!selectedNodes[id] &&
-        !!selectedNodes[id].parent &&
-        selectedNodes[id].parent.id != parent.id
-      ) {
-        dispatch(addSelectNode({ id, type, parent }));
-      }
-    }
+    const updateSelectData = () => {
+      if (!selected) return;
 
+      // check parent data exists
+      if (!selectData.hasOwnProperty("parent")) return;
+
+      // check parent data is consistent
+      if (
+        selectData.parent.id == parent.id &&
+        selectData.parent.type == parent.type
+      )
+        return;
+
+      dispatch(addSelectNode({ id, type, parent }));
+    };
+    updateSelectData();
     //#endregion
 
     //#region  Would be nice if the stored position of the node would update automatically based on the actual element's position
@@ -120,35 +147,34 @@ const NodeWrapper = forwardRef(
         ref={nodeRef}
         id={id}
         data-isincolumn={isInColumn}
-        data-selected={isSelected}
+        data-selected={selected}
         onClick={(e) => {
           e.stopPropagation();
-          if (!isSelected) {
+          if (!selected) {
             handleSelect(e);
           }
         }}
         draggable={canPosition}
         className={`node ${type}${isInColumn ? " in-column" : ""}${
-          isSelected ? " selected" : ""
-        }${!!className ? " " + className : ""}`}
+          selected ? " selected" : ""
+        }${!!className ? " " + className : ""}${
+          dragging && !preview ? " dragging" : ""
+        }`}
         style={{
+          width: `${columnWidth}px`,
           transform: `translate(${pX}px, ${pY}px)`,
-          height: "200px !important",
-          width: "200px !important",
         }}
         tabIndex={-1}
-        onContextMenuCapture={(e) => {
-          if (!isSelected) {
+        onContextMenu={(e) => {
+          e.stopPropagation();
+          if (!selected) {
             handleSelect(e);
           }
+          if (!onContextMenu) return;
+          onContextMenu(e);
         }}
-        onTouchStart={(e) => {
-          if (!isSelected) {
-            handleSelect(e);
-          }
-        }}
-        onDragStartCapture={(e) => {
-          if (!isSelected) {
+        onDragStart={(e) => {
+          if (!selected) {
             handleSelect(e);
           }
         }}

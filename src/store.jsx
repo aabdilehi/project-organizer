@@ -12,6 +12,7 @@ import taskReducer from "./utils/slices/taskSlice";
 import docReducer from "./utils/slices/docSlice";
 import selectionReducer from "./utils/slices/selectionSlice";
 import copiedReducer from "./utils/slices/copiedSlice";
+import dragReducer from "./utils/slices/dragSlice";
 
 const initialState = {
   boards: {},
@@ -22,6 +23,7 @@ const initialState = {
   tasks: {},
   selection: {},
   copied: [],
+  drag: {},
 };
 
 const rootReducer = combineReducers({
@@ -33,12 +35,13 @@ const rootReducer = combineReducers({
   documents: docReducer,
   selection: selectionReducer,
   copied: copiedReducer,
+  drag: dragReducer,
 });
 
 const persistConfig = {
   key: "root",
   storage,
-  blacklist: ["selection", "copied"],
+  blacklist: ["selection", "copied", "drag"],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

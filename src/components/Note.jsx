@@ -28,9 +28,20 @@ import { DocumentC } from "../utils/classes/classes";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
 
-const Note = ({ id, pX, pY, sX, sY, content, parent }) => {
+const Note = ({
+  id,
+  pX,
+  pY,
+  sX,
+  sY,
+  columnWidth,
+  content,
+  parent,
+  onContextMenu,
+}) => {
   const dispatch = useDispatch();
   const selected = useSelector((state) => !!state.selection[id]);
+  const dragging = useSelector((state) => !!state.drag[id]);
   const nodeRef = useRef();
 
   const editor = useEditor({
@@ -129,10 +140,13 @@ const Note = ({ id, pX, pY, sX, sY, content, parent }) => {
       sX={sX}
       sY={sY}
       parent={parent}
-      className={editor?.isEditable ? "editing" : undefined}
+      className={`${editor?.isEditable ? " editing" : ""}`}
       isInColumn={isInColumn}
+      columnWidth={columnWidth}
+      onContextMenu={onContextMenu}
     >
       <EditorContent
+        draggable={false}
         style={{
           padding: 0,
           margin: 0,

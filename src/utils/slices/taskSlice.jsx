@@ -14,19 +14,21 @@ const taskSlice = createSlice({
   initialState: {},
   reducers: {
     updateTaskStatus: (state, action) => {
-      const { taskId, taskStatus } = action.payload;
+      const { taskId, status } = action.payload;
       const task = state[taskId];
+      if (!task) return;
       return {
         ...state,
         [taskId]: {
           ...task,
-          taskStatus,
+          status,
         },
       };
     },
     updateDeadline: (state, action) => {
       const { taskId, deadline } = action.payload;
       const task = state[taskId];
+      if (!task || !deadline) return;
       return {
         ...state,
         [taskId]: {
@@ -38,19 +40,19 @@ const taskSlice = createSlice({
     addBadge: (state, action) => {
       const { taskId, newBadge } = action.payload;
       const task = state[taskId];
-      const badges = { ...task.badges };
-      badges[newBadge.id] = newBadge;
+      if (!task || !newBadge) return;
       return {
         ...state,
         [taskId]: {
           ...task,
-          badges,
+          badges: { ...task.badges, [newBadge.id]: newBadge },
         },
       };
     },
     removeBadge: (state, action) => {
       const { taskId, badgeId } = action.payload;
       const task = state[taskId];
+      if (!task) return;
       const badges = { ...task.badges };
       delete badges[badgeId];
       return {
@@ -66,6 +68,7 @@ const taskSlice = createSlice({
       const task = state[taskId];
       const badges = task.badges;
       const badge = { ...badges[badgeId] };
+      if (!task || !badge) return;
       badge.text = text;
 
       return {
@@ -81,13 +84,13 @@ const taskSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(addNode.action, addNode.reducer("to-do"));
-    builder.addCase(removeNode.action, removeNode.reducer("to-do"));
-    builder.addCase(updateTitle.action, updateTitle.reducer("to-do"));
-    builder.addCase(updateContent.action, updateContent.reducer("to-do"));
-    builder.addCase(updatePosition.action, updatePosition.reducer("to-do"));
-    builder.addCase(offsetPosition.action, offsetPosition.reducer("to-do"));
-    builder.addCase(updateParent.action, updateParent.reducer("to-do"));
+    builder.addCase(addNode.action, addNode.reducer("task"));
+    builder.addCase(removeNode.action, removeNode.reducer("task"));
+    builder.addCase(updateTitle.action, updateTitle.reducer("task"));
+    builder.addCase(updateContent.action, updateContent.reducer("task"));
+    builder.addCase(updatePosition.action, updatePosition.reducer("task"));
+    builder.addCase(offsetPosition.action, offsetPosition.reducer("task"));
+    builder.addCase(updateParent.action, updateParent.reducer("task"));
   },
 });
 

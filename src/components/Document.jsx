@@ -9,7 +9,6 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { useNavigate } from "react-router-dom";
 import React, { useEffect, useRef, useState } from "react";
-import { StarIcon } from "@chakra-ui/icons";
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
 import { updateContent, updateTitle } from "../utils/slices/nodeActions.ts";
 import { Modal } from "./Modular/Modal";
@@ -21,7 +20,8 @@ import TextAlign from "@tiptap/extension-text-align";
 import TextStyle from "@tiptap/extension-text-style";
 import Underline from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
-import { IconFileText } from "@tabler/icons-react";
+import { TbFileText } from "react-icons/tb";
+import { MenuBar } from "./Modular/Editor.jsx";
 
 const previewStyle = {
   fontWeight: "800",
@@ -30,7 +30,17 @@ const previewStyle = {
   borderRadius: "5px",
 };
 
-const Document = ({ id, pX, pY, title, content, parent }) => {
+const Document = ({
+  id,
+  pX,
+  pY,
+  title,
+  content,
+  parent,
+  columnWidth,
+  onContextMenu,
+  onDragStart,
+}) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -99,9 +109,12 @@ const Document = ({ id, pX, pY, title, content, parent }) => {
         pY={pY}
         parent={parent}
         isInColumn={isInColumn}
+        columnWidth={columnWidth}
+        onContextMenu={onContextMenu}
+        onDragStart={onDragStart}
       >
         <div className="icon-wrapper" onDoubleClick={() => setOpen(true)}>
-          <IconFileText pointerEvents={"none"} />
+          <TbFileText pointerEvents={"none"} />
         </div>
         <CustomEditablePreview
           as={"p"}
@@ -119,11 +132,15 @@ const Document = ({ id, pX, pY, title, content, parent }) => {
           }
         />
       </NodeWrapper>
-      <Modal open={open} setOpen={(boolean) => setOpen(boolean)}>
+      <Modal
+        open={open}
+        setOpen={(boolean) => setOpen(boolean)}
+        modalStyle={{ padding: "55px 0", boxSizing: "border-box" }}
+      >
+        <MenuBar editor={editor} />
         <EditorContent
           style={{
-            height: "fit-content",
-            minHeight: "70vh",
+            height: "100%",
             padding: 0,
             margin: 0,
             border: "none",
