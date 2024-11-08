@@ -30,6 +30,10 @@ const addChildReducer = (nodeType) => (state, action) => {
   const { id, type, cId, cType } = action.payload;
   if (!id || !cId || !cType || type !== nodeType) return;
   const node = state[id];
+  const index = node.childRefs.findIndex((item) => {
+    return item.childId === cId;
+  });
+  if (index !== -1) return;
   return {
     ...state,
     [id]: {
@@ -46,6 +50,7 @@ const removeChildReducer = (nodeType) => (state, action) => {
     return item.childId === cId;
   });
   if (index === -1) return;
+  console.log([...node.childRefs]);
   return {
     ...state,
     [id]: {

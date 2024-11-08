@@ -1,12 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import "../App.css";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useRef } from "react";
 
 import { BoardObjects } from "../utils/enums/items";
 import "../editor.scss";
-import { ListItem, MenuItem } from "@chakra-ui/react";
-import { bindActionCreators } from "redux";
-import { connect, useDispatch, useSelector } from "react-redux";
+import { ListItem } from "@chakra-ui/react";
+import { connect } from "react-redux";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Color from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
@@ -16,17 +15,8 @@ import Highlight from "@tiptap/extension-highlight";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
-import { useContext } from "react";
-import {
-  addChild,
-  addNode,
-  removeChild,
-  removeNode,
-  updateContent,
-} from "../utils/slices/nodeActions";
-import { DocumentC } from "../utils/classes/classes";
+import { updateContent } from "../utils/slices/nodeActions";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
-import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
 
 const Note = ({
   id,
@@ -38,10 +28,8 @@ const Note = ({
   content,
   parent,
   onContextMenu,
+  ...props
 }) => {
-  const dispatch = useDispatch();
-  const selected = useSelector((state) => !!state.selection[id]);
-  const dragging = useSelector((state) => !!state.drag[id]);
   const nodeRef = useRef();
 
   const editor = useEditor({
@@ -73,59 +61,26 @@ const Note = ({
       editor.setEditable(false);
     },
     onUpdate: ({ editor }) => {
-      dispatch(
-        updateContent.action({
-          id,
-          type: BoardObjects.NOTE,
-          content: editor.getHTML(),
-        })
-      );
-
+      props.updateContent(editor);
       let { from, to } = editor.state.selection;
       editor.commands.setTextSelection({ from, to });
     },
   });
 
   const handleClick = (event) => {
-    console.log("NOTE");
     if (event.button === 0) {
       if (!editor) {
         return;
       }
 
+      console.log("EDIT");
       // Set to edit mode
-      if (!event.ctrlKey && !event.shiftKey && selected) {
+      if (!event.ctrlKey && !event.shiftKey && props.selected) {
         editor.setEditable(true);
         editor.commands.focus();
         return;
       }
     }
-  };
-
-  // Determines sizing and positioning based on whether in column or not
-  let isInColumn = parent.type === BoardObjects.COLUMN;
-
-  const convertNote = () => {
-    const { ...newDocument } = new DocumentC({
-      id,
-      pX,
-      pY,
-      title: `${editor?.getText().slice(0, 10)}...`,
-      content,
-      parent,
-    });
-
-    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
-    dispatch(removeNode.action({ id, type: BoardObjects.NOTE }));
-    dispatch(addNode.action(newDocument));
-    dispatch(
-      addChild.action({
-        id: parent.id,
-        type: parent.type,
-        cId: id,
-        cType: BoardObjects.DOCUMENT,
-      })
-    );
   };
 
   return (
@@ -141,7 +96,7 @@ const Note = ({
       sY={sY}
       parent={parent}
       className={`${editor?.isEditable ? " editing" : ""}`}
-      isInColumn={isInColumn}
+      isInColumn={props.isInColumn}
       columnWidth={columnWidth}
       onContextMenu={onContextMenu}
     >
@@ -170,15 +125,27 @@ const mapStateToProps = (state, ownProps) => {
   return {
     pX: note.pX,
     pY: note.pY,
-    sX: note.sX,
+    sX: note.sX ?? 200,
     sY: note.sY,
     content: note.content,
     parent: note.parent,
+    selected: state.selection.hasOwnProperty(id),
+    // SET TRANSFORM ORIGIN OF BOARD TO MOUSE POSITION
   };
 };
 
-const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators({}, dispatch);
+const mapDispatchToProps = (dispatch, ownProps) => {
+  return {
+    updateContent: (editor) => {
+      dispatch(
+        updateContent.action({
+          id: ownProps.id,
+          type: BoardObjects.NOTE,
+          content: editor.getHTML(),
+        })
+      );
+    },
+  };
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(Note);

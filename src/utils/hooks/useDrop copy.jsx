@@ -67,7 +67,7 @@ export function useDrop({ boardRef, scale, offset }) {
     if (data) {
       data = JSON.parse(data);
       if (!boardAcceptedTypes.includes(data.type)) return;
-      createNode(event, data, id, BoardObjects.BOARD, offset, scale);
+      createNode(event, data, id, BoardObjects.BOARD);
       return;
     }
     //#endregion
@@ -138,7 +138,7 @@ export function useDrop({ boardRef, scale, offset }) {
       }
       event.stopPropagation();
       event.preventDefault();
-      createNode(event, data, id, BoardObjects.COLUMN, offset, scale);
+      createNode(event, data, id, BoardObjects.COLUMN);
       return;
     }
     //#endregion
@@ -162,12 +162,11 @@ export function useDrop({ boardRef, scale, offset }) {
     //#endregion
   }
 
-  function createNode(event, data, pId, pType, offset, scale) {
+  function createNode(event, data, pId, pType, extraData = {}) {
+    if (boardRef == null) return;
     const boundingRect = boardRef.current.getBoundingClientRect();
-    const xCoord =
-      (event.clientX - boundingRect.left - offset.current.x) / scale.current;
-    const yCoord =
-      (event.clientY - boundingRect.top - offset.current.y) / scale.current;
+    const xCoord = event.clientX - boundingRect.left;
+    const yCoord = event.clientY - boundingRect.top;
     let node;
 
     switch (data.type) {
@@ -179,6 +178,7 @@ export function useDrop({ boardRef, scale, offset }) {
             id: pId,
             type: pType,
           },
+          ...extraData,
         }).serialize();
         break;
       case SidebarObjects.IMAGE:

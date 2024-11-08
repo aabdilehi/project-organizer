@@ -3,10 +3,8 @@ import "../App.css";
 import { useRef } from "react";
 
 import "../editor.scss";
-import { bindActionCreators } from "redux";
 import { connect } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
-import { BoardObjects } from "../utils/enums/items.tsx";
 
 const NotePreview = ({
   id,
@@ -14,10 +12,9 @@ const NotePreview = ({
   pY,
   sX,
   sY,
-  offsetX,
-  offsetY,
   content,
   parent,
+  columnWidth,
   isInColumn = false,
 }) => {
   const nodeRef = useRef();
@@ -25,23 +22,24 @@ const NotePreview = ({
   return (
     <NodeWrapper
       ref={nodeRef}
-      className="clone"
       id={id}
       type={"note"}
       canPosition={true}
       canResize={false}
       preview
-      pX={pX + offsetX}
-      pY={pY + offsetY}
+      pX={pX}
+      pY={pY}
       sX={sX}
       sY={sY}
       parent={parent}
       isInColumn={isInColumn}
+      columnWidth={columnWidth}
     >
       <div
         className="ProseMirror"
         style={{
           padding: "15px",
+          boxSizing: "border-box",
           margin: 0,
           height: "fit-content",
           minHeight: sY + "px",
@@ -57,7 +55,7 @@ const NotePreview = ({
 
 const mapStateToProps = (state, ownProps) => {
   const { id } = ownProps;
-  const note = state.notes[id];
+  const note = state.notes[id] ?? state.drag.nodes[id];
   return {
     pX: note.pX,
     pY: note.pY,
@@ -68,8 +66,4 @@ const mapStateToProps = (state, ownProps) => {
   };
 };
 
-const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators({}, dispatch);
-};
-
-export default connect(mapStateToProps, mapDispatchToProps)(NotePreview);
+export default connect(mapStateToProps, null)(NotePreview);

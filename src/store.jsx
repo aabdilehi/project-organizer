@@ -15,15 +15,27 @@ import copiedReducer from "./utils/slices/copiedSlice";
 import dragReducer from "./utils/slices/dragSlice";
 
 const initialState = {
-  boards: {},
+  boards: {
+    root: {
+      id: "root",
+      title: "Home",
+      childRefs: [],
+    },
+  },
   columns: {},
   notes: {},
   documents: {},
   pictures: {},
   tasks: {},
   selection: {},
-  copied: [],
-  drag: {},
+  copied: {
+    position: { x: 0, y: 0 },
+    nodes: [],
+  },
+  drag: {
+    initialPosition: { x: 0, y: 0 },
+    nodes: {},
+  },
 };
 
 const rootReducer = combineReducers({

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { useLayoutEffect, useRef, useState } from "react";
-import { BoardObjects } from "../utils/enums/items";
+import { BoardObjects, SidebarObjects } from "../utils/enums/items";
 import { bindActionCreators } from "redux";
 import { connect, useDispatch, useSelector } from "react-redux";
 import { debounce } from "lodash";
@@ -8,11 +8,25 @@ import { debounce } from "lodash";
 import Note from "./Note";
 
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
-import { updateTitle } from "../utils/slices/nodeActions";
+import {
+  addChild,
+  addNode,
+  removeChild,
+  updateParent,
+  updateTitle,
+} from "../utils/slices/nodeActions";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import BoardIcon from "./BoardIcon.jsx";
 import Document from "./Document.jsx";
 import Task from "./Task.jsx";
+import {
+  BoardClass,
+  ColumnClass,
+  DocumentClass,
+  NoteClass,
+  TaskClass,
+} from "../utils/classes/new-classes.ts";
+import { PictureC } from "../utils/classes/classes.js";
 
 const previewStyle = {
   fontWeight: "800",
@@ -196,7 +210,133 @@ const mapDispatchToProps = (dispatch, ownProps) => {
           title: value,
         })
       ),
+    createNode: (event, boardRef, data, pId, pType) => {
+      if (boardRef.current == null) return;
+      const boundingRect = boardRef.current.getBoundingClientRect();
+      const xCoord = event.clientX - boundingRect.left;
+      const yCoord = event.clientY - boundingRect.top;
+      let node;
+
+      switch (data.type) {
+        case SidebarObjects.NOTE:
+          node = new NoteClass({
+            pX: xCoord,
+            pY: yCoord,
+            parent: {
+              id: pId,
+              type: pType,
+            },
+          }).serialize();
+          break;
+        case SidebarObjects.IMAGE:
+          node = new PictureC({
+            pX: xCoord,
+            pY: yCoord,
+            parent: {
+              id: pId,
+              type: pType,
+            },
+          });
+          break;
+
+        case SidebarObjects.TASK:
+          node = new TaskClass({
+            pX: xCoord,
+            pY: yCoord,
+            parent: {
+              id: pId,
+              type: pType,
+            },
+          }).serialize();
+          break;
+        case SidebarObjects.BOARD:
+          node = new BoardClass({
+            pX: xCoord,
+            pY: yCoord,
+            parent: {
+              id: pId,
+              type: pType,
+            },
+          }).serialize();
+          break;
+        case SidebarObjects.COLUMN:
+          node = new ColumnClass({
+            pX: xCoord,
+            pY: yCoord,
+            parent: {
+              id: pId,
+              type: pType,
+            },
+          }).serialize();
+          break;
+        case SidebarObjects.DOCUMENT:
+          node = new DocumentClass({
+            pX: xCoord,
+            pY: yCoord,
+            parent: {
+              id: pId,
+              type: pType,
+            },
+          }).serialize();
+          break;
+      }
+
+      if (!!node) {
+        dispatch(addNode.action(node));
+        dispatch(
+          addChild.action({
+            id: pId,
+            type: pType,
+            cId: node.id,
+            cType: node.type,
+          })
+        );
+      }
+    },
+    updateNodeParent: (data, pId, pType) => {
+      console.log(data);
+
+      dispatch(
+        updateParent.action({
+          id: data.id,
+          type: data.type,
+          parent: {
+            id: pId,
+            type: pType,
+          },
+        })
+      );
+      dispatch(
+        removeChild.action({
+          id: data.parent.id,
+          type: data.parent.type,
+          cId: data.id,
+        })
+      );
+      dispatch(
+        addChild.action({
+          id: pId,
+          type: pType,
+          cId: data.id,
+          cType: data.type,
+        })
+      );
+    },
   };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(Column);
+const mergeProps = (stateProps, dispatchProps, ownProps) => {
+  return {
+    ...ownProps,
+    ...stateProps,
+    handleSelect: dispatchProps.handleSelect,
+    updateSelectData: () => {
+      dispatchProps.updateSelectData(
+        stateProps.selected,
+        stateProps.selectData
+      );
+    },
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps, mergeProps)(Column);

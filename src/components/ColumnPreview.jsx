@@ -1,19 +1,15 @@
 /** @jsxImportSource @emotion/react */
-import { useLayoutEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { BoardObjects } from "../utils/enums/items";
 import { bindActionCreators } from "redux";
-import { connect, useDispatch, useSelector } from "react-redux";
-import { debounce } from "lodash";
-
-import Note from "./Note";
+import { connect } from "react-redux";
 
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
-import { updateTitle } from "../utils/slices/nodeActions";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
-import BoardIcon from "./BoardIcon.jsx";
-import Document from "./Document.jsx";
-import Task from "./Task.jsx";
 import NotePreview from "./NotePreview.jsx";
+import TaskPreview from "./TaskPreview.jsx";
+import BoardIconPreview from "./BoardIconPreview.jsx";
+import DocumentPreview from "./DocumentPreview.jsx";
 
 const previewStyle = {
   fontWeight: "800",
@@ -59,10 +55,41 @@ const ColumnPreview = ({ id, pX, pY, sX, title, childRefs, parent }) => {
         {childRefs.map(({ childId, childType }) => {
           switch (childType) {
             case BoardObjects.NOTE:
-              return <NotePreview key={childId} id={childId} isInColumn />;
+              return (
+                <NotePreview
+                  key={childId}
+                  id={childId}
+                  columnWidth={sX}
+                  isInColumn
+                />
+              );
             case BoardObjects.TASK:
+              return (
+                <TaskPreview
+                  key={childId}
+                  id={childId}
+                  columnWidth={sX}
+                  isInColumn
+                />
+              );
             case BoardObjects.BOARD:
+              return (
+                <BoardIconPreview
+                  key={childId}
+                  id={childId}
+                  columnWidth={sX}
+                  isInColumn
+                />
+              );
             case BoardObjects.DOCUMENT:
+              return (
+                <DocumentPreview
+                  key={childId}
+                  id={childId}
+                  columnWidth={sX}
+                  isInColumn
+                />
+              );
             default:
               break;
           }
@@ -74,7 +101,7 @@ const ColumnPreview = ({ id, pX, pY, sX, title, childRefs, parent }) => {
 
 const mapStateToProps = (state, ownProps) => {
   const { id } = ownProps;
-  const column = state.columns[id];
+  const column = state.columns[id] ?? state.drag.nodes[id];
 
   return {
     title: column.title,

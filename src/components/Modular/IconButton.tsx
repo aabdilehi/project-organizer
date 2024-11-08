@@ -10,8 +10,8 @@ export default ({
   iconProps?: IconBaseProps;
 }) => {
   return (
-    <button {...buttonProps}>
-      <Icon className="icon" {...iconProps} />
+    <button type="button" {...buttonProps}>
+      <Icon className="icon" style={{ margin: "auto" }} {...iconProps} />
     </button>
   );
 };

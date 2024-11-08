@@ -31,13 +31,16 @@ export type StoreState = EmptyObject & {
     nodes: [];
   };
   drag: {
-    // Copied from selection
-    [id: string]: {
-      id: string;
-      type: BoardObjects;
-      parent: {
+    initialPosition: { x: number; y: number };
+    nodes: {
+      // Copied from selection
+      [id: string]: {
         id: string;
         type: BoardObjects;
+        parent: {
+          id: string;
+          type: BoardObjects;
+        };
       };
     };
   };

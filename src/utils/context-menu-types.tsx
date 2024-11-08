@@ -153,12 +153,7 @@ const createNode = (
 
 export type ContextMenuItem = {
   label: string;
-  onClick?: (id: string) => any;
-};
-
-export type NewNodeMenuItem = {
-  label: string;
-  onClick?: (id: string, x: number, y: number) => any;
+  onClick?: (id: string, x?: number, y?: number) => any;
 };
 
 type ContextMenu = {
@@ -166,7 +161,7 @@ type ContextMenu = {
   canCut: boolean;
   canPaste: boolean;
   canDelete: boolean;
-  items: Array<ContextMenuItem | NewNodeMenuItem> | null[];
+  items: Array<ContextMenuItem> | null[];
 };
 
 type ContextMenuMap = {
@@ -182,17 +177,17 @@ export const NullContextMenu: ContextMenu = {
   items: [
     {
       label: "New Note",
-      onClick: (id: string, x: number, y: number) =>
+      onClick: (id: string, x?: number, y?: number) =>
         createNode(BoardObjects.NOTE, { id, type: BoardObjects.BOARD }, x, y),
     },
     {
       label: "New Column",
-      onClick: (id: string, x: number, y: number) =>
+      onClick: (id: string, x?: number, y?: number) =>
         createNode(BoardObjects.COLUMN, { id, type: BoardObjects.BOARD }, x, y),
     },
     {
       label: "New Board",
-      onClick: (id: string, x: number, y: number) =>
+      onClick: (id: string, x?: number, y?: number) =>
         createNode(BoardObjects.BOARD, { id, type: BoardObjects.BOARD }, x, y),
     },
   ],

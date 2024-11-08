@@ -111,7 +111,6 @@ const Document = ({
         isInColumn={isInColumn}
         columnWidth={columnWidth}
         onContextMenu={onContextMenu}
-        onDragStart={onDragStart}
       >
         <div className="icon-wrapper" onDoubleClick={() => setOpen(true)}>
           <TbFileText pointerEvents={"none"} />

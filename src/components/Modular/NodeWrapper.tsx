@@ -4,6 +4,7 @@ import React, {
   ReactElement,
   useCallback,
   useContext,
+  useEffect,
   useRef,
 } from "react";
 import {
@@ -11,7 +12,7 @@ import {
   selectNode,
   toggleSelectNode,
 } from "../../utils/slices/selectionSlice";
-import { useDispatch, useSelector } from "react-redux";
+import { connect, useDispatch, useSelector } from "react-redux";
 import ResizeWrapper from "./ResizeWrapper";
 import { updatePosition } from "../../utils/slices/nodeActions";
 import { StoreState } from "../../utils/enums/state-type";
@@ -34,6 +35,10 @@ const NodeWrapper = forwardRef(
       preview = false,
       columnWidth,
       onContextMenu,
+      selected,
+      dragging,
+      handleSelect,
+      updateSelectData,
       ...props
     }: {
       id: string;
@@ -54,6 +59,10 @@ const NodeWrapper = forwardRef(
       preview?: boolean;
       onContextMenu?: React.MouseEventHandler<HTMLDivElement> | undefined;
       children?: ReactElement[];
+      selected: boolean;
+      dragging: boolean;
+      handleSelect: React.MouseEventHandler<HTMLDivElement>;
+      updateSelectData: () => void;
     },
     nodeRef: LegacyRef<HTMLDivElement>
   ) => {
@@ -72,55 +81,9 @@ const NodeWrapper = forwardRef(
 
     //#region Select node
 
-    const [selected, selectData]: [
-      boolean,
-      {
-        id: string;
-        type: BoardObjects;
-        parent: {
-          id: string;
-          type: BoardObjects;
-        };
-      }
-    ] = useSelector((state: StoreState) => [
-      state.selection.hasOwnProperty(id),
-      state.selection[id],
-    ]);
-
-    const dragging: boolean = useSelector((state: StoreState) =>
-      state.drag.hasOwnProperty(id)
-    );
-    const dispatch = useDispatch();
-
-    const handleSelect = (e) => {
-      if (e.shiftKey) {
-        dispatch(addSelectNode({ id, type, parent }));
-        return;
-      } else if (e.ctrlKey) {
-        dispatch(toggleSelectNode({ id, type, parent }));
-        return;
-      } else {
-        dispatch(selectNode({ id, type, parent }));
-        return;
-      }
-    };
     // update info if out of date i guess
-    const updateSelectData = () => {
-      if (!selected) return;
-
-      // check parent data exists
-      if (!selectData.hasOwnProperty("parent")) return;
-
-      // check parent data is consistent
-      if (
-        selectData.parent.id == parent.id &&
-        selectData.parent.type == parent.type
-      )
-        return;
-
-      dispatch(addSelectNode({ id, type, parent }));
-    };
     updateSelectData();
+
     //#endregion
 
     //#region  Would be nice if the stored position of the node would update automatically based on the actual element's position
@@ -161,7 +124,7 @@ const NodeWrapper = forwardRef(
           dragging && !preview ? " dragging" : ""
         }`}
         style={{
-          width: `${columnWidth}px`,
+          width: columnWidth ? `${columnWidth}px` : sX ? `${sX}px` : undefined,
           transform: `translate(${pX}px, ${pY}px)`,
         }}
         tabIndex={-1}
@@ -186,4 +149,90 @@ const NodeWrapper = forwardRef(
   }
 );
 
-export default NodeWrapper;
+const mapStateToProps = (state, ownProps) => {
+  const { id } = ownProps;
+
+  return {
+    selected: state.selection.hasOwnProperty(id),
+    selectData: state.selection,
+    dragging: state.drag.nodes.hasOwnProperty(id),
+    isInColumn:
+      (!ownProps.preview && ownProps.parent.type === BoardObjects.COLUMN) ||
+      (ownProps.preview && ownProps.isInColumn),
+  };
+};
+
+const mapDispatchToProps = (dispatch, ownProps) => {
+  return {
+    handleSelect: (event) => {
+      if (event.shiftKey) {
+        dispatch(
+          addSelectNode({
+            id: ownProps.id,
+            type: ownProps.type,
+            parent: ownProps.parent,
+          })
+        );
+        return;
+      } else if (event.ctrlKey) {
+        dispatch(
+          toggleSelectNode({
+            id: ownProps.id,
+            type: ownProps.type,
+            parent: ownProps.parent,
+          })
+        );
+        return;
+      } else {
+        dispatch(
+          selectNode({
+            id: ownProps.id,
+            type: ownProps.type,
+            parent: ownProps.parent,
+          })
+        );
+        return;
+      }
+    },
+    updateSelectData: (selected, selectData) => {
+      if (!selected) return;
+
+      // check parent data exists
+      if (!selectData[ownProps.id].hasOwnProperty("parent")) return;
+
+      // check parent data is consistent
+      if (
+        selectData[ownProps.id].parent.id == ownProps.parent.id &&
+        selectData[ownProps.id].parent.type == ownProps.parent.type
+      )
+        return;
+      dispatch(
+        addSelectNode({
+          id: ownProps.id,
+          type: ownProps.type,
+          parent: ownProps.parent,
+        })
+      );
+    },
+  };
+};
+
+const mergeProps = (stateProps, dispatchProps, ownProps) => {
+  return {
+    ...ownProps,
+    ...stateProps,
+    handleSelect: dispatchProps.handleSelect,
+    updateSelectData: () => {
+      dispatchProps.updateSelectData(
+        stateProps.selected,
+        stateProps.selectData
+      );
+    },
+  };
+};
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+  mergeProps
+)(NodeWrapper);

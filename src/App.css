@@ -1,3 +1,22 @@
+button {
+  appearance: none;
+  border: none;
+  outline: none;
+}
+
+button.badge {
+  border-radius: 100%;
+  padding: 7px;
+  height: min-content;
+  background-color: #5c61c1;
+}
+button.badge:hover {
+  background-color: #646cff;
+}
+button.badge:active {
+  background-color: white;
+}
+
 #container {
   display: flex;
   flex-direction: row;
@@ -12,21 +31,20 @@
   overflow: hidden;
   margin: 0;
   padding: 0;
-}
-
-.board-transform {
-  transform-origin: top left;
-  background-size: 40px 40px;
   background-image: radial-gradient(
     circle,
     #000000 1px,
-    var(--secondary-color) 1px
+    var(--secondary-color) 2px
   );
+  transition: background 0.1s cubic-bezier(0.5, 1, 0.89, 1);
+}
+
+.board-transform {
   overflow: visible;
   height: 100%;
   width: 100%;
-  transform-origin: center;
   transition: transform 0.1s cubic-bezier(0.5, 1, 0.89, 1);
+  transform-origin: top left;
 }
 
 .clone-container {
@@ -36,8 +54,10 @@
   width: 100%;
   height: 100%;
   z-index: 99;
-  transform-origin: center;
   transform: matrix(0.1, 0, 0, 0.1, 100, 100);
+
+  transition: none;
+  transform-origin: top left;
 }
 
 .clone-container > * {
@@ -361,9 +381,14 @@
 /* Modal END */
 
 .dropzone {
-  background-color: #646cff;
-  outline: dashed 4px olive;
-  box-sizing: content-box;
+  background-color: #1a1c46 !important;
+  outline: dashed 4px rgb(255, 255, 255) !important;
+  box-sizing: content-box !important;
+}
+
+.dropzone.over {
+  background-color: #646cff !important;
+  outline: dashed 4px olive !important;
 }
 
 /* Tooltip START */

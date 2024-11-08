@@ -21,7 +21,8 @@ const copiedSlice = createSlice({
     },
     setPosition: (state, action) => {
       // only want to do this once at the beginning
-      const { x = 0, y = 0 } = action.payload;
+      const { x, y } = action.payload;
+      if (!x || !y) return;
       return { ...state, position: { x, y } };
     },
     addCopyNode: (state, action) => {

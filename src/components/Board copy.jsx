@@ -223,6 +223,8 @@ const mapStateToProps = (state, ownProps) => {
       title: board.title,
       childRefs: board.childRefs,
       parent: board.parent,
+      offset: board.offset,
+      scale: board.scale,
     };
   }
   return {

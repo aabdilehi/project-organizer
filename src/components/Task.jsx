@@ -4,27 +4,14 @@ import "../App.css";
 import { BoardObjects } from "../utils/enums/items.tsx";
 import "../editor.scss";
 import { bindActionCreators } from "redux";
-import { connect, useDispatch, useSelector } from "react-redux";
-import { EditorContent } from "@tiptap/react";
+import { connect, useDispatch } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
-import { useNavigate } from "react-router-dom";
-import React, { useLayoutEffect, useRef, useState } from "react";
-import {
-  TbStar as StarIcon,
-  TbCheck,
-  TbCross,
-  TbPlus,
-  TbX,
-} from "react-icons/tb";
+import { useRef, useState } from "react";
+import { TbCheck, TbPlus, TbX } from "react-icons/tb";
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
 import { updateContent, updateTitle } from "../utils/slices/nodeActions.ts";
 import { Modal } from "./Modular/Modal.tsx";
-import {
-  addBadge,
-  removeBadge,
-  updateBadgeText,
-  updateTaskStatus,
-} from "../utils/slices/taskSlice.jsx";
+import { setBadges, updateTaskStatus } from "../utils/slices/taskSlice.jsx";
 import { BadgeEdit, BadgePreview } from "./Modular/Badge.tsx";
 import AutoResizeTextArea from "./Modular/AutoResizeTextArea.tsx";
 import IconButton from "./Modular/IconButton.tsx";
@@ -55,6 +42,7 @@ const Task = ({
   const [open, setOpen] = useState(false);
   const taskTitleRef = useRef(null);
   const taskSummaryRef = useRef(null);
+  const [tempBadges, setTempBadges] = useState(badges);
 
   // Determines sizing and positioning based on whether in column or not
   let isInColumn = parent.type === BoardObjects.COLUMN;
@@ -76,7 +64,7 @@ const Task = ({
       >
         <input
           type="checkbox"
-          style={{ gridArea: "checkbox" }}
+          style={{ gridArea: "checkbox", height: "20px", alignSelf: "center" }}
           checked={status}
           onChange={(e) => {
             console.log(e.target.value);
@@ -200,6 +188,43 @@ const Task = ({
             style={{
               display: "flex",
               flexDirection: "row",
+              flexWrap: "wrap",
+              gap: "2px",
+            }}
+          >
+            {Object.values(tempBadges).length > 0 ? (
+              <>
+                {Object.values(tempBadges).map((badge) => (
+                  <BadgeEdit
+                    text={badge.text}
+                    onChange={(text) => {
+                      const copy = { ...tempBadges };
+                      copy[badge.id].text = text;
+                      setTempBadges(copy);
+                    }}
+                    onDelete={() => {
+                      const copy = { ...tempBadges };
+                      delete copy[badge.id];
+                      setTempBadges(copy);
+                    }}
+                  />
+                ))}
+              </>
+            ) : undefined}
+            <IconButton
+              className="badge"
+              icon={TbPlus}
+              onClick={() => {
+                const badge = new BadgeClass();
+                const copy = { ...tempBadges, [badge.id]: badge };
+                setTempBadges(copy);
+              }}
+            />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
               justifyContent: "right",
             }}
           >
@@ -229,6 +254,14 @@ const Task = ({
                     })
                   );
                 }
+                if (tempBadges) {
+                  dispatch(
+                    setBadges({
+                      taskId: id,
+                      badges: tempBadges,
+                    })
+                  );
+                }
                 setOpen(false);
               }}
             >
@@ -242,47 +275,13 @@ const Task = ({
                 height: "40px",
                 borderRadius: "0.375rem",
               }}
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setTempBadges(badges);
+                setOpen(false);
+              }}
             >
               <TbX size={24} />
             </button>
-          </div>
-          <div>
-            {Object.values(badges).length > 0 ? (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  gap: "2px",
-                }}
-              >
-                {Object.values(badges).map((badge) => (
-                  <BadgeEdit
-                    text={badge.text}
-                    onChange={(text) =>
-                      dispatch(
-                        updateBadgeText({ taskId: id, badgeId: badge.id, text })
-                      )
-                    }
-                    onDelete={() => {
-                      dispatch(removeBadge({ taskId: id, badgeId: badge.id }));
-                    }}
-                  />
-                ))}
-              </div>
-            ) : undefined}
-            <IconButton
-              icon={TbPlus}
-              onClick={() =>
-                dispatch(
-                  addBadge({
-                    taskId: id,
-                    newBadge: new BadgeClass().serialize(),
-                  })
-                )
-              }
-            />
           </div>
         </Modal>
       </NodeWrapper>

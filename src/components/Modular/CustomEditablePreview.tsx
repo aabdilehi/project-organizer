@@ -76,7 +76,6 @@ function CustomEditablePreview({
   adjustSelf = false,
   width,
   style,
-  ...props
 }: {
   canEdit?: boolean;
   as?: HTMLParagraphElement | HTMLHeadingElement | undefined;
@@ -167,7 +166,6 @@ function CustomEditablePreview({
           whiteSpace: "pre-wrap",
           overflow: "auto",
           overflowWrap: "anywhere",
-          padding: "3px",
           boxSizing: "border-box",
           ...textStyle,
         }}

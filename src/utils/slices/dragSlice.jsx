@@ -1,19 +1,25 @@
 import { createSlice } from "@reduxjs/toolkit";
 const dragSlice = createSlice({
   name: "drag",
-  initialState: {},
+  initialState: {
+    initialPosition: { x: 0, y: 0 },
+    nodes: {},
+  },
   reducers: {
-    setDraggedNodes: (state, action) => {
-      const data = action.payload;
-      if (!data) return;
-      return data;
+    setDragData: (state, action) => {
+      const { initialPosition, nodes } = action.payload;
+      if (!initialPosition || !nodes) return;
+      return { initialPosition, nodes };
     },
-    clearDraggedNodes: () => {
-      return {};
+    clearDragData: () => {
+      return {
+        initialPosition: { x: 0, y: 0 },
+        nodes: {},
+      };
     },
   },
 });
 
-export const { setDraggedNodes, clearDraggedNodes } = dragSlice.actions;
+export const { setDragData, clearDragData } = dragSlice.actions;
 
 export default dragSlice.reducer;

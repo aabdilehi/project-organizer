@@ -37,48 +37,15 @@ const taskSlice = createSlice({
         },
       };
     },
-    addBadge: (state, action) => {
-      const { taskId, newBadge } = action.payload;
+    setBadges: (state, action) => {
+      const { taskId, badges } = action.payload;
       const task = state[taskId];
-      if (!task || !newBadge) return;
-      return {
-        ...state,
-        [taskId]: {
-          ...task,
-          badges: { ...task.badges, [newBadge.id]: newBadge },
-        },
-      };
-    },
-    removeBadge: (state, action) => {
-      const { taskId, badgeId } = action.payload;
-      const task = state[taskId];
-      if (!task) return;
-      const badges = { ...task.badges };
-      delete badges[badgeId];
+      if (!task || !badges) return;
       return {
         ...state,
         [taskId]: {
           ...task,
           badges,
-        },
-      };
-    },
-    updateBadgeText: (state, action) => {
-      const { taskId, badgeId, text } = action.payload;
-      const task = state[taskId];
-      const badges = task.badges;
-      const badge = { ...badges[badgeId] };
-      if (!task || !badge) return;
-      badge.text = text;
-
-      return {
-        ...state,
-        [taskId]: {
-          ...task,
-          badges: {
-            ...task.badges,
-            [badgeId]: badge,
-          },
         },
       };
     },
@@ -94,12 +61,7 @@ const taskSlice = createSlice({
   },
 });
 
-export const {
-  addBadge,
-  removeBadge,
-  updateBadgeText,
-  updateDeadline,
-  updateTaskStatus,
-} = taskSlice.actions;
+export const { setBadges, updateDeadline, updateTaskStatus } =
+  taskSlice.actions;
 
 export default taskSlice.reducer;

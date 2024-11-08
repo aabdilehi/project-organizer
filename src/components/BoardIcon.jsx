@@ -13,6 +13,7 @@ import { TbStar as StarIcon } from "react-icons/tb";
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
 import { updateTitle } from "../utils/slices/nodeActions.ts";
 import { Modal } from "./Modular/Modal";
+import _ from "lodash";
 
 const previewStyle = {
   fontWeight: "800",
@@ -30,11 +31,12 @@ const BoardIcon = ({
   allowDrop,
   drop,
   onContextMenu,
+  columnWidth,
+  dragging,
 }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const nodeRef = useRef();
-  const selected = useSelector((state) => !!state.selection[id]);
 
   // Determines sizing and positioning based on whether in column or not
   let isInColumn = parent.type === BoardObjects.COLUMN;
@@ -78,9 +80,12 @@ const BoardIcon = ({
         parent={parent}
         isInColumn={isInColumn}
         onContextMenu={onContextMenu}
+        columnWidth={columnWidth}
       >
         <div
-          className={activeDropZone ? "icon-wrapper dropzone" : "icon-wrapper"}
+          className={`icon-wrapper${
+            dragging ? (activeDropZone ? " dropzone over" : " dropzone") : ""
+          }`}
           onDoubleClick={() => {
             navigate(`/${id}`);
           }}
@@ -125,6 +130,8 @@ const mapStateToProps = (state, ownProps) => {
     title: board.title,
     parent: board.parent,
     childRefs: board.childRefs,
+    dragging:
+      !_.isEmpty(state.drag.nodes) && !state.drag.nodes.hasOwnProperty(id),
   };
 };
 

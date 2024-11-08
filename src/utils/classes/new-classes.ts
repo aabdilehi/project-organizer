@@ -1,4 +1,4 @@
-import { BoardObjects } from "../enums/items";
+import { BoardObjects, SidebarObjects } from "../enums/items";
 import {v4 as uuidv4} from "uuid";
 
 export class NodeClass {
@@ -77,10 +77,14 @@ export class TaskClass extends NodeClass {
 }
 export class BoardClass extends NodeClass {
     title: string;
+    offset: {x: number, y: number};
+    scale: number;
     childRefs: NodeClass[];
-    constructor({id, pX = 0, pY = 0, title = "New board", parent, childRefs = []} : {id? : string, pX?: number, pY?: number, title?: string, parent: {id: string, type: BoardObjects}, childRefs?: NodeClass[]}) {
+    constructor({id, pX = 0, pY = 0, title = "New board", offset = {x: 0, y: 0}, scale = 1, parent, childRefs = []} : {id? : string, pX?: number, pY?: number, title?: string, offset?: {x: number, y: number}, scale?: number, parent: {id: string, type: BoardObjects}, childRefs?: NodeClass[]}) {
         super({id, type: BoardObjects.BOARD, pX, pY, parent});
         this.title = title;
+        this.offset = offset;
+        this.scale = scale;
         this.childRefs = childRefs;
     }
 }
@@ -95,5 +99,21 @@ export class ColumnClass extends NodeClass {
         this.title = title;
         this.childRefs = childRefs;
     }
+}
+
+export const TypeClassMap : {[type in (BoardObjects | SidebarObjects)]: typeof NodeClass} = {
+    [BoardObjects.NOTE]: NoteClass,
+    [SidebarObjects.NOTE]: NoteClass,
+    [BoardObjects.BOARD]: BoardClass,
+    [SidebarObjects.BOARD]: BoardClass,
+    [BoardObjects.COLUMN]: ColumnClass,
+    [SidebarObjects.COLUMN]: ColumnClass,
+    [BoardObjects.TASK]: TaskClass,
+    [SidebarObjects.TASK]: TaskClass,
+    [BoardObjects.DOCUMENT]: DocumentClass,
+    [SidebarObjects.DOCUMENT]: DocumentClass,
+    [BoardObjects.NONE]: NodeClass,
+    [BoardObjects.IMAGE]: NodeClass,
+    [SidebarObjects.IMAGE]: NodeClass
 }
 
