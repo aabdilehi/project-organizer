@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { BoardObjects } from "../utils/enums/items";
 import { bindActionCreators } from "redux";
-import { connect } from "react-redux";
+import { connect, useSelector } from "react-redux";
 
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
@@ -16,9 +16,31 @@ const previewStyle = {
   borderRadius: "10px",
 };
 
-const ColumnPreview = ({ id, pX, pY, sX, title, childRefs, parent }) => {
+const ColumnPreview = ({ id, resize, getNodeSize }) => {
   const nodeRef = useRef();
   const columnRef = useRef();
+  const { title, childRefs, pX, pY, sX, parent } = useSelector(
+    (state) => state.columns[id] ?? state.drag.nodes[id]
+  );
+
+  const sizeRef = useRef({ x: sX });
+  const animateResize = (e) => {
+    sizeRef.current = getNodeSize(e.clientX, e.clientY, sX, 0);
+    requestAnimationFrame(() => {
+      if (!nodeRef.current) return;
+      nodeRef.current.style.width = `${sizeRef.current.x}px`;
+    });
+  };
+  useEffect(() => {
+    if (resize) {
+      window.addEventListener("drag", animateResize);
+    } else {
+      window.addEventListener("drag", animateResize);
+    }
+    return () => {
+      window.removeEventListener("drag", animateResize);
+    };
+  }, [resize]);
 
   return (
     <NodeWrapper
@@ -31,7 +53,7 @@ const ColumnPreview = ({ id, pX, pY, sX, title, childRefs, parent }) => {
       preview
       pX={pX}
       pY={pY}
-      sX={sX}
+      sX={sizeRef.current.x}
     >
       <CustomEditablePreview
         as={"h1"}
@@ -99,22 +121,4 @@ const ColumnPreview = ({ id, pX, pY, sX, title, childRefs, parent }) => {
   );
 };
 
-const mapStateToProps = (state, ownProps) => {
-  const { id } = ownProps;
-  const column = state.columns[id] ?? state.drag.nodes[id];
-
-  return {
-    title: column.title,
-    childRefs: column.childRefs,
-    pX: column.pX,
-    pY: column.pY,
-    sX: column.sX,
-    parent: column.parent,
-  };
-};
-
-const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators({}, dispatch);
-};
-
-export default connect(mapStateToProps, mapDispatchToProps)(ColumnPreview);
+export default ColumnPreview;

@@ -98,7 +98,7 @@ export function useSmoothDrag({
     event.dataTransfer.dropEffect = "move";
     event.dataTransfer.setDragImage(prev, 0, 0);
     event.dataTransfer.setData(
-      "custom/board",
+      "origin/board",
       JSON.stringify({
         initial: initialPosition.current,
         selectedNodes: selectedNodeOffsets,

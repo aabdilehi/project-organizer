@@ -22,19 +22,13 @@ const previewStyle = {
   borderRadius: "5px",
 };
 
-const BoardIcon = ({
-  id,
-  pX,
-  pY,
-  title,
-  parent,
-  allowDrop,
-  drop,
-  onContextMenu,
-  columnWidth,
-  dragging,
-}) => {
+const BoardIcon = ({ id, allowDrop, drop, onContextMenu, columnWidth }) => {
   const dispatch = useDispatch();
+  const { pX, pY, title, parent } = useSelector((state) => state.boards[id]);
+  const dragging = useSelector(
+    (state) =>
+      !_.isEmpty(state.drag.nodes) && !state.drag.nodes.hasOwnProperty(id)
+  );
   const navigate = useNavigate();
   const nodeRef = useRef();
 
@@ -121,22 +115,4 @@ const BoardIcon = ({
   );
 };
 
-const mapStateToProps = (state, ownProps) => {
-  const { id } = ownProps;
-  const board = state.boards[id];
-  return {
-    pX: board.pX,
-    pY: board.pY,
-    title: board.title,
-    parent: board.parent,
-    childRefs: board.childRefs,
-    dragging:
-      !_.isEmpty(state.drag.nodes) && !state.drag.nodes.hasOwnProperty(id),
-  };
-};
-
-const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators({}, dispatch);
-};
-
-export default connect(mapStateToProps, mapDispatchToProps)(BoardIcon);
+export default BoardIcon;

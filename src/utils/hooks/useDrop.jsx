@@ -6,6 +6,7 @@ import {
   removeChild,
   updateParent,
   updatePosition,
+  updateSize,
 } from "../slices/nodeActions";
 
 import { useDispatch, useSelector } from "react-redux";
@@ -17,6 +18,7 @@ import {
   DocumentClass,
   NoteClass,
   TaskClass,
+  TypeClassMap,
 } from "../classes/new-classes";
 
 const columnAcceptedTypes = [
@@ -37,12 +39,14 @@ const boardAcceptedTypes = [
   BoardObjects.NOTE,
   BoardObjects.COLUMN,
   BoardObjects.TASK,
+  BoardObjects.GROUP,
   BoardObjects.IMAGE,
   BoardObjects.DOCUMENT,
   SidebarObjects.NOTE,
   SidebarObjects.COLUMN,
   SidebarObjects.IMAGE,
   SidebarObjects.TASK,
+  SidebarObjects.GROUP,
   SidebarObjects.BOARD,
   SidebarObjects.DOCUMENT,
 ];
@@ -62,12 +66,13 @@ export function useDrop({ boardRef, scale, offset }) {
     event.stopPropagation();
     event.preventDefault();
 
+    const boardId = id ?? "root";
+
     //#region Drop from sidebar
-    let data = event.dataTransfer.getData("custom/sidebar");
-    if (data) {
-      data = JSON.parse(data);
+    if (event.dataTransfer.types.includes("origin/sidebar")) {
+      let data = JSON.parse(event.dataTransfer.getData("origin/sidebar"));
       if (!boardAcceptedTypes.includes(data.type)) return;
-      createNode(event, data, id, BoardObjects.BOARD, offset, scale);
+      createNode(event, data, boardId, BoardObjects.BOARD, offset, scale);
       return;
     }
     //#endregion
@@ -77,14 +82,15 @@ export function useDrop({ boardRef, scale, offset }) {
     // return;
 
     //#region Drop from board/column
-    data = event.dataTransfer.getData("custom/board");
-    if (data) {
+    if (event.dataTransfer.types.includes("action/move")) {
+      let data = event.dataTransfer.getData("action/move");
+      console.log(data == "");
       data = JSON.parse(data);
       if (!data.hasOwnProperty("selectedNodes")) return;
       Object.values(data.selectedNodes).forEach((item) => {
         if (
           !boardAcceptedTypes.includes(item.type) ||
-          item.id === id ||
+          item.id === boardId ||
           handledNodes.current.find((node) => node.id === item.id)
         ) {
           return;
@@ -92,8 +98,8 @@ export function useDrop({ boardRef, scale, offset }) {
 
         if (boardAcceptedTypes.includes(item.type)) {
           // check if should re-parent
-          if (item.parent.id !== id) {
-            updateNodeParent(item, id, BoardObjects.BOARD);
+          if (item.parent.id !== boardId) {
+            updateNodeParent(item, boardId, BoardObjects.BOARD);
             setNodePosition(event, item, data.initial);
           } else {
             setNodePosition(event, item, data.initial);
@@ -103,34 +109,52 @@ export function useDrop({ boardRef, scale, offset }) {
     }
     //#endregion
 
-    //#region Drop text
-    data = event.dataTransfer.getData("plain/text");
-    if (data) {
-      createNode(event, { type: BoardObjects.NOTE }, id, BoardObjects.BOARD, {
-        content: data,
+    //#region Drop from board/column
+    if (event.dataTransfer.types.includes("action/resize")) {
+      let data = JSON.parse(event.dataTransfer.getData("action/resize"));
+      let direction = event.dataTransfer.types.find((value) =>
+        value.includes("direction/")
+      );
+      console.log(direction);
+      if (!data.hasOwnProperty("selectedNodes")) return;
+      Object.values(data.selectedNodes).forEach((item) => {
+        if (boardAcceptedTypes.includes(item.type)) {
+          setNodeSize(event, item, data.initial, direction);
+        }
       });
+    }
+    //#endregion
+
+    //#region Drop text
+    if (event.dataTransfer.types.includes("plain/text")) {
+      let data = event.dataTransfer.getData("plain/text");
+      createNode(
+        event,
+        { type: BoardObjects.NOTE },
+        boardId,
+        BoardObjects.BOARD,
+        {
+          content: data,
+        }
+      );
     }
     handledNodes.current = [];
   }
 
   const allowDropOnColumn = (event) => {
     if (event.dataTransfer.types.length <= 0) return;
-
-    switch (event.dataTransfer.types[0]) {
-      case "custom/sidebar":
-      case "custom/board":
-        //case "text/plain": // can make note node for this
-        // assume sidebar if no dragged nodes (can probably add validation but eh)
-        event.stopPropagation();
-        event.preventDefault();
-      default:
-        return;
-    }
+    if (
+      !event.dataTransfer.types.includes("origin/board") &&
+      !event.dataTransfer.types.includes("origin/sidebar")
+    )
+      return;
+    event.stopPropagation();
+    event.preventDefault();
   };
 
   function dropOnColumn(event, id) {
     //#region Drop from sidebar
-    let data = event.dataTransfer.getData("custom/sidebar");
+    let data = event.dataTransfer.getData("origin/sidebar");
     if (data) {
       data = JSON.parse(data);
       if (!columnAcceptedTypes.includes(data.type)) {
@@ -146,7 +170,7 @@ export function useDrop({ boardRef, scale, offset }) {
     // event.preventDefault();
     // return;
     //#region Drop from board/column
-    data = event.dataTransfer.getData("custom/board");
+    data = event.dataTransfer.getData("action/move");
     if (data) {
       data = JSON.parse(data);
       handledNodes.current = [];
@@ -172,7 +196,12 @@ export function useDrop({ boardRef, scale, offset }) {
 
     switch (data.type) {
       case SidebarObjects.NOTE:
-        node = new NoteClass({
+      case SidebarObjects.TASK:
+      case SidebarObjects.BOARD:
+      case SidebarObjects.COLUMN:
+      case SidebarObjects.GROUP:
+      case SidebarObjects.DOCUMENT:
+        node = new TypeClassMap[data.type]({
           pX: xCoord,
           pY: yCoord,
           parent: {
@@ -191,47 +220,6 @@ export function useDrop({ boardRef, scale, offset }) {
           },
         });
         break;
-
-      case SidebarObjects.TASK:
-        node = new TaskClass({
-          pX: xCoord,
-          pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
-        }).serialize();
-        break;
-      case SidebarObjects.BOARD:
-        node = new BoardClass({
-          pX: xCoord,
-          pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
-        }).serialize();
-        break;
-      case SidebarObjects.COLUMN:
-        node = new ColumnClass({
-          pX: xCoord,
-          pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
-        }).serialize();
-        break;
-      case SidebarObjects.DOCUMENT:
-        node = new DocumentClass({
-          pX: xCoord,
-          pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
-          },
-        }).serialize();
-        break;
     }
 
     if (!!node) {
@@ -248,7 +236,6 @@ export function useDrop({ boardRef, scale, offset }) {
   }
   function updateNodeParent(data, pId, pType) {
     console.log(data);
-
     dispatch(
       updateParent.action({
         id: data.id,
@@ -301,6 +288,90 @@ export function useDrop({ boardRef, scale, offset }) {
         type: data.type,
         pX: xCoord,
         pY: yCoord,
+      })
+    );
+  }
+
+  function setNodeSize(event, data, initial, direction) {
+    if (!data.offset) {
+      return;
+    }
+
+    console.log(data);
+    let pX, pY, sX, sY;
+
+    switch (direction) {
+      case "direction/left":
+        pX = data.pX + (event.clientX - initial.x) / scale.current;
+        pY = data.pY;
+        sX = data.sX - (event.clientX - initial.x) / scale.current;
+        sY = data.sY;
+        break;
+      case "direction/right":
+        pX = data.pX;
+        pY = data.pY;
+        sX = data.sX + (event.clientX - initial.x) / scale.current;
+        sY = data.sY;
+        break;
+      case "direction/top":
+        pX = data.pX;
+        pY = data.pY + (event.clientY - initial.y) / scale.current;
+        sX = data.sX;
+        sY = data.sY - (event.clientY - initial.y) / scale.current;
+        break;
+
+      case "direction/top-left":
+        pX = data.pX + (event.clientX - initial.x) / scale.current;
+        pY = data.pY + (event.clientY - initial.y) / scale.current;
+        sX = data.sX - (event.clientX - initial.x) / scale.current;
+        sY = data.sY - (event.clientY - initial.y) / scale.current;
+        break;
+
+      case "direction/top-right":
+        pX = data.pX;
+        pY = data.pY + (event.clientY - initial.y) / scale.current;
+        sX = data.sX + (event.clientX - initial.x) / scale.current;
+        sY = data.sY - (event.clientY - initial.y) / scale.current;
+        break;
+      case "direction/bottom":
+        pX = data.pX;
+        pY = data.pY;
+        sX = data.sX;
+        sY = data.sY + (event.clientY - initial.y) / scale.current;
+        break;
+      case "direction/bottom-left":
+        pX = data.pX + (event.clientX - initial.x) / scale.current;
+        pY = data.pY + (event.clientY - initial.y) / scale.current;
+        sX = data.sX - (event.clientX - initial.x) / scale.current;
+        sY = data.sY + (event.clientY - initial.y) / scale.current;
+        break;
+      case "direction/bottom-right":
+        pX = data.pX;
+        pY = data.pY;
+        sX = data.sX + (event.clientX - initial.x) / scale.current;
+        sY = data.sY + (event.clientY - initial.y) / scale.current;
+        break;
+      default:
+        pX = data.pX;
+        pY = data.pY;
+        sX = data.sX;
+        sY = data.sY;
+        break;
+    }
+    dispatch(
+      updatePosition.action({
+        id: data.id,
+        type: data.type,
+        pX,
+        pY,
+      })
+    );
+    dispatch(
+      updateSize.action({
+        id: data.id,
+        type: data.type,
+        sX,
+        sY,
       })
     );
   }

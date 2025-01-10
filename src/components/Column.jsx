@@ -21,12 +21,6 @@ const previewStyle = {
 
 const Column = ({
   id,
-  pX,
-  pY,
-  sX,
-  title,
-  childRefs,
-  parent,
   drop,
   onContextMenu,
   onDragStart,
@@ -36,7 +30,10 @@ const Column = ({
 }) => {
   const nodeRef = useRef();
   const columnRef = useRef();
-
+  const dispatch = useDispatch();
+  const { title, childRefs, pX, pY, sX, parent } = useSelector(
+    (state) => state.columns[id]
+  );
   const selectedNodes = useSelector((state) => state.selection);
 
   const [activeDropZone, setDropZoneActive] = useState(false);
@@ -71,8 +68,8 @@ const Column = ({
     if (event.dataTransfer.types.length <= 0) return;
 
     switch (event.dataTransfer.types[0]) {
-      case "custom/sidebar":
-      case "custom/board":
+      case "origin/sidebar":
+      case "origin/board":
         //case "text/plain": // can make note node for this
         // assume sidebar if no dragged nodes (can probably add validation but eh)
         event.stopPropagation();
@@ -86,7 +83,7 @@ const Column = ({
     <NodeWrapper
       ref={nodeRef}
       canPosition={true}
-      canResize={false}
+      canResize={true}
       id={id}
       type={"column"}
       parent={parent}
@@ -109,7 +106,15 @@ const Column = ({
         text={title}
         width={sX}
         textStyle={previewStyle}
-        onChange={props.onChange}
+        onChange={(value) =>
+          dispatch(
+            updateTitle.action({
+              id,
+              type: BoardObjects.COLUMN,
+              title: value,
+            })
+          )
+        }
       />
       <span
         ref={columnRef}
@@ -172,31 +177,4 @@ const Column = ({
   );
 };
 
-const mapStateToProps = (state, ownProps) => {
-  const { id } = ownProps;
-  const column = state.columns[id];
-
-  return {
-    title: column.title,
-    childRefs: column.childRefs,
-    pX: column.pX,
-    pY: column.pY,
-    sX: column.sX,
-    parent: column.parent,
-  };
-};
-
-const mapDispatchToProps = (dispatch, ownProps) => {
-  return {
-    onChange: (value) =>
-      dispatch(
-        updateTitle.action({
-          id: ownProps.id,
-          type: BoardObjects.COLUMN,
-          title: value,
-        })
-      ),
-  };
-};
-
-export default connect(mapStateToProps, mapDispatchToProps)(Column);
+export default Column;

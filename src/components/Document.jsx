@@ -8,7 +8,13 @@ import { connect, useDispatch, useSelector } from "react-redux";
 import { EditorContent, useEditor } from "@tiptap/react";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { useNavigate } from "react-router-dom";
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
 import { updateContent, updateTitle } from "../utils/slices/nodeActions.ts";
 import { Modal } from "./Modular/Modal";
@@ -22,6 +28,53 @@ import Underline from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
 import { TbFileText } from "react-icons/tb";
 import { MenuBar } from "./Modular/Editor.jsx";
+import _ from "lodash";
+
+class Debouncer {
+  start;
+  func;
+  wait;
+  maxWait;
+  lastInvoked;
+  timeout;
+
+  constructor(func = (any) => {}, wait = 100, maxWait = -1) {
+    this.func = func;
+    this.wait = wait;
+    this.maxWait = maxWait;
+    const now = new Date();
+    this.start = now;
+    this.lastInvoked = now;
+  }
+
+  debounce(args) {
+    const now = new Date();
+    this.start = this.start;
+    this.lastInvoked = this.lastInvoked;
+
+    console.log(now.getTime() - this.start.getTime());
+    while (true) {
+      if (now.getTime() - this.lastInvoked.getTime() <= this.wait) {
+        continue;
+      } else {
+        break;
+      }
+    }
+    console.log("DOING IT");
+    this.start = now;
+    const argsArray = Array.isArray(args) ? args : [args];
+    this.func(...argsArray);
+    this.lastInvoked = now;
+  }
+
+  debounce2(args) {
+    clearTimeout(this.timeout);
+    this.timeout = setTimeout(() => {
+      const argsArray = Array.isArray(args) ? args : [args];
+      this.func(...argsArray);
+    }, this.wait);
+  }
+}
 
 const previewStyle = {
   fontWeight: "800",
@@ -30,24 +83,48 @@ const previewStyle = {
   borderRadius: "5px",
 };
 
-const Document = ({
-  id,
-  pX,
-  pY,
-  title,
-  content,
-  parent,
-  columnWidth,
-  onContextMenu,
-  onDragStart,
-}) => {
+const Document = ({ id, columnWidth, onContextMenu }) => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
+  const { pX, pY, title, content, parent } = useSelector(
+    (state) => state.documents[id]
+  );
+
+  const uC = useMemo(
+    () =>
+      new Debouncer((editor) => {
+        console.log("THIS IS WHERE IT DEBOUNCES THE STATE CHANGE");
+        dispatch(
+          updateContent.action({
+            id,
+            type: BoardObjects.DOCUMENT,
+            content: editor.getHTML(),
+          })
+        );
+      }, 1000),
+    []
+  );
+
+  const uB = useMemo(
+    () =>
+      new Debouncer(() => {
+        console.log("THIS IS WHERE IT UPDATES USING STATE");
+        if (editor) {
+          if (editor.getHTML() !== content) {
+            let { from, to } = editor.state.selection;
+            console.log(`From: ${from}\nTo: ${to}`);
+            editor.commands.setContent(content, false, {
+              preserveWhitespace: "full",
+            });
+            editor.commands.setTextSelection({ from, to });
+          }
+        }
+      }, 1000),
+    [content]
+  );
+  const selection = useRef(null);
 
   const [open, setOpen] = useState(false);
   const nodeRef = useRef();
-
-  const selected = useSelector((state) => !!state.selection[id]);
 
   // Determines sizing and positioning based on whether in column or not
   let isInColumn = parent.type === BoardObjects.COLUMN;
@@ -77,6 +154,7 @@ const Document = ({
     ],
     content: content,
     onUpdate: ({ editor }) => {
+      console.log("THIS IS WHERE IT DEBOUNCES THE STATE CHANGE");
       dispatch(
         updateContent.action({
           id,
@@ -87,15 +165,7 @@ const Document = ({
     },
   });
 
-  // Update text and maintain cursor position on re-render
-  useEffect(() => {
-    if (!editor) return;
-    let { from, to } = editor.state.selection;
-    editor.commands.setContent(content, false, {
-      preserveWhitespace: "full",
-    });
-    editor.commands.setTextSelection({ from, to });
-  }, [content, editor]);
+  uB.debounce();
 
   return (
     <>
@@ -151,21 +221,4 @@ const Document = ({
     </>
   );
 };
-
-const mapStateToProps = (state, ownProps) => {
-  const { id } = ownProps;
-  const document = state.documents[id];
-  return {
-    pX: document.pX,
-    pY: document.pY,
-    title: document.title,
-    content: document.content,
-    parent: document.parent,
-  };
-};
-
-const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators({}, dispatch);
-};
-
-export default connect(mapStateToProps, mapDispatchToProps)(Document);
+export default Document;

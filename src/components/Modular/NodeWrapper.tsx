@@ -1,24 +1,22 @@
 import React, {
   forwardRef,
-  LegacyRef,
   ReactElement,
-  useCallback,
-  useContext,
   useEffect,
+  useImperativeHandle,
   useRef,
 } from "react";
+import { RootState } from "../../store";
 import {
   addSelectNode,
   selectNode,
   toggleSelectNode,
 } from "../../utils/slices/selectionSlice";
-import { connect, useDispatch, useSelector } from "react-redux";
-import ResizeWrapper from "./ResizeWrapper";
-import { updatePosition } from "../../utils/slices/nodeActions";
-import { StoreState } from "../../utils/enums/state-type";
+import { useDispatch, useSelector } from "react-redux";
+import { updatePosition, updateSize } from "../../utils/slices/nodeActions";
 import { BoardObjects } from "../../utils/enums/items";
+import { debounce } from "lodash";
 
-const NodeWrapper = forwardRef(
+export default forwardRef(
   (
     {
       id,
@@ -26,7 +24,8 @@ const NodeWrapper = forwardRef(
       className,
       canPosition = true,
       canResize = false,
-      parent,
+      parentId,
+      parentType,
       pX = 0,
       pY = 0,
       sX,
@@ -35,10 +34,8 @@ const NodeWrapper = forwardRef(
       preview = false,
       columnWidth,
       onContextMenu,
-      selected,
-      dragging,
-      handleSelect,
-      updateSelectData,
+      scale,
+      offset,
       ...props
     }: {
       id: string;
@@ -46,26 +43,143 @@ const NodeWrapper = forwardRef(
       className?: string;
       canPosition: boolean;
       canResize: boolean;
-      pX: Number;
-      pY: Number;
-      sX?: Number;
-      sY?: Number;
-      parent: { id: string; type: string };
+      pX: number;
+      pY: number;
+      sX?: number;
+      sY?: number;
+      scale?: any;
+      offset?: any;
+      parentId: string;
+      parentType: string;
       clickCallback?: (params?: any[]) => void;
       menuProps?: { [menuProp: string]: boolean };
       menuItems?: Element[];
       isInColumn?: boolean;
-      columnWidth?: Number;
+      columnWidth?: number;
       preview?: boolean;
       onContextMenu?: React.MouseEventHandler<HTMLDivElement> | undefined;
       children?: ReactElement[];
-      selected: boolean;
-      dragging: boolean;
-      handleSelect: React.MouseEventHandler<HTMLDivElement>;
-      updateSelectData: () => void;
     },
-    nodeRef: LegacyRef<HTMLDivElement>
+    ref: any
   ) => {
+    const dispatch = useDispatch();
+    const selected = useSelector((state: RootState) =>
+      state.selection.hasOwnProperty(id)
+    );
+
+    const selectData = useSelector((state: RootState) => state.selection);
+    const dragging = useSelector((state: RootState) =>
+      state.drag.nodes.hasOwnProperty(id)
+    );
+    const isActuallyInColumn =
+      (!preview && parentType === BoardObjects.COLUMN) ||
+      (preview && isInColumn);
+
+    const handleSelect = (event, force = false) => {
+      if (event.shiftKey && force == false) {
+        dispatch(
+          addSelectNode({
+            id,
+            type,
+            parent: { id: parentId, type: parentType },
+          })
+        );
+        return;
+      } else if (event.ctrlKey && force == false) {
+        dispatch(
+          toggleSelectNode({
+            id,
+            type,
+            parent: { id: parentId, type: parentType },
+          })
+        );
+        return;
+      } else {
+        dispatch(
+          selectNode({
+            id,
+            type,
+            parent: { id: parentId, type: parentType },
+          })
+        );
+        return;
+      }
+    };
+
+    const updateSelectData = () => {
+      if (!selected) return;
+
+      // check parent data exists
+      if (!selectData[id].hasOwnProperty("parent")) return;
+
+      // check parent data is consistent
+      if (
+        selectData[id].parent.id == parentId &&
+        selectData[id].parent.type == parentType
+      )
+        return;
+      dispatch(
+        addSelectNode({
+          id,
+          type,
+          parent: { id: parentId, type: parentType },
+        })
+      );
+    };
+
+    const updateRealPosition = () => {
+      //#region  Would be nice if the stored position of the node would update automatically based on the actual element's position
+      if (!nodeRef.current) return;
+      if (!!nodeRef.current && isActuallyInColumn) {
+        const nodeBounds =
+          nodeRef?.current?.getBoundingClientRect() ?? undefined;
+        if (
+          !!nodeBounds &&
+          (nodeRef.current.getBoundingClientRect().left !== pX ||
+            nodeRef.current.getBoundingClientRect().top !== pY)
+        ) {
+          dispatch(
+            updatePosition.action({
+              id,
+              type,
+              pX: nodeBounds.left,
+              pY: nodeBounds.top,
+            })
+          );
+        }
+      }
+      //#endregion
+    };
+
+    const nodeRef = useRef<HTMLDivElement>(null);
+    const direction = useRef<string>("none");
+    useImperativeHandle(ref, () => nodeRef.current!, []);
+    const updatingSize = useRef(false);
+    if (nodeRef.current && updatingSize.current != false) {
+      if (!preview && sX && sY) {
+        const bounds = nodeRef.current.getBoundingClientRect();
+        if (
+          !!bounds &&
+          (Math.abs(sX! - bounds.width / scale) > 10 ||
+            Math.abs(sY! - bounds.height / scale) > 10)
+        ) {
+          updatingSize.current = true;
+          console.log(
+            `Type: ${type}\nx: ${Math.abs(
+              sX! - bounds.width / scale
+            )}px\ny: ${Math.abs(sY! - bounds.height / scale)}px`
+          );
+          dispatch(
+            updateSize.action({
+              id,
+              type,
+              sX: bounds.width / scale,
+              sY: bounds.height / scale,
+            })
+          );
+        }
+      }
+    }
     //#region Click outside
     // useLayoutEffect(() => {
     //   if(!nodeRef.current) return;
@@ -86,30 +200,11 @@ const NodeWrapper = forwardRef(
 
     //#endregion
 
-    //#region  Would be nice if the stored position of the node would update automatically based on the actual element's position
-    // if (!!nodeRef.current) {
-    //   const nodeBounds = nodeRef?.current?.getBoundingClientRect() ?? undefined;
-    //   if (
-    //     !!nodeBounds &&
-    //     (nodeRef.current.getBoundingClientRect().left !== pX ||
-    //       nodeRef.current.getBoundingClientRect().top !== pY)
-    //   ) {
-    //     dispatch(
-    //       updatePosition.action({
-    //         id: id,
-    //         type,
-    //         pX: nodeBounds.left,
-    //         pY: nodeBounds.top,
-    //       })
-    //     );
-    //   }
-    // }
-    //#endregion
     return (
       <div
         ref={nodeRef}
         id={id}
-        data-isincolumn={isInColumn}
+        data-isincolumn={isActuallyInColumn}
         data-selected={selected}
         onClick={(e) => {
           e.stopPropagation();
@@ -118,7 +213,7 @@ const NodeWrapper = forwardRef(
           }
         }}
         draggable={canPosition}
-        className={`node ${type}${isInColumn ? " in-column" : ""}${
+        className={`node ${type}${isActuallyInColumn ? " in-column" : ""}${
           selected ? " selected" : ""
         }${!!className ? " " + className : ""}${
           dragging && !preview ? " dragging" : ""
@@ -137,102 +232,91 @@ const NodeWrapper = forwardRef(
           onContextMenu(e);
         }}
         onDragStart={(e) => {
-          if (!selected) {
-            handleSelect(e);
+          // HOLY SHIT THIS SOLVES MY ISSUE
+          // ADDING A PLACEHOLDER DATATRANSFER DATA THAT CONTAINS THE TYPE OF DRAG AND THE ID OF THE NODE
+          // IF THE DATA IS SET THEN NODES IGNORE
+          if (e.dataTransfer.types.length <= 0) {
+            if (!selected) {
+              handleSelect(e);
+            }
+
+            if (isActuallyInColumn) {
+              e.dataTransfer.setData("origin/column", "Placeholder");
+            } else {
+              e.dataTransfer.setData("origin/board", "Placeholder");
+            }
+            const bounds = nodeRef.current?.getBoundingClientRect();
+            if (!bounds) return;
+            const resizePadding = Math.min(8, (8 * Number(sX)) / bounds.width);
+            let direction = "none";
+            if (e.clientX - bounds.left < resizePadding) {
+              direction = "left";
+            }
+            if (e.clientY - bounds.top < resizePadding) {
+              direction = "top";
+            }
+            if (e.clientY - bounds.top > bounds.height - resizePadding) {
+              direction = "bottom";
+            }
+            if (e.clientX - bounds.left > bounds.width - resizePadding) {
+              direction = "right";
+            }
+            if (
+              e.clientX - bounds.left < resizePadding &&
+              e.clientY - bounds.top < resizePadding
+            ) {
+              direction = "top-left";
+            }
+            if (
+              e.clientX - bounds.left < resizePadding &&
+              e.clientY - bounds.top > bounds.height - resizePadding
+            ) {
+              direction = "bottom-left";
+            }
+            if (
+              e.clientX - bounds.left > bounds.width - resizePadding &&
+              e.clientY - bounds.top < resizePadding
+            ) {
+              direction = "top-right";
+            }
+            if (
+              e.clientX - bounds.left > bounds.width - resizePadding &&
+              e.clientY - bounds.top > bounds.height - resizePadding
+            ) {
+              direction = "bottom-right";
+            }
+
+            if (direction !== "none") {
+              e.dataTransfer.setData(
+                "action/resize",
+                JSON.stringify({
+                  id,
+                  type,
+                  parent: { id: parentId, type: parentType },
+                })
+              );
+              e.dataTransfer.setData(`direction/${direction}`, "");
+            } else {
+              e.dataTransfer.setData("action/move", "");
+            }
           }
         }}
         {...props}
       >
+        {canResize ? (
+          <>
+            <div className="resize-handle top" tabIndex={1000} />
+            <div className="resize-handle left" tabIndex={1000} />
+            <div className="resize-handle bottom" tabIndex={1000} />
+            <div className="resize-handle right" tabIndex={1000} />
+            <div className="resize-handle top-left" tabIndex={1000} />
+            <div className="resize-handle top-right" tabIndex={1000} />
+            <div className="resize-handle bottom-left" tabIndex={1000} />
+            <div className="resize-handle bottom-right" tabIndex={1000} />
+          </>
+        ) : null}
         {props.children}
       </div>
     );
   }
 );
-
-const mapStateToProps = (state, ownProps) => {
-  const { id } = ownProps;
-
-  return {
-    selected: state.selection.hasOwnProperty(id),
-    selectData: state.selection,
-    dragging: state.drag.nodes.hasOwnProperty(id),
-    isInColumn:
-      (!ownProps.preview && ownProps.parent.type === BoardObjects.COLUMN) ||
-      (ownProps.preview && ownProps.isInColumn),
-  };
-};
-
-const mapDispatchToProps = (dispatch, ownProps) => {
-  return {
-    handleSelect: (event) => {
-      if (event.shiftKey) {
-        dispatch(
-          addSelectNode({
-            id: ownProps.id,
-            type: ownProps.type,
-            parent: ownProps.parent,
-          })
-        );
-        return;
-      } else if (event.ctrlKey) {
-        dispatch(
-          toggleSelectNode({
-            id: ownProps.id,
-            type: ownProps.type,
-            parent: ownProps.parent,
-          })
-        );
-        return;
-      } else {
-        dispatch(
-          selectNode({
-            id: ownProps.id,
-            type: ownProps.type,
-            parent: ownProps.parent,
-          })
-        );
-        return;
-      }
-    },
-    updateSelectData: (selected, selectData) => {
-      if (!selected) return;
-
-      // check parent data exists
-      if (!selectData[ownProps.id].hasOwnProperty("parent")) return;
-
-      // check parent data is consistent
-      if (
-        selectData[ownProps.id].parent.id == ownProps.parent.id &&
-        selectData[ownProps.id].parent.type == ownProps.parent.type
-      )
-        return;
-      dispatch(
-        addSelectNode({
-          id: ownProps.id,
-          type: ownProps.type,
-          parent: ownProps.parent,
-        })
-      );
-    },
-  };
-};
-
-const mergeProps = (stateProps, dispatchProps, ownProps) => {
-  return {
-    ...ownProps,
-    ...stateProps,
-    handleSelect: dispatchProps.handleSelect,
-    updateSelectData: () => {
-      dispatchProps.updateSelectData(
-        stateProps.selected,
-        stateProps.selectData
-      );
-    },
-  };
-};
-
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-  mergeProps
-)(NodeWrapper);

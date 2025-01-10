@@ -1,5 +1,5 @@
 //#region Imports
-import React, { useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { connect } from "react-redux";
 
@@ -17,18 +17,19 @@ import { useDrop } from "../utils/hooks/useDrop.jsx";
 import { withRouter } from "./Modular/ComponentWithRouterProp.jsx";
 import { useContextMenu } from "../utils/hooks/useContextMenu.tsx";
 import Column from "./Column.jsx";
-import { clearSelectNode } from "../utils/slices/selectionSlice.jsx";
+import { clearSelectNode } from "../utils/slices/selectionSlice.js";
 import BoardIcon from "./BoardIcon.jsx";
 import Document from "./Document.jsx";
 import Task from "./Task.jsx";
 import DragLayer from "./DragLayer.tsx";
-import { updateOffset, updateScale } from "../utils/slices/boardSlice.jsx";
+import { updateOffset, updateScale } from "../utils/slices/boardSlice.js";
 import {
   addCopyNode,
   clearCopiedNodes,
   setPosition,
-} from "../utils/slices/copiedSlice.tsx";
+} from "../utils/slices/copiedSlice.ts";
 import ContextMenu from "../utils/hooks/ContextMenu.tsx";
+import Group from "./Group.jsx";
 //#endregion
 
 const Board = ({
@@ -53,7 +54,7 @@ const Board = ({
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   //#endregion
 
-  const handleRightClick = (event) => {
+  const handleRightClick = useCallback((event) => {
     event.preventDefault();
     const boundingRect = ref.current.getBoundingClientRect();
     const x = event.clientX - boundingRect.left;
@@ -62,7 +63,7 @@ const Board = ({
     currentMousePos.current = { x, y };
 
     setContextMenuOpen(true);
-  };
+  }, []);
 
   const calculateRelativePosition = (x, y) => {
     const newX = (x - currentPosition.current.x) / currentScale.current;
@@ -85,12 +86,17 @@ const Board = ({
     });
   //#endregion
 
+  function openContextMenu(open: boolean) {
+    setContextMenuOpen(open);
+  }
+
   //#region Render board
   if (validBoard) {
     return (
       <>
         <div
           ref={ref}
+          draggable={true}
           className="actualboard"
           onMouseDown={(event) =>
             handleMouseDown(
@@ -107,16 +113,6 @@ const Board = ({
             }px`,
             backgroundPosition: `${currentPosition.current.x}px ${currentPosition.current.y}px`,
           }}
-          // onMouseMove={(event) => {
-          //   requestAnimationFrame(() => {
-          //     transformRef.current.style.transformOrigin = `${
-          //       event.pageX * scale - offset.x
-          //     }px ${event.pageY * scale - offset.y}px`;
-          //     ref.current.style.transformOrigin = `${
-          //       (event.pageX - offset.x) / scale
-          //     }px ${(event.pageY - offset.y) / scale}px`;
-          //   });
-          // }}
           onWheel={(event) =>
             handleWheel(event, ref, transformRef, currentPosition, currentScale)
           }
@@ -132,6 +128,11 @@ const Board = ({
             }
             handleRightClick(e);
           }}
+          onDragStart={(event) => {
+            if (event.dataTransfer.types.length > 0) return;
+            event.dataTransfer.setData("origin/board", "");
+            event.dataTransfer.setData("action/select", "");
+          }}
           onDrop={(event) => {
             event.stopPropagation();
             dropOnBoard(event, boardId);
@@ -142,6 +143,7 @@ const Board = ({
           onResize={(e) => e.preventDefault()}
         >
           <DragLayer
+            boardId={boardId}
             boardRef={ref}
             transformRef={transformRef}
             scale={currentScale}
@@ -150,7 +152,7 @@ const Board = ({
           <ContextMenu
             boardId={boardId}
             open={contextMenuOpen}
-            setOpen={(open: boolean) => setContextMenuOpen(open)}
+            setOpen={openContextMenu}
             mousePosition={currentMousePos}
             calculatePosition={calculateRelativePosition}
           />
@@ -171,6 +173,8 @@ const Board = ({
                       key={childId}
                       id={childId}
                       onContextMenu={handleRightClick}
+                      scale={currentScale.current}
+                      offset={currentPosition}
                     />
                   );
                 case BoardObjects.TASK:
@@ -179,20 +183,32 @@ const Board = ({
                       key={childId}
                       id={childId}
                       onContextMenu={handleRightClick}
+                      scale={currentScale.current}
+                      offset={currentPosition}
                     />
                   );
-                case BoardObjects.COLUMN:
+                case BoardObjects.GROUP:
                   return (
-                    <Column
+                    <Group
                       key={childId}
                       id={childId}
-                      drop={dropOnColumn}
-                      allowDrop={allowDropOnColumn}
-                      dropOnBoard={dropOnBoard}
-                      allowDropOnBoard={allowDropOnBoard}
                       onContextMenu={handleRightClick}
+                      scale={currentScale.current}
+                      offset={currentPosition}
                     />
                   );
+                // case BoardObjects.COLUMN:
+                //   return (
+                //     <Column
+                //       key={childId}
+                //       id={childId}
+                //       drop={dropOnColumn}
+                //       allowDrop={allowDropOnColumn}
+                //       dropOnBoard={dropOnBoard}
+                //       allowDropOnBoard={allowDropOnBoard}
+                //       onContextMenu={handleRightClick}
+                //     />
+                //   );
                 case BoardObjects.BOARD:
                   return (
                     <BoardIcon
@@ -209,6 +225,8 @@ const Board = ({
                       key={childId}
                       id={childId}
                       onContextMenu={handleRightClick}
+                      scale={currentScale}
+                      offset={currentPosition}
                     />
                   );
                 default:
@@ -586,64 +604,65 @@ const mergeProps = (stateProps, dispatchProps, ownProps) => {
       currentScale
     ) => {
       console.log(stateProps.boardId);
-      if (event.type !== "mousedown") return;
-      if (
-        event.target !== boardRef.current &&
-        event.target !== transformRef.current
-      )
-        return;
+      if (event.type == "mousedown") {
+        if (
+          event.target !== boardRef.current &&
+          event.target !== transformRef.current
+        )
+          return;
 
-      // Clear selection if user left clicks on board
-      if (event.button === 0) {
-        dispatchProps.clearSelectNode();
-      }
-
-      // Begin panning if user middle clicks on board
-      if (event.button === 1) {
-        event.preventDefault();
-        console.log(currentPosition);
-        const startX = event.pageX - stateProps.offset.x;
-        const startY = event.pageY - stateProps.offset.y;
-        const bounds = transformRef.current.getBoundingClientRect();
-        const handleMouseMove = (event) => {
+        // Begin panning if user middle clicks on board
+        if (event.button === 1) {
           event.preventDefault();
-          if (
-            transformRef.current !== null &&
-            currentPosition.current !== null
-          ) {
-            currentPosition.current = {
-              x: event.pageX - startX,
-              y: event.pageY - startY,
-            };
+          console.log(currentPosition);
+          const startX = event.pageX - stateProps.offset.x;
+          const startY = event.pageY - stateProps.offset.y;
+          const bounds = transformRef.current.getBoundingClientRect();
+          const handleMouseMove = (event) => {
+            event.preventDefault();
+            if (
+              transformRef.current !== null &&
+              currentPosition.current !== null
+            ) {
+              currentPosition.current = {
+                x: event.pageX - startX,
+                y: event.pageY - startY,
+              };
 
-            requestAnimationFrame(() => {
-              transformRef.current.style.transform = `scale(${
-                currentScale.current
-              }) translate(${
-                currentPosition.current.x / currentScale.current
-              }px, ${currentPosition.current.y / currentScale.current}px)`;
-              boardRef.current.style.backgroundSize = `${
-                100 * currentScale.current
-              }px ${100 * currentScale.current}px`;
-              boardRef.current.style.backgroundPosition = `${currentPosition.current.x}px ${currentPosition.current.y}px`;
-            });
-          }
-        };
+              requestAnimationFrame(() => {
+                transformRef.current.style.transform = `scale(${
+                  currentScale.current
+                }) translate(${
+                  currentPosition.current.x / currentScale.current
+                }px, ${currentPosition.current.y / currentScale.current}px)`;
+                boardRef.current.style.backgroundSize = `${
+                  100 * currentScale.current
+                }px ${100 * currentScale.current}px`;
+                boardRef.current.style.backgroundPosition = `${currentPosition.current.x}px ${currentPosition.current.y}px`;
+              });
+            }
+          };
 
-        const handleMouseUp = (event) => {
-          console.log(event.pageX - startX);
-          dispatchProps.handleMouseUp(
-            event,
-            stateProps.boardId,
-            startX,
-            startY
-          );
-          document.removeEventListener("mousemove", handleMouseMove);
-          document.removeEventListener("mouseup", handleMouseUp);
-        };
+          const handleMouseUp = (event) => {
+            console.log(event.pageX - startX);
+            // Clear selection if user left clicks on board
+            if (event.button === 0) {
+              dispatchProps.clearSelectNode();
+            }
+            dispatchProps.handleMouseUp(
+              event,
+              stateProps.boardId,
+              startX,
+              startY
+            );
+            document.removeEventListener("mousemove", handleMouseMove);
+            document.removeEventListener("mouseup", handleMouseUp);
+          };
 
-        document.addEventListener("mousemove", handleMouseMove);
-        document.addEventListener("mouseup", handleMouseUp);
+          document.addEventListener("mousemove", handleMouseMove);
+          document.addEventListener("mouseup", handleMouseUp);
+        }
+        return;
       }
     },
     handleWheel: (

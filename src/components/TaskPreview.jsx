@@ -4,7 +4,7 @@ import "../App.css";
 import { BoardObjects } from "../utils/enums/items.tsx";
 import "../editor.scss";
 import { bindActionCreators } from "redux";
-import { connect } from "react-redux";
+import { connect, useSelector } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { useRef } from "react";
 import { BadgePreview } from "./Modular/Badge.tsx";
@@ -23,19 +23,11 @@ const previewStyle = {
   boxSizing: "border-box",
 };
 
-const TaskPreview = ({
-  id,
-  pX,
-  pY,
-  title,
-  status,
-  badges,
-  deadline,
-  isInColumn = false,
-  columnWidth,
-  parent,
-}) => {
+const TaskPreview = ({ id, isInColumn = false, columnWidth }) => {
   const nodeRef = useRef();
+  const { pX, pY, title, status, deadline, badges, parent } = useSelector(
+    (state) => state.tasks[id] ?? state.drag.nodes[id]
+  );
   return (
     <>
       <NodeWrapper
@@ -90,22 +82,4 @@ const TaskPreview = ({
   );
 };
 
-const mapStateToProps = (state, ownProps) => {
-  const { id } = ownProps;
-  const task = state.tasks[id] ?? state.drag.nodes[id];
-  return {
-    pX: task.pX,
-    pY: task.pY,
-    title: task.title,
-    status: task.status,
-    deadline: task.deadline,
-    badges: task.badges,
-    parent: task.parent,
-  };
-};
-
-const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators({}, dispatch);
-};
-
-export default connect(mapStateToProps, mapDispatchToProps)(TaskPreview);
+export default TaskPreview;

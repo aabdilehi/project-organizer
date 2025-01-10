@@ -4,14 +4,18 @@ import "../App.css";
 import { BoardObjects } from "../utils/enums/items.tsx";
 import "../editor.scss";
 import { bindActionCreators } from "redux";
-import { connect, useDispatch } from "react-redux";
+import { connect, useDispatch, useSelector } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { useRef, useState } from "react";
 import { TbCheck, TbPlus, TbX } from "react-icons/tb";
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
-import { updateContent, updateTitle } from "../utils/slices/nodeActions.ts";
+import {
+  updateContent,
+  updateSize,
+  updateTitle,
+} from "../utils/slices/nodeActions.ts";
 import { Modal } from "./Modular/Modal.tsx";
-import { setBadges, updateTaskStatus } from "../utils/slices/taskSlice.jsx";
+import { setBadges, updateTaskStatus } from "../utils/slices/taskSlice.js";
 import { BadgeEdit, BadgePreview } from "./Modular/Badge.tsx";
 import AutoResizeTextArea from "./Modular/AutoResizeTextArea.tsx";
 import IconButton from "./Modular/IconButton.tsx";
@@ -24,21 +28,30 @@ const previewStyle = {
   borderRadius: "5px",
 };
 
-const Task = ({
-  id,
-  pX,
-  pY,
-  title,
-  content,
-  status,
-  badges,
-  deadline,
-  columnWidth,
-  parent,
-  onContextMenu,
-}) => {
+const Task = ({ id, columnWidth, onContextMenu, scale, offset }) => {
   const dispatch = useDispatch();
-  const nodeRef = useRef();
+  const nodeRef = useRef(null);
+
+  const { pX, pY, sX, sY, content, title, status, deadline, badges, parent } =
+    useSelector((state) => state.tasks[id]);
+
+  if (nodeRef.current !== null) {
+    const bounds = nodeRef.current.getBoundingClientRect();
+    if (
+      Math.abs(sX - bounds.width / scale) > 10 + 20 || // Padding is 10 on each side
+      Math.abs(sY - bounds.height / scale) > 10 + 20 // Padding is 10 on each side
+    ) {
+      dispatch(
+        updateSize.action({
+          id,
+          type: BoardObjects.TASK,
+          sX: bounds.width / scale,
+          sY: bounds.height / scale,
+        })
+      );
+    }
+  }
+
   const [open, setOpen] = useState(false);
   const taskTitleRef = useRef(null);
   const taskSummaryRef = useRef(null);
@@ -57,8 +70,12 @@ const Task = ({
         canResize={false}
         pX={pX}
         pY={pY}
+        sX={sX}
+        sY={sY}
         parent={parent}
         isInColumn={isInColumn}
+        scale={scale}
+        offset={offset}
         columnWidth={columnWidth}
         onContextMenu={onContextMenu}
       >
@@ -196,6 +213,7 @@ const Task = ({
               <>
                 {Object.values(tempBadges).map((badge) => (
                   <BadgeEdit
+                    id={badge.id}
                     text={badge.text}
                     onChange={(text) => {
                       const copy = { ...tempBadges };
@@ -215,7 +233,7 @@ const Task = ({
               className="badge"
               icon={TbPlus}
               onClick={() => {
-                const badge = new BadgeClass();
+                const badge = new BadgeClass().serialize();
                 const copy = { ...tempBadges, [badge.id]: badge };
                 setTempBadges(copy);
               }}
@@ -289,23 +307,4 @@ const Task = ({
   );
 };
 
-const mapStateToProps = (state, ownProps) => {
-  const { id } = ownProps;
-  const task = state.tasks[id];
-  return {
-    pX: task.pX,
-    pY: task.pY,
-    title: task.title,
-    content: task.content,
-    status: task.status,
-    deadline: task.deadline,
-    badges: task.badges,
-    parent: task.parent,
-  };
-};
-
-const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators({}, dispatch);
-};
-
-export default connect(mapStateToProps, mapDispatchToProps)(Task);
+export default Task;

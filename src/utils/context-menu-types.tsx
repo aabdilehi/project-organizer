@@ -15,6 +15,7 @@ import {
   NodeClass,
   NoteClass,
   TaskClass,
+  GroupClass,
 } from "./classes/new-classes";
 import sanitizeHtml from "sanitize-html";
 
@@ -129,6 +130,7 @@ export const NodeTypeMap: { [key in BoardObjects]: typeof NodeClass } = {
   [BoardObjects.COLUMN]: ColumnClass,
   [BoardObjects.BOARD]: BoardClass,
   [BoardObjects.TASK]: TaskClass,
+  [BoardObjects.GROUP]: GroupClass,
   [BoardObjects.IMAGE]: NodeClass,
   [BoardObjects.DOCUMENT]: DocumentClass,
 };
@@ -235,6 +237,14 @@ export const TaskContextMenu: ContextMenu = {
   items: [],
 };
 
+export const GroupContextMenu: ContextMenu = {
+  canCopy: true,
+  canCut: true,
+  canPaste: false,
+  canDelete: true,
+  items: [],
+};
+
 export const ContextMenuTypes: ContextMenuMap = {
   [BoardObjects.NONE]: NullContextMenu,
   [BoardObjects.NOTE]: NoteContextMenu,
@@ -243,6 +253,7 @@ export const ContextMenuTypes: ContextMenuMap = {
   [BoardObjects.TASK]: TaskContextMenu,
   [BoardObjects.IMAGE]: NullContextMenu,
   [BoardObjects.DOCUMENT]: DocumentContextMenu,
+  [BoardObjects.GROUP]: GroupContextMenu,
 };
 
 export const reduceContextMenu = (types: BoardObjects[]) => {

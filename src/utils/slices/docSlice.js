@@ -31,7 +31,7 @@ const docSlice = createSlice({
     builder.addCase(updateTitle.action, updateTitle.reducer("document"));
     builder.addCase(updateContent.action, updateContent.reducer("document"));
     builder.addCase(updatePosition.action, updatePosition.reducer("document"));
-    builder.addCase(updateSize.action, updateSize.reducer("document"));
+    builder.addCase(updateSize.action, updateSize.reducer("document")); // Used for data purposes, not rendering
     builder.addCase(updateParent.action, updateParent.reducer("document"));
   },
 });

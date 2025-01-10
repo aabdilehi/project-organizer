@@ -83,6 +83,12 @@ const Sidebar = ({ board, setDragData, router }) => {
       />
       <SidebarObject
         onDragStart={(event, type) => setDragData(event, type, sideBarRef)}
+        name="Group"
+        type={SidebarObjects.GROUP}
+        icon={IconCheckbox}
+      />
+      <SidebarObject
+        onDragStart={(event, type) => setDragData(event, type, sideBarRef)}
         name="Image"
         type={SidebarObjects.IMAGE}
         icon={IconPhoto}
@@ -100,7 +106,7 @@ const SidebarObject = ({ name, type, icon: Icon, onDragStart }) => {
     prev.style.display = "none";
     event.dataTransfer.dropEffect = "move";
     event.dataTransfer.setDragImage(prev, 0, 0);
-    event.dataTransfer.setData("custom/sidebar", JSON.stringify({ type }));
+    event.dataTransfer.setData("origin/sidebar", JSON.stringify({ type }));
     onDragStart(event, type);
   };
 
@@ -161,6 +167,7 @@ const mergeProps = (stateProps, dispatchProps, ownProps) => {
           y: event.clientY,
         },
         nodes: { [node.id]: node },
+        types: event.dataTransfer.types,
       });
     },
   };

@@ -1,24 +1,41 @@
 /** @jsxImportSource @emotion/react */
 import "../App.css";
-import { useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
 import "../editor.scss";
-import { connect } from "react-redux";
+import { connect, useSelector } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
+import { BoardObjects } from "../utils/enums/items.tsx";
 
 const NotePreview = ({
   id,
-  pX,
-  pY,
-  sX,
-  sY,
-  content,
-  parent,
+  resize,
   columnWidth,
+  getNodeSize,
   isInColumn = false,
 }) => {
-  const nodeRef = useRef();
-
+  const { pX, pY, sX, sY, content, parent } = useSelector(
+    (state) => state.notes[id] ?? state.drag.nodes[id]
+  );
+  const nodeRef = useRef(null);
+  const sizeRef = useRef({ x: sX, y: sY });
+  const animateResize = (e) => {
+    requestAnimationFrame(() => {
+      if (!nodeRef.current) return;
+      sizeRef.current = getNodeSize(e.clientX, e.clientY, sX, sY);
+      nodeRef.current.style.width = `${sizeRef.current.x}px`;
+      nodeRef.current.style.height = `${sizeRef.current.y}px`;
+    });
+  };
+  useEffect(() => {
+    console.log(resize);
+    if (resize) {
+      window.addEventListener("drag", animateResize);
+    }
+    return () => {
+      window.removeEventListener("drag", animateResize);
+    };
+  }, [resize]);
   return (
     <NodeWrapper
       ref={nodeRef}
@@ -29,8 +46,8 @@ const NotePreview = ({
       preview
       pX={pX}
       pY={pY}
-      sX={sX}
-      sY={sY}
+      sX={sizeRef.current.x}
+      sY={sizeRef.current.y}
       parent={parent}
       isInColumn={isInColumn}
       columnWidth={columnWidth}
@@ -53,17 +70,4 @@ const NotePreview = ({
   );
 };
 
-const mapStateToProps = (state, ownProps) => {
-  const { id } = ownProps;
-  const note = state.notes[id] ?? state.drag.nodes[id];
-  return {
-    pX: note.pX,
-    pY: note.pY,
-    sX: note.sX,
-    sY: note.sY,
-    content: note.content,
-    parent: note.parent,
-  };
-};
-
-export default connect(mapStateToProps, null)(NotePreview);
+export default NotePreview;

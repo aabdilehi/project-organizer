@@ -4,20 +4,16 @@ import "../App.css";
 import { BoardObjects } from "../utils/enums/items.tsx";
 import "../editor.scss";
 import { bindActionCreators } from "redux";
-import { connect } from "react-redux";
+import { connect, useSelector } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { useMemo, useRef } from "react";
 import { TbStar as StarIcon } from "react-icons/tb";
 
-const BoardIconPreview = ({
-  id,
-  pX,
-  pY,
-  title,
-  parent,
-  columnWidth,
-  isInColumn = false,
-}) => {
+const BoardIconPreview = ({ id, columnWidth, isInColumn = false }) => {
+  const { pX, pY, title, parent } = useSelector(
+    (state) => state.boards[id] ?? state.drag.nodes[id]
+  );
+
   const previewStyle = useMemo(
     () => ({
       fontWeight: "800",
@@ -69,19 +65,4 @@ const BoardIconPreview = ({
   );
 };
 
-const mapStateToProps = (state, ownProps) => {
-  const { id } = ownProps;
-  const board = state.boards[id] ?? state.drag.nodes[id];
-  return {
-    pX: board.pX,
-    pY: board.pY,
-    title: board.title,
-    parent: board.parent,
-  };
-};
-
-const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators({}, dispatch);
-};
-
-export default connect(mapStateToProps, mapDispatchToProps)(BoardIconPreview);
+export default BoardIconPreview;

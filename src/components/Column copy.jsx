@@ -85,8 +85,8 @@ const Column = ({
     if (event.dataTransfer.types.length <= 0) return;
 
     switch (event.dataTransfer.types[0]) {
-      case "custom/sidebar":
-      case "custom/board":
+      case "origin/sidebar":
+      case "origin/board":
         //case "text/plain": // can make note node for this
         // assume sidebar if no dragged nodes (can probably add validation but eh)
         event.stopPropagation();

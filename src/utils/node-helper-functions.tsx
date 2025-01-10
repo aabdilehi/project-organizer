@@ -1,6 +1,6 @@
-import { store } from "../store";
+import { AnyAction, createAsyncThunk, ThunkDispatch } from "@reduxjs/toolkit";
+import { RootState, store } from "../store";
 import { BoardObjects } from "./enums/items";
-import { StoreState } from "./enums/state-type";
 import {
   clearCopiedNodes,
   setPosition,
@@ -15,38 +15,42 @@ import {
 import { v4 as uuidv4 } from "uuid";
 
 //#region Delete functions
-export const deleteSelection = () => {
-  const state = store.getState();
-  Object.values(state.selection).forEach(
-    ({
-      id,
-      type,
-      parent,
-    }: {
-      id: string;
-      type: BoardObjects;
-      parent: { id: string; type: BoardObjects };
-    }) => {
-      manualDelete(id, type, parent, state);
-    }
-  );
-};
+export const deleteSelection = createAsyncThunk(
+  "selection/deleteSelection",
+  async (payload, { dispatch, getState }) => {
+    const state = getState();
+    Object.values(state.selection).forEach(
+      ({
+        id,
+        type,
+        parent,
+      }: {
+        id: string;
+        type: BoardObjects;
+        parent: { id: string; type: BoardObjects };
+      }) => {
+        manualDelete(id, type, parent, state, dispatch);
+      }
+    );
+  }
+);
 
 const manualDelete = (
   id: string,
   type: BoardObjects,
   parent: { id: string; type: BoardObjects },
-  state: StoreState
+  state: unknown,
+  dispatch: ThunkDispatch<unknown, unknown, AnyAction>
 ) => {
   switch (type) {
     case BoardObjects.BOARD:
-      deleteBoard(id, parent, state);
+      deleteBoard(id, parent, state, dispatch);
       break;
     case BoardObjects.COLUMN:
-      deleteColumn(id, parent, state);
+      deleteColumn(id, parent, state, dispatch);
       break;
     default:
-      deleteOther(id, type, parent);
+      deleteOther(id, type, parent, dispatch);
       break;
   }
 };
@@ -54,25 +58,31 @@ const manualDelete = (
 const deleteBoard = (
   id: string,
   parent: { id: string; type: BoardObjects },
-  state: StoreState
+  state: unknown,
+  dispatch: ThunkDispatch<unknown, unknown, AnyAction>
 ) => {
   const board = state.boards[id];
   if (!board) return;
 
   board.childRefs.forEach(({ childId, childType }) => {
-    manualDelete(childId, childType, { id: board.id, type: board.type }, state);
+    manualDelete(
+      childId,
+      childType,
+      { id: board.id, type: board.type },
+      state,
+      dispatch
+    );
   });
 
-  store.dispatch(
-    removeChild.action({ id: parent.id, type: parent.type, cId: id })
-  );
-  store.dispatch(removeNode.action({ id, type: BoardObjects.BOARD }));
+  dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
+  dispatch(removeNode.action({ id, type: BoardObjects.BOARD }));
 };
 
 const deleteColumn = (
   id: string,
   parent: { id: string; type: BoardObjects },
-  state: StoreState
+  state: unknown,
+  dispatch: ThunkDispatch<unknown, unknown, AnyAction>
 ) => {
   const column = state.columns[id];
   if (!column) return;
@@ -82,26 +92,24 @@ const deleteColumn = (
       childId,
       childType,
       { id: column.id, type: column.type },
-      state
+      state,
+      dispatch
     );
   });
 
-  store.dispatch(
-    removeChild.action({ id: parent.id, type: parent.type, cId: id })
-  );
-  store.dispatch(removeNode.action({ id, type: BoardObjects.COLUMN }));
+  dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
+  dispatch(removeNode.action({ id, type: BoardObjects.COLUMN }));
 };
 
 // note, task, picture, document
 const deleteOther = (
   id: string,
   type: BoardObjects,
-  parent: { id: string; type: BoardObjects }
+  parent: { id: string; type: BoardObjects },
+  dispatch: ThunkDispatch<unknown, unknown, AnyAction>
 ) => {
-  store.dispatch(
-    removeChild.action({ id: parent.id, type: parent.type, cId: id })
-  );
-  store.dispatch(removeNode.action({ id, type }));
+  dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
+  dispatch(removeNode.action({ id, type }));
 };
 
 //#endregion
@@ -140,7 +148,7 @@ export const copySelection = (boardId: string, x?: number, y?: number) => {
   );
 };
 
-const manualCopy = (id: string, type: BoardObjects, state: StoreState) => {
+const manualCopy = (id: string, type: BoardObjects, state: RootState) => {
   switch (type) {
     case BoardObjects.BOARD:
       copyBoard(id, state);
@@ -155,7 +163,7 @@ const manualCopy = (id: string, type: BoardObjects, state: StoreState) => {
 };
 
 // board
-const copyBoard = (id: string, state: StoreState) => {
+const copyBoard = (id: string, state: RootState) => {
   const board = state.boards[id];
   if (!board) return;
 
@@ -166,7 +174,7 @@ const copyBoard = (id: string, state: StoreState) => {
 };
 
 // column
-const copyColumn = (id: string, state: StoreState) => {
+const copyColumn = (id: string, state: RootState) => {
   const column = state.columns[id];
   if (!column) return;
 
@@ -177,7 +185,7 @@ const copyColumn = (id: string, state: StoreState) => {
 };
 
 // note, task, picture, document
-const copyOther = (id: string, type: BoardObjects, state: StoreState) => {
+const copyOther = (id: string, type: BoardObjects, state: RootState) => {
   if (!state) return;
   const node = state[type + "s"][id];
   if (!node) return;
@@ -203,7 +211,7 @@ export const pasteToSelectedNodes = (boardId: string, x: number, y: number) => {
 const duplicateCopiedNodes = (
   id: string,
   type: BoardObjects,
-  state: StoreState,
+  state: RootState,
   boardId: string,
   x?: number,
   y?: number

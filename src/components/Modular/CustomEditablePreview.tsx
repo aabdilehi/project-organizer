@@ -194,7 +194,7 @@ function CustomEditablePreview({
           key={textAreaKey}
           ref={textAreaRef}
           rows={1}
-          cols={
+          cols={String(
             adjustSelf
               ? Math.max(
                   10,
@@ -208,7 +208,7 @@ function CustomEditablePreview({
                   )
                 )
               : undefined
-          }
+          )}
           value={value}
           wrap="hard"
           disabled={!editing}

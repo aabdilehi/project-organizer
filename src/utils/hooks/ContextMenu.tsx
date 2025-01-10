@@ -38,10 +38,6 @@ const ContextMenu = ({
   const contextRef = useRef();
 
   useEffect(() => {
-    console.log(props.copyPosition);
-  }, [props.copyPosition]);
-
-  useEffect(() => {
     const handleClick = (e) => {
       if (
         e.currentTarget !== contextRef.current ||

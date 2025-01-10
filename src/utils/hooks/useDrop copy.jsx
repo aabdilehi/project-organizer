@@ -63,7 +63,7 @@ export function useDrop({ boardRef, scale, offset }) {
     event.preventDefault();
 
     //#region Drop from sidebar
-    let data = event.dataTransfer.getData("custom/sidebar");
+    let data = event.dataTransfer.getData("origin/sidebar");
     if (data) {
       data = JSON.parse(data);
       if (!boardAcceptedTypes.includes(data.type)) return;
@@ -77,7 +77,7 @@ export function useDrop({ boardRef, scale, offset }) {
     // return;
 
     //#region Drop from board/column
-    data = event.dataTransfer.getData("custom/board");
+    data = event.dataTransfer.getData("origin/board");
     if (data) {
       data = JSON.parse(data);
       if (!data.hasOwnProperty("selectedNodes")) return;
@@ -117,8 +117,8 @@ export function useDrop({ boardRef, scale, offset }) {
     if (event.dataTransfer.types.length <= 0) return;
 
     switch (event.dataTransfer.types[0]) {
-      case "custom/sidebar":
-      case "custom/board":
+      case "origin/sidebar":
+      case "origin/board":
         //case "text/plain": // can make note node for this
         // assume sidebar if no dragged nodes (can probably add validation but eh)
         event.stopPropagation();
@@ -130,7 +130,7 @@ export function useDrop({ boardRef, scale, offset }) {
 
   function dropOnColumn(event, id) {
     //#region Drop from sidebar
-    let data = event.dataTransfer.getData("custom/sidebar");
+    let data = event.dataTransfer.getData("origin/sidebar");
     if (data) {
       data = JSON.parse(data);
       if (!columnAcceptedTypes.includes(data.type)) {
@@ -146,7 +146,7 @@ export function useDrop({ boardRef, scale, offset }) {
     // event.preventDefault();
     // return;
     //#region Drop from board/column
-    data = event.dataTransfer.getData("custom/board");
+    data = event.dataTransfer.getData("origin/board");
     if (data) {
       data = JSON.parse(data);
       handledNodes.current = [];

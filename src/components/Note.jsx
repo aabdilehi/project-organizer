@@ -5,7 +5,7 @@ import { useRef } from "react";
 import { BoardObjects } from "../utils/enums/items";
 import "../editor.scss";
 import { ListItem } from "@chakra-ui/react";
-import { connect } from "react-redux";
+import { connect, useDispatch, useSelector } from "react-redux";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Color from "@tiptap/extension-color";
 import TextStyle from "@tiptap/extension-text-style";
@@ -17,20 +17,17 @@ import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
 import { updateContent } from "../utils/slices/nodeActions";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
+import { debounce } from "lodash";
 
-const Note = ({
-  id,
-  pX,
-  pY,
-  sX,
-  sY,
-  columnWidth,
-  content,
-  parent,
-  onContextMenu,
-  ...props
-}) => {
+const Note = ({ id, columnWidth, onContextMenu, offset, scale, ...props }) => {
   const nodeRef = useRef();
+
+  const { pX, pY, sX, sY, content, parent } = useSelector(
+    (state) => state.notes[id]
+  );
+
+  const selected = useSelector((state) => state.selection.hasOwnProperty(id));
+  const dispatch = useDispatch();
 
   const editor = useEditor({
     extensions: [
@@ -61,7 +58,17 @@ const Note = ({
       editor.setEditable(false);
     },
     onUpdate: ({ editor }) => {
-      props.updateContent(editor);
+      debounce(
+        () =>
+          dispatch(
+            updateContent.action({
+              id,
+              type: BoardObjects.NOTE,
+              content: editor.getHTML(),
+            })
+          ),
+        100
+      );
       let { from, to } = editor.state.selection;
       editor.commands.setTextSelection({ from, to });
     },
@@ -72,10 +79,8 @@ const Note = ({
       if (!editor) {
         return;
       }
-
-      console.log("EDIT");
       // Set to edit mode
-      if (!event.ctrlKey && !event.shiftKey && props.selected) {
+      if (!event.ctrlKey && !event.shiftKey && selected) {
         editor.setEditable(true);
         editor.commands.focus();
         return;
@@ -92,9 +97,11 @@ const Note = ({
       canResize={true}
       pX={pX}
       pY={pY}
-      sX={sX}
+      sX={sX ?? 200}
       sY={sY}
       parent={parent}
+      scale={scale}
+      offset={offset}
       className={`${editor?.isEditable ? " editing" : ""}`}
       isInColumn={props.isInColumn}
       columnWidth={columnWidth}
@@ -119,33 +126,4 @@ const Note = ({
   );
 };
 
-const mapStateToProps = (state, ownProps) => {
-  const { id } = ownProps;
-  const note = state.notes[id];
-  return {
-    pX: note.pX,
-    pY: note.pY,
-    sX: note.sX ?? 200,
-    sY: note.sY,
-    content: note.content,
-    parent: note.parent,
-    selected: state.selection.hasOwnProperty(id),
-    // SET TRANSFORM ORIGIN OF BOARD TO MOUSE POSITION
-  };
-};
-
-const mapDispatchToProps = (dispatch, ownProps) => {
-  return {
-    updateContent: (editor) => {
-      dispatch(
-        updateContent.action({
-          id: ownProps.id,
-          type: BoardObjects.NOTE,
-          content: editor.getHTML(),
-        })
-      );
-    },
-  };
-};
-
-export default connect(mapStateToProps, mapDispatchToProps)(Note);
+export default Note;

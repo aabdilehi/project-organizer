@@ -4,20 +4,15 @@ import "../App.css";
 import { BoardObjects } from "../utils/enums/items.tsx";
 import "../editor.scss";
 import { bindActionCreators } from "redux";
-import { connect } from "react-redux";
+import { connect, useSelector } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { useMemo, useRef } from "react";
 import { TbFileText } from "react-icons/tb";
 
-const DocumentPreview = ({
-  id,
-  pX,
-  pY,
-  title,
-  parent,
-  columnWidth,
-  isInColumn = false,
-}) => {
+const DocumentPreview = ({ id, columnWidth, isInColumn = false }) => {
+  const { pX, pY, title, parent } = useSelector(
+    (state) => state.documents[id] ?? state.drag.nodes[id]
+  );
   const previewStyle = useMemo(
     () => ({
       fontWeight: "800",
@@ -58,19 +53,4 @@ const DocumentPreview = ({
   );
 };
 
-const mapStateToProps = (state, ownProps) => {
-  const { id } = ownProps;
-  const document = state.documents[id] ?? state.drag.nodes[id];
-  return {
-    pX: document.pX,
-    pY: document.pY,
-    title: document.title,
-    parent: document.parent,
-  };
-};
-
-const mapDispatchToProps = (dispatch) => {
-  return bindActionCreators({}, dispatch);
-};
-
-export default connect(mapStateToProps, mapDispatchToProps)(DocumentPreview);
+export default DocumentPreview;

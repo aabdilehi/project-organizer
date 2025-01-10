@@ -9,6 +9,7 @@ import columnReducer from "./utils/slices/columnSlice";
 import noteReducer from "./utils/slices/noteSlice";
 import pictureReducer from "./utils/slices/pictureSlice";
 import taskReducer from "./utils/slices/taskSlice";
+import groupReducer from "./utils/slices/groupSlice";
 import docReducer from "./utils/slices/docSlice";
 import selectionReducer from "./utils/slices/selectionSlice";
 import copiedReducer from "./utils/slices/copiedSlice";
@@ -19,6 +20,8 @@ const initialState = {
     root: {
       id: "root",
       title: "Home",
+      offset: { x: 0, y: 0 },
+      scale: 1,
       childRefs: [],
     },
   },
@@ -35,6 +38,7 @@ const initialState = {
   drag: {
     initialPosition: { x: 0, y: 0 },
     nodes: {},
+    types: [],
   },
 };
 
@@ -44,6 +48,7 @@ const rootReducer = combineReducers({
   notes: noteReducer,
   pictures: pictureReducer,
   tasks: taskReducer,
+  groups: groupReducer,
   documents: docReducer,
   selection: selectionReducer,
   copied: copiedReducer,
@@ -59,10 +64,14 @@ const persistConfig = {
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
 const stateSyncConfig = {
-  blacklist: ["persist/PERSIST", "persist/REHYDRATE"],
+  blacklist: [
+    "persist/PERSIST",
+    "persist/REHYDRATE",
+    "selection",
+    "copied",
+    "drag",
+  ],
 };
-
-const middlewares = [createStateSyncMiddleware(stateSyncConfig)];
 
 export const store = configureStore({
   reducer: persistedReducer,
@@ -70,5 +79,5 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(createStateSyncMiddleware(stateSyncConfig)),
 });
-
+export type RootState = ReturnType<typeof rootReducer>;
 export const persistor = persistStore(store);

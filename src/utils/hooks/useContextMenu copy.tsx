@@ -7,18 +7,18 @@ import {
 } from "../context-menu-types";
 import React from "react";
 import ReactDOM from "react-dom";
-import { StoreState } from "../enums/state-type";
 import {
   copySelection,
   deleteSelection,
   pasteToSelectedNodes,
 } from "../node-helper-functions";
+import { RootState } from "../../store";
 
 export function useContextMenu({ boardId, containerRef, calculatePosition }) {
   const [isOpen, setIsOpen] = useState<boolean>();
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const selectedNodes = useSelector((state: StoreState) => state.selection);
-  const contextMenu = useSelector((state: StoreState) => {
+  const selectedNodes = useSelector((state: RootState) => state.selection);
+  const contextMenu = useSelector((state: RootState) => {
     const types = Object.values(state.selection).map((node) => node.type);
     return reduceContextMenu(types);
   });

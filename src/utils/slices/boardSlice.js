@@ -7,6 +7,7 @@ import {
   updateParent,
   removeNode,
   updateTitle,
+  updateSize,
 } from "./nodeActions";
 
 const boardSlice = createSlice({
@@ -56,6 +57,7 @@ const boardSlice = createSlice({
     builder.addCase(removeChild.action, removeChild.reducer("board"));
     builder.addCase(updateTitle.action, updateTitle.reducer("board"));
     builder.addCase(updatePosition.action, updatePosition.reducer("board"));
+    builder.addCase(updateSize.action, updateSize.reducer("board")); // Used for data purposes, not rendering
     builder.addCase(updateParent.action, updateParent.reducer("board"));
   },
 });

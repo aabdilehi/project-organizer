@@ -1,16 +1,55 @@
 import { createAction } from "@reduxjs/toolkit";
+import { SizeClassMap } from "../classes/new-classes";
 
 // Actions
 const addNodeAction = createAction<{}>("addNode");
-const removeNodeAction = createAction<{id: string, type: string}>("removeNode");
-const addChildAction = createAction<{id: string, type: string, cId: string, cType: string}>("addChild");
-const removeChildAction = createAction<{id: string, type: string, cId: string}>("removeChild");
-const updateTitleAction = createAction<{id: string, type: string, title: string}>("updateTitle");
-const updateContentAction = createAction<{id: string, type: string, content: string}>("updateContent");
-const updatePositionAction = createAction<{id: string, type: string, pX: number, pY: number}>("updatePosition");
-const offsetPositionAction = createAction<{id: string, type: string, offsetX: number, offsetY: number}>("offsetPosition");
-const updateSizeAction = createAction<{id: string, type: string, sX: number, sY: number}>("updateSize");
-const updateParentAction = createAction<{id: string, type: string, parent: object}>("updateParent");
+const removeNodeAction = createAction<{ id: string; type: string }>(
+  "removeNode"
+);
+const addChildAction = createAction<{
+  id: string;
+  type: string;
+  cId: string;
+  cType: string;
+}>("addChild");
+const removeChildAction = createAction<{
+  id: string;
+  type: string;
+  cId: string;
+}>("removeChild");
+const updateTitleAction = createAction<{
+  id: string;
+  type: string;
+  title: string;
+}>("updateTitle");
+const updateContentAction = createAction<{
+  id: string;
+  type: string;
+  content: string;
+}>("updateContent");
+const updatePositionAction = createAction<{
+  id: string;
+  type: string;
+  pX: number;
+  pY: number;
+}>("updatePosition");
+const offsetPositionAction = createAction<{
+  id: string;
+  type: string;
+  offsetX: number;
+  offsetY: number;
+}>("offsetPosition");
+const updateSizeAction = createAction<{
+  id: string;
+  type: string;
+  sX: number;
+  sY: number;
+}>("updateSize");
+const updateParentAction = createAction<{
+  id: string;
+  type: string;
+  parent: object;
+}>("updateParent");
 
 // Reducers (Function wrapped in function so I can have extra params)
 const addNodeReducer = (nodeType) => (state, action) => {
@@ -44,18 +83,21 @@ const addChildReducer = (nodeType) => (state, action) => {
 };
 const removeChildReducer = (nodeType) => (state, action) => {
   const { id, type, cId } = action.payload;
+  console.log(`Board Id: ${id}\nBoard type: ${type}\nChild Id: ${cId}`);
   if (!id || !cId || type !== nodeType) return;
   const node = state[id];
   const index = node.childRefs.findIndex((item) => {
     return item.childId === cId;
   });
   if (index === -1) return;
-  console.log([...node.childRefs]);
   return {
     ...state,
     [id]: {
       ...node,
-      childRefs: [...node.childRefs.slice(0, index), ...node.childRefs.slice(index + 1)],
+      childRefs: [
+        ...node.childRefs.slice(0, index),
+        ...node.childRefs.slice(index + 1),
+      ],
     },
   };
 };
@@ -88,6 +130,7 @@ const updatePositionReducer = (nodeType) => (state, action) => {
 
   if (!id || type !== nodeType || !pX || !pY) return;
   const node = state[id];
+  if (!node) return;
 
   return {
     ...state,
@@ -113,17 +156,45 @@ const offsetPositionReducer = (nodeType) => (state, action) => {
     },
   };
 };
+
+function clampIfDefined(value, min, max) {
+  if (!value) return;
+  let temp = value;
+  if (min) {
+    temp = Math.max(temp, min);
+  }
+  if (max) {
+    temp = Math.min(temp, max);
+  }
+  return temp;
+}
+
 const updateSizeReducer = (nodeType) => (state, action) => {
   const { id, type, sX, sY } = action.payload;
-
-  if (!id || type !== nodeType || !sX || !sY) return;
+  if (!id || type !== nodeType) return;
   const node = state[id];
+  // I need to limit this to the nodes min and max size;
+  if (
+    (Object.hasOwn(node, "sX") && !sX) ||
+    (Object.hasOwn(node, "sY") && !sY)
+  ) {
+    return;
+  }
+
   return {
     ...state,
     [id]: {
       ...node,
-      sX,
-      sY,
+      sX: clampIfDefined(
+        sX,
+        SizeClassMap[type]?.min?.x ?? null,
+        SizeClassMap[type]?.max?.x ?? null
+      ),
+      sY: clampIfDefined(
+        sY,
+        SizeClassMap[type]?.min?.y ?? null,
+        SizeClassMap[type]?.max?.y ?? null
+      ),
     },
   };
 };
