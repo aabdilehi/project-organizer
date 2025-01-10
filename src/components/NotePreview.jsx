@@ -28,7 +28,6 @@ const NotePreview = ({
     });
   };
   useEffect(() => {
-    console.log(resize);
     if (resize) {
       window.addEventListener("drag", animateResize);
     }
@@ -48,7 +47,8 @@ const NotePreview = ({
       pY={pY}
       sX={sizeRef.current.x}
       sY={sizeRef.current.y}
-      parent={parent}
+      parentId={parent.id}
+      parentType={parent.type}
       isInColumn={isInColumn}
       columnWidth={columnWidth}
     >

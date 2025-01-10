@@ -83,7 +83,7 @@ const addChildReducer = (nodeType) => (state, action) => {
 };
 const removeChildReducer = (nodeType) => (state, action) => {
   const { id, type, cId } = action.payload;
-  console.log(`Board Id: ${id}\nBoard type: ${type}\nChild Id: ${cId}`);
+  // console.log(`Board Id: ${id}\nBoard type: ${type}\nChild Id: ${cId}`);
   if (!id || !cId || type !== nodeType) return;
   const node = state[id];
   const index = node.childRefs.findIndex((item) => {

@@ -173,7 +173,6 @@ const DragLayer = ({
             };
           });
         }
-        console.log(selectedNodeData);
         const x = nodes[item.id].pX;
         const y = nodes[item.id].pY;
         selectedNodeOffsets[item.id] = {
@@ -354,7 +353,6 @@ const DragLayer = ({
           nodesInBounds[node.id] = node;
         }
       });
-      console.log(nodesInBounds);
       dispatch(setSelectedNodes(nodesInBounds));
     }
     dispatch(clearDragDataAction());

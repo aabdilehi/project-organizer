@@ -99,7 +99,8 @@ const Note = ({ id, columnWidth, onContextMenu, offset, scale, ...props }) => {
       pY={pY}
       sX={sX ?? 200}
       sY={sY}
-      parent={parent}
+      parentId={parent.id}
+      parentType={parent.type}
       scale={scale}
       offset={offset}
       className={`${editor?.isEditable ? " editing" : ""}`}

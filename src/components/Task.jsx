@@ -72,7 +72,8 @@ const Task = ({ id, columnWidth, onContextMenu, scale, offset }) => {
         pY={pY}
         sX={sX}
         sY={sY}
-        parent={parent}
+        parentId={parent.id}
+        parentType={parent.type}
         isInColumn={isInColumn}
         scale={scale}
         offset={offset}

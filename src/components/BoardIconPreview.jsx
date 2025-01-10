@@ -44,7 +44,8 @@ const BoardIconPreview = ({ id, columnWidth, isInColumn = false }) => {
         pX={pX}
         pY={pY}
         preview
-        parent={parent}
+        parentId={parent.id}
+        parentType={parent.type}
         isInColumn={isInColumn}
         columnWidth={columnWidth}
       >

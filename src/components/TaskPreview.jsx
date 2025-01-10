@@ -39,7 +39,8 @@ const TaskPreview = ({ id, isInColumn = false, columnWidth }) => {
         canResize={false}
         pX={pX}
         pY={pY}
-        parent={parent}
+        parentId={parent.id}
+        parentType={parent.type}
         isInColumn={isInColumn}
         columnWidth={columnWidth}
       >

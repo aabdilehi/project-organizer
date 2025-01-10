@@ -177,7 +177,8 @@ const Document = ({ id, columnWidth, onContextMenu }) => {
         canResize={false}
         pX={pX}
         pY={pY}
-        parent={parent}
+        parentId={parent.id}
+        parentType={parent.type}
         isInColumn={isInColumn}
         columnWidth={columnWidth}
         onContextMenu={onContextMenu}

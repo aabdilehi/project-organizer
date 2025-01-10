@@ -71,7 +71,8 @@ const BoardIcon = ({ id, allowDrop, drop, onContextMenu, columnWidth }) => {
         canResize={false}
         pX={pX}
         pY={pY}
-        parent={parent}
+        parentId={parent.id}
+        parentType={parent.type}
         isInColumn={isInColumn}
         onContextMenu={onContextMenu}
         columnWidth={columnWidth}

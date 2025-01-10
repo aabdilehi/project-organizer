@@ -37,7 +37,8 @@ const Group = ({ id, onContextMenu, scale, offset }) => {
       sY={sY}
       scale={scale}
       offset={offset}
-      parent={parent}
+      parentId={parent.id}
+      parentType={parent.type}
       isInColumn={false}
       onContextMenu={onContextMenu}
     >

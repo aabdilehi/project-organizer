@@ -40,7 +40,8 @@ const DocumentPreview = ({ id, columnWidth, isInColumn = false }) => {
       canResize={false}
       pX={pX}
       pY={pY}
-      parent={parent}
+      parentId={parent.id}
+      parentType={parent.type}
       preview
       isInColumn={isInColumn}
       columnWidth={columnWidth}

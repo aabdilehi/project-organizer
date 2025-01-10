@@ -44,7 +44,8 @@ const GroupPreview = ({ id, resize, getNodeSize }) => {
       pY={pY}
       sX={sizeRef.current.x}
       sY={sizeRef.current.y}
-      parent={parent}
+      parentId={parent.id}
+      parentType={parent.type}
       isInColumn={false}
     >
       <p class="editable" style={{ borderRadius: "5px", fontWeight: "800" }}>

@@ -49,7 +49,8 @@ const ColumnPreview = ({ id, resize, getNodeSize }) => {
       canResize={false}
       id={id}
       type={"column"}
-      parent={parent}
+      parentId={parent.id}
+      parentType={parent.type}
       preview
       pX={pX}
       pY={pY}

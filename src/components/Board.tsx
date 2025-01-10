@@ -1,7 +1,7 @@
 //#region Imports
 import React, { useCallback, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { connect } from "react-redux";
+import { connect, useDispatch, useSelector } from "react-redux";
 
 import { BoardObjects } from "../utils/enums/items.tsx";
 import Note from "./Note.jsx";
@@ -30,21 +30,48 @@ import {
 } from "../utils/slices/copiedSlice.ts";
 import ContextMenu from "../utils/hooks/ContextMenu.tsx";
 import Group from "./Group.jsx";
+import {
+  selectBoard,
+  selectBoardChildren,
+  selectBoardOffset,
+  selectBoardParent,
+  selectBoardScale,
+  selectBoardTitle,
+  selectCopiedNodes,
+  selectCopiedPosition,
+  selectNodes,
+  selectSelection,
+} from "../utils/slices/selectors.ts";
+import { RootState } from "../store.ts";
 //#endregion
 
-const Board = ({
-  validBoard,
-  title,
-  boardId,
-  router,
-  childRefs,
-  offset,
-  scale,
-  clearSelectNode,
-  handleMouseDown,
-  handleWheel,
-}) => {
+const Board = ({ validBoard, router }) => {
   //#region Handle initial page setup
+  const { id } = router.params;
+  const boardId = id ? id : "root";
+
+  //#region Selectors
+
+  const scale = useSelector((state: RootState) =>
+    selectBoardScale(state, boardId)
+  );
+  const offset = useSelector((state: RootState) =>
+    selectBoardOffset(state, boardId)
+  );
+  const childRefs = useSelector((state: RootState) =>
+    selectBoardChildren(state, boardId)
+  );
+
+  const nodes = useSelector(selectNodes);
+
+  if (!nodes[boardId]) return;
+
+  const selectedNodes = useSelector(selectSelection);
+  const copiedNodes = useSelector(selectCopiedNodes);
+  const copiedPosition = useSelector(selectCopiedPosition);
+
+  //#endregion
+
   //#region References
   const ref = useRef();
   const transformRef = useRef();
@@ -54,240 +81,13 @@ const Board = ({
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   //#endregion
 
-  const handleRightClick = useCallback((event) => {
-    event.preventDefault();
-    const boundingRect = ref.current.getBoundingClientRect();
-    const x = event.clientX - boundingRect.left;
-    const y = event.clientY - boundingRect.top;
-    // open context menu at mouse pos
-    currentMousePos.current = { x, y };
+  //#region Dispatch actions
 
-    setContextMenuOpen(true);
-  }, []);
+  const dispatch = useDispatch();
 
-  const calculateRelativePosition = (x, y) => {
-    const newX = (x - currentPosition.current.x) / currentScale.current;
-    const newY = (y - currentPosition.current.y) / currentScale.current;
-
-    return {
-      x: newX,
-      y: newY,
-    };
-  };
-
-  //#endregion
-
-  //#region Drop behaviour
-  const { dropOnBoard, dropOnColumn, allowDropOnBoard, allowDropOnColumn } =
-    useDrop({
-      boardRef: ref,
-      scale: currentScale,
-      offset: currentPosition,
-    });
-  //#endregion
-
-  function openContextMenu(open: boolean) {
-    setContextMenuOpen(open);
-  }
-
-  //#region Render board
-  if (validBoard) {
-    return (
-      <>
-        <div
-          ref={ref}
-          draggable={true}
-          className="actualboard"
-          onMouseDown={(event) =>
-            handleMouseDown(
-              event,
-              ref,
-              transformRef,
-              currentPosition,
-              currentScale
-            )
-          }
-          style={{
-            backgroundSize: `${100 * currentScale.current}px ${
-              100 * currentScale.current
-            }px`,
-            backgroundPosition: `${currentPosition.current.x}px ${currentPosition.current.y}px`,
-          }}
-          onWheel={(event) =>
-            handleWheel(event, ref, transformRef, currentPosition, currentScale)
-          }
-          onClick={(e) => {
-            if (e.target == transformRef.current || e.target == ref.current) {
-              clearSelectNode();
-            }
-          }}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            if (e.target == transformRef.current || e.target == ref.current) {
-              clearSelectNode();
-            }
-            handleRightClick(e);
-          }}
-          onDragStart={(event) => {
-            if (event.dataTransfer.types.length > 0) return;
-            event.dataTransfer.setData("origin/board", "");
-            event.dataTransfer.setData("action/select", "");
-          }}
-          onDrop={(event) => {
-            event.stopPropagation();
-            dropOnBoard(event, boardId);
-          }}
-          onDragOver={(event) => {
-            allowDropOnBoard(event);
-          }}
-          onResize={(e) => e.preventDefault()}
-        >
-          <DragLayer
-            boardId={boardId}
-            boardRef={ref}
-            transformRef={transformRef}
-            scale={currentScale}
-            offset={currentPosition}
-          />
-          <ContextMenu
-            boardId={boardId}
-            open={contextMenuOpen}
-            setOpen={openContextMenu}
-            mousePosition={currentMousePos}
-            calculatePosition={calculateRelativePosition}
-          />
-          <div
-            ref={transformRef}
-            className="board-transform"
-            style={{
-              transform: `scale(${currentScale.current}) translate(${
-                currentPosition.current.x / currentScale.current
-              }px, ${currentPosition.current.y / currentScale.current}px)`,
-            }}
-          >
-            {childRefs.map(({ childId, childType }) => {
-              switch (childType) {
-                case BoardObjects.NOTE:
-                  return (
-                    <Note
-                      key={childId}
-                      id={childId}
-                      onContextMenu={handleRightClick}
-                      scale={currentScale.current}
-                      offset={currentPosition}
-                    />
-                  );
-                case BoardObjects.TASK:
-                  return (
-                    <Task
-                      key={childId}
-                      id={childId}
-                      onContextMenu={handleRightClick}
-                      scale={currentScale.current}
-                      offset={currentPosition}
-                    />
-                  );
-                case BoardObjects.GROUP:
-                  return (
-                    <Group
-                      key={childId}
-                      id={childId}
-                      onContextMenu={handleRightClick}
-                      scale={currentScale.current}
-                      offset={currentPosition}
-                    />
-                  );
-                // case BoardObjects.COLUMN:
-                //   return (
-                //     <Column
-                //       key={childId}
-                //       id={childId}
-                //       drop={dropOnColumn}
-                //       allowDrop={allowDropOnColumn}
-                //       dropOnBoard={dropOnBoard}
-                //       allowDropOnBoard={allowDropOnBoard}
-                //       onContextMenu={handleRightClick}
-                //     />
-                //   );
-                case BoardObjects.BOARD:
-                  return (
-                    <BoardIcon
-                      key={childId}
-                      id={childId}
-                      drop={dropOnBoard}
-                      allowDrop={allowDropOnBoard}
-                      onContextMenu={handleRightClick}
-                    />
-                  );
-                case BoardObjects.DOCUMENT:
-                  return (
-                    <Document
-                      key={childId}
-                      id={childId}
-                      onContextMenu={handleRightClick}
-                      scale={currentScale}
-                      offset={currentPosition}
-                    />
-                  );
-                default:
-                  break;
-              }
-            })}
-          </div>
-        </div>
-      </>
-    );
-  }
-  //#endregion
-};
-
-const mapStateToProps = (state, ownProps) => {
-  const { id } = ownProps.router.params;
-  const boardId = id ? id : "root";
-  const board = state.boards[boardId];
-  const nodes = {
-    ...state.boards,
-    ...state.columns,
-    ...state.documents,
-    ...state.notes,
-    ...state.tasks,
-  };
-  if (board) {
-    return {
-      nodes,
-      selectedNodes: state.selection,
-      copyPosition: state.copied.position,
-      copiedNodes: state.copied.copiedNodes,
-      validBoard: true,
-      boardId,
-      title: board.title,
-      childRefs: board.childRefs,
-      parent: board.parent,
-      offset: board.offset,
-      scale: board.scale,
-    };
-  }
-  return {
-    validBoard: false,
-  };
-};
-
-const mapDispatchToProps = (dispatch, ownProps) => {
-  // Delete functions
-  const deleteSelection = (
-    selection: {
-      [id: string]: {
-        id: string;
-        type: BoardObjects;
-        parent: {
-          id: string;
-          type: BoardObjects;
-        };
-      };
-    },
-    nodes: { [id: string]: any }
-  ) => {
-    Object.values(selection).forEach(
+  //#region Delete functions
+  const deleteSelection = () => {
+    Object.values(selectedNodes).forEach(
       ({
         id,
         type,
@@ -297,7 +97,7 @@ const mapDispatchToProps = (dispatch, ownProps) => {
         type: BoardObjects;
         parent: { id: string; type: BoardObjects };
       }) => {
-        manualDelete(id, type, parent, nodes);
+        manualDelete(id, type, parent);
       }
     );
   };
@@ -305,13 +105,12 @@ const mapDispatchToProps = (dispatch, ownProps) => {
   const manualDelete = (
     id: string,
     type: BoardObjects,
-    parent: { id: string; type: BoardObjects },
-    nodes: { [id: string]: any }
+    parent: { id: string; type: BoardObjects }
   ) => {
     switch (type) {
       case BoardObjects.BOARD:
       case BoardObjects.COLUMN:
-        deleteContainer(id, parent, nodes);
+        deleteContainer(id, parent);
         break;
       default:
         deleteOther(id, type, parent);
@@ -321,19 +120,13 @@ const mapDispatchToProps = (dispatch, ownProps) => {
 
   const deleteContainer = (
     id: string,
-    parent: { id: string; type: BoardObjects },
-    nodes: { [id: string]: any }
+    parent: { id: string; type: BoardObjects }
   ) => {
     const board = nodes[id];
     if (!board) return;
 
     board.childRefs.forEach(({ childId, childType }) => {
-      manualDelete(
-        childId,
-        childType,
-        { id: board.id, type: board.type },
-        nodes
-      );
+      manualDelete(childId, childType, { id: board.id, type: board.type });
     });
 
     dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
@@ -348,17 +141,17 @@ const mapDispatchToProps = (dispatch, ownProps) => {
     dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
     dispatch(removeNode.action({ id, type }));
   };
-  //
+  //#endregion
 
-  // Copy functions
-  const copySelection = (selection, nodes, x?: number, y?: number) => {
+  //#region Copy functions
+  const copySelection = (x?: number, y?: number) => {
     if (x && y) {
       dispatch(setPosition({ x, y }));
     } else {
       let centroidX = 0;
       let centroidY = 0;
       let centroidCount = 0;
-      Object.values(selection).forEach((sel) => {
+      Object.values(selectedNodes).forEach((sel) => {
         if (sel.parent.type == BoardObjects.COLUMN) return;
         let node = nodes[sel.id];
         if (!node) return;
@@ -374,49 +167,34 @@ const mapDispatchToProps = (dispatch, ownProps) => {
       dispatch(setPosition(centroid));
     }
     dispatch(clearCopiedNodes(undefined));
-    Object.values(selection).forEach(({ id }: { id: string }) => {
-      manualCopy(id, nodes);
+    Object.values(selectedNodes).forEach(({ id }: { id: string }) => {
+      manualCopy(id);
     });
   };
 
-  const manualCopy = (id: string, nodes) => {
+  const manualCopy = (id: string) => {
     const node = nodes[id];
     if (!node) return;
 
     if (node.hasOwnProperty("childRefs")) {
       node.childRefs.forEach(({ childId }) => {
-        manualCopy(childId, nodes);
+        manualCopy(childId);
       });
     }
 
     dispatch(addCopyNode(node));
   };
-  //
+  //#endregion
 
-  // Paste functions
+  //#region Paste functions
 
-  const pasteToSelectedNodes = (
-    selection,
-    position,
-    copiedNodes,
-    boardId: string,
-    x?: number,
-    y?: number
-  ) => {
-    if (Object.values(selection).length <= 0) {
-      duplicateCopiedNodes(
-        boardId,
-        BoardObjects.BOARD,
-        position,
-        copiedNodes,
-        boardId,
-        x,
-        y
-      );
+  const pasteToSelectedNodes = (x?: number, y?: number) => {
+    if (Object.values(selectedNodes).length <= 0) {
+      duplicateCopiedNodes(boardId, BoardObjects.BOARD, x, y);
     } else {
-      Object.values(selection).forEach(
+      Object.values(selectedNodes).forEach(
         ({ id, type }: { id: string; type: BoardObjects }) => {
-          duplicateCopiedNodes(id, type, position, copiedNodes, boardId, x, y);
+          duplicateCopiedNodes(id, type, x, y);
         }
       );
     }
@@ -425,9 +203,6 @@ const mapDispatchToProps = (dispatch, ownProps) => {
   const duplicateCopiedNodes = (
     id: string,
     type: BoardObjects,
-    position,
-    copiedNodes,
-    boardId: string,
     x?: number,
     y?: number
   ) => {
@@ -448,8 +223,8 @@ const mapDispatchToProps = (dispatch, ownProps) => {
       const node = {
         ...item,
         id: mappedIDs[item.id],
-        pX: item.pX - position.x + x,
-        pY: item.pY - position.y + y,
+        pX: item.pX - copiedPosition.x + x,
+        pY: item.pY - copiedPosition.y + y,
       };
 
       // Check if parent's ID is in object.
@@ -496,21 +271,14 @@ const mapDispatchToProps = (dispatch, ownProps) => {
       return;
     });
   };
-  //
+  //#endregion
+  //#endregion
 
   let wheelEventEndTimeout;
-  const handleWheel = (
-    event,
-    boardId,
-    boardRef,
-    transformRef,
-    currentPosition,
-    currentScale,
-    scale
-  ) => {
+  const handleWheel = (event) => {
     if (
-      event.target === boardRef.current ||
-      event.target.parentNode === boardRef.current
+      event.target === ref.current ||
+      event.target.parentNode === ref.current
     ) {
       if (wheelEventEndTimeout == undefined) {
         currentScale.current = scale;
@@ -540,149 +308,248 @@ const mapDispatchToProps = (dispatch, ownProps) => {
           currentPosition.current.y / currentScale.current
         }px)`;
 
-        boardRef.current.style.backgroundSize = `${
+        ref.current.style.backgroundSize = `${100 * currentScale.current}px ${
           100 * currentScale.current
-        }px ${100 * currentScale.current}px`;
-        boardRef.current.style.backgroundPosition = `${currentPosition.current.x}px ${currentPosition.current.y}px`;
+        }px`;
+        ref.current.style.backgroundPosition = `${currentPosition.current.x}px ${currentPosition.current.y}px`;
         // This should be changed as you cannot pan and scale at the same time rn
       });
     }
   };
-  return {
-    clearSelectNode: () => dispatch(clearSelectNode()),
-    deleteSelection,
-    copySelection,
-    pasteToSelectedNodes,
-    handleWheel,
-    handleMouseUp: (event, boardId, startX, startY) => {
-      dispatch(
-        updateOffset({
-          id: boardId,
-          x: event.pageX - startX,
-          y: event.pageY - startY,
-        })
-      );
-    },
-  };
-};
 
-const mergeProps = (stateProps, dispatchProps, ownProps) => {
-  return {
-    ...ownProps,
-    ...stateProps,
-    handleSelect: dispatchProps.handleSelect,
-    updateSelectData: () => {
-      dispatchProps.updateSelectData(
-        stateProps.selected,
-        stateProps.selectData
-      );
-    },
-    clearSelectNode: dispatchProps.clearSelectNode,
-    deleteSelection: () =>
-      dispatchProps.deleteSelection(stateProps.selection, stateProps.nodes),
-    copySelection: (x?: number, y?: number) =>
-      dispatchProps.copySelection(
-        stateProps.selectedNodes,
-        stateProps.nodes,
-        x,
-        y
-      ),
-    pasteToSelectedNodes: (boardId: string, x?: number, y?: number) =>
-      dispatchProps.pasteToSelectedNodes(
-        stateProps.selectedNodes,
-        stateProps.copyPosition,
-        stateProps.copiedNodes,
-        boardId,
-        x,
-        y
-      ),
-    handleMouseDown: (
-      event,
-      boardRef,
-      transformRef,
-      currentPosition,
-      currentScale
-    ) => {
-      console.log(stateProps.boardId);
-      if (event.type == "mousedown") {
-        if (
-          event.target !== boardRef.current &&
-          event.target !== transformRef.current
-        )
-          return;
+  const handleRightClick = useCallback((event) => {
+    event.preventDefault();
+    const boundingRect = ref.current.getBoundingClientRect();
+    const x = event.clientX - boundingRect.left;
+    const y = event.clientY - boundingRect.top;
+    // open context menu at mouse pos
+    currentMousePos.current = { x, y };
 
-        // Begin panning if user middle clicks on board
-        if (event.button === 1) {
-          event.preventDefault();
-          console.log(currentPosition);
-          const startX = event.pageX - stateProps.offset.x;
-          const startY = event.pageY - stateProps.offset.y;
-          const bounds = transformRef.current.getBoundingClientRect();
-          const handleMouseMove = (event) => {
-            event.preventDefault();
-            if (
-              transformRef.current !== null &&
-              currentPosition.current !== null
-            ) {
-              currentPosition.current = {
-                x: event.pageX - startX,
-                y: event.pageY - startY,
-              };
+    setContextMenuOpen(true);
+  }, []);
 
-              requestAnimationFrame(() => {
-                transformRef.current.style.transform = `scale(${
-                  currentScale.current
-                }) translate(${
-                  currentPosition.current.x / currentScale.current
-                }px, ${currentPosition.current.y / currentScale.current}px)`;
-                boardRef.current.style.backgroundSize = `${
-                  100 * currentScale.current
-                }px ${100 * currentScale.current}px`;
-                boardRef.current.style.backgroundPosition = `${currentPosition.current.x}px ${currentPosition.current.y}px`;
-              });
-            }
-          };
-
-          const handleMouseUp = (event) => {
-            console.log(event.pageX - startX);
-            // Clear selection if user left clicks on board
-            if (event.button === 0) {
-              dispatchProps.clearSelectNode();
-            }
-            dispatchProps.handleMouseUp(
-              event,
-              stateProps.boardId,
-              startX,
-              startY
-            );
-            document.removeEventListener("mousemove", handleMouseMove);
-            document.removeEventListener("mouseup", handleMouseUp);
-          };
-
-          document.addEventListener("mousemove", handleMouseMove);
-          document.addEventListener("mouseup", handleMouseUp);
-        }
+  const handleMouseDown = (event) => {
+    if (event.type == "mousedown") {
+      if (event.target !== ref.current && event.target !== transformRef.current)
         return;
+
+      // Begin panning if user middle clicks on board
+      if (event.button === 1) {
+        event.preventDefault();
+        const startX = event.pageX - offset.x;
+        const startY = event.pageY - offset.y;
+        const handleMouseMove = (event) => {
+          event.preventDefault();
+          if (
+            transformRef.current !== null &&
+            currentPosition.current !== null
+          ) {
+            currentPosition.current = {
+              x: event.pageX - startX,
+              y: event.pageY - startY,
+            };
+
+            requestAnimationFrame(() => {
+              transformRef.current.style.transform = `scale(${
+                currentScale.current
+              }) translate(${
+                currentPosition.current.x / currentScale.current
+              }px, ${currentPosition.current.y / currentScale.current}px)`;
+              ref.current.style.backgroundSize = `${
+                100 * currentScale.current
+              }px ${100 * currentScale.current}px`;
+              ref.current.style.backgroundPosition = `${currentPosition.current.x}px ${currentPosition.current.y}px`;
+            });
+          }
+        };
+
+        const handleMouseUp = (event) => {
+          console.log(event.pageX - startX);
+          // Clear selection if user left clicks on board
+          if (event.button === 0) {
+            dispatch(clearSelectNode());
+          }
+          dispatch(
+            updateOffset({
+              id: boardId,
+              x: event.pageX - startX,
+              y: event.pageY - startY,
+            })
+          );
+          document.removeEventListener("mousemove", handleMouseMove);
+          document.removeEventListener("mouseup", handleMouseUp);
+        };
+
+        document.addEventListener("mousemove", handleMouseMove);
+        document.addEventListener("mouseup", handleMouseUp);
       }
-    },
-    handleWheel: (
-      event,
-      boardRef,
-      transformRef,
-      currentPosition,
-      currentScale
-    ) =>
-      dispatchProps.handleWheel(
-        event,
-        stateProps.boardId,
-        boardRef,
-        transformRef,
-        currentPosition,
-        currentScale,
-        stateProps.scale
-      ),
+      return;
+    }
   };
+
+  const calculateRelativePosition = (x, y) => {
+    const newX = (x - currentPosition.current.x) / currentScale.current;
+    const newY = (y - currentPosition.current.y) / currentScale.current;
+
+    return {
+      x: newX,
+      y: newY,
+    };
+  };
+
+  //#endregion
+
+  //#region Drop behaviour
+  const { dropOnBoard, dropOnColumn, allowDropOnBoard, allowDropOnColumn } =
+    useDrop({
+      boardRef: ref,
+      scale: currentScale,
+      offset: currentPosition,
+    });
+  //#endregion
+
+  function openContextMenu(open: boolean) {
+    setContextMenuOpen(open);
+  }
+
+  //#region Render board
+  return (
+    <>
+      <div
+        ref={ref}
+        draggable={true}
+        className="actualboard"
+        onMouseDown={(event) => handleMouseDown(event)}
+        style={{
+          backgroundSize: `${100 * currentScale.current}px ${
+            100 * currentScale.current
+          }px`,
+          backgroundPosition: `${currentPosition.current.x}px ${currentPosition.current.y}px`,
+        }}
+        onWheel={(event) => handleWheel(event)}
+        onClick={(e) => {
+          if (e.target == transformRef.current || e.target == ref.current) {
+            dispatch(clearSelectNode());
+          }
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          if (e.target == transformRef.current || e.target == ref.current) {
+            dispatch(clearSelectNode());
+          }
+          handleRightClick(e);
+        }}
+        onDragStart={(event) => {
+          if (event.dataTransfer.types.length > 0) return;
+          event.dataTransfer.setData("origin/board", "");
+          event.dataTransfer.setData("action/select", "");
+        }}
+        onDrop={(event) => {
+          event.stopPropagation();
+          dropOnBoard(event, boardId);
+        }}
+        onDragOver={(event) => {
+          allowDropOnBoard(event);
+        }}
+        onResize={(e) => e.preventDefault()}
+      >
+        <DragLayer
+          boardId={boardId}
+          boardRef={ref}
+          transformRef={transformRef}
+          scale={currentScale}
+          offset={currentPosition}
+        />
+        <ContextMenu
+          boardId={boardId}
+          open={contextMenuOpen}
+          setOpen={openContextMenu}
+          mousePosition={currentMousePos}
+          calculatePosition={calculateRelativePosition}
+        />
+        <div
+          ref={transformRef}
+          className="board-transform"
+          style={{
+            transform: `scale(${currentScale.current}) translate(${
+              currentPosition.current.x / currentScale.current
+            }px, ${currentPosition.current.y / currentScale.current}px)`,
+          }}
+        >
+          {childRefs.map(({ childId, childType }) => {
+            switch (childType) {
+              case BoardObjects.NOTE:
+                return (
+                  <Note
+                    key={childId}
+                    id={childId}
+                    onContextMenu={handleRightClick}
+                    scale={currentScale.current}
+                    offset={currentPosition}
+                  />
+                );
+              case BoardObjects.TASK:
+                return (
+                  <Task
+                    key={childId}
+                    id={childId}
+                    onContextMenu={handleRightClick}
+                    scale={currentScale.current}
+                    offset={currentPosition}
+                  />
+                );
+              case BoardObjects.GROUP:
+                return (
+                  <Group
+                    key={childId}
+                    id={childId}
+                    onContextMenu={handleRightClick}
+                    scale={currentScale.current}
+                    offset={currentPosition}
+                  />
+                );
+              // case BoardObjects.COLUMN:
+              //   return (
+              //     <Column
+              //       key={childId}
+              //       id={childId}
+              //       drop={dropOnColumn}
+              //       allowDrop={allowDropOnColumn}
+              //       dropOnBoard={dropOnBoard}
+              //       allowDropOnBoard={allowDropOnBoard}
+              //       onContextMenu={handleRightClick}
+              //     />
+              //   );
+              case BoardObjects.BOARD:
+                return (
+                  <BoardIcon
+                    key={childId}
+                    id={childId}
+                    drop={dropOnBoard}
+                    allowDrop={allowDropOnBoard}
+                    onContextMenu={handleRightClick}
+                  />
+                );
+              case BoardObjects.DOCUMENT:
+                return (
+                  <Document
+                    key={childId}
+                    id={childId}
+                    onContextMenu={handleRightClick}
+                    scale={currentScale}
+                    offset={currentPosition}
+                  />
+                );
+              default:
+                break;
+            }
+          })}
+        </div>
+      </div>
+    </>
+  );
+
+  //#endregion
 };
-export default withRouter(
-  connect(mapStateToProps, mapDispatchToProps, mergeProps)(Board)
-);
+
+export default withRouter(Board);
