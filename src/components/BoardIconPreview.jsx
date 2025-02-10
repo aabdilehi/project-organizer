@@ -8,11 +8,16 @@ import { connect, useSelector } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { useMemo, useRef } from "react";
 import { TbStar as StarIcon } from "react-icons/tb";
+import { selectTypes } from "../utils/slices/selectors.ts";
 
 const BoardIconPreview = ({ id, columnWidth, isInColumn = false }) => {
-  const { pX, pY, title, parent } = useSelector(
-    (state) => state.boards[id] ?? state.drag.nodes[id]
-  );
+  const types = useSelector(selectTypes);
+  let board;
+  if (types.includes("origin/sidebar")) {
+    board = useSelector((state) => state.dragged[id]);
+  } else {
+    board = useSelector((state) => state.boards[id]);
+  }
 
   const previewStyle = useMemo(
     () => ({
@@ -41,11 +46,11 @@ const BoardIconPreview = ({ id, columnWidth, isInColumn = false }) => {
         type={BoardObjects.BOARD}
         canPosition={true}
         canResize={false}
-        pX={pX}
-        pY={pY}
+        pX={board.pX}
+        pY={board.pY}
         preview
-        parentId={parent.id}
-        parentType={parent.type}
+        parentId={board.parent.id}
+        parentType={board.parent.type}
         isInColumn={isInColumn}
         columnWidth={columnWidth}
       >
@@ -59,7 +64,7 @@ const BoardIconPreview = ({ id, columnWidth, isInColumn = false }) => {
             marginBottom: isInColumn ? undefined : "3px",
           }}
         >
-          {title}
+          {board.title}
         </p>
       </NodeWrapper>
     </>

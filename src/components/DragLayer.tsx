@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { connect, useDispatch, useSelector } from "react-redux";
 import { BoardObjects, SidebarObjects } from "../utils/enums/items";
 import NotePreview from "./NotePreview";
@@ -14,7 +20,11 @@ import { RootState } from "../store";
 import GroupPreview from "./GroupPreview";
 import SelectionMarquee from "./Modular/SelectionMarquee";
 import { createSelector } from "@reduxjs/toolkit";
-import { setSelectedNodes } from "../utils/slices/selectionSlice";
+import {
+  addSelectedNodes,
+  clearSelectNode,
+  setSelectedNodes,
+} from "../utils/slices/selectionSlice";
 import {
   selectBoardChildren,
   selectDraggedNodes,
@@ -23,6 +33,7 @@ import {
   selectSelection,
   selectTypes,
 } from "../utils/slices/selectors";
+import ResizeMarquee from "./Modular/ResizeMarquee";
 
 // Composite types used for querying intentions, e.g. instead of "origin/board", ["origin/board", "action/move"]
 // I could do "board/move" but the idea is that you do if(!types.include("origin/board")) return;
@@ -47,7 +58,8 @@ const DragLayer = ({
   //#region State props
   const nodes = useSelector(selectNodes);
   const selectedNodes = useSelector(selectSelection);
-  const boardChildren = useSelector((state: RootState) =>
+
+  const boardChildren = useSelector((state) =>
     selectBoardChildren(state, boardId)
   );
 
@@ -68,53 +80,54 @@ const DragLayer = ({
     dispatch(clearDragDataAction());
   };
   const setDragData = (data) => dispatch(setDragDataAction(data));
-  const getNodeSize = useCallback(
-    (x, y, sX, sY) => {
-      let newSX, newSY;
-      switch (direction) {
-        case "direction/left":
-          newSX = sX - (x - initialPosition.x) / scale.current;
-          newSY = sY;
-          break;
-        case "direction/right":
-          newSX = sX + (x - initialPosition.x) / scale.current;
-          newSY = sY;
-          break;
-        case "direction/top":
-          newSX = sX;
-          newSY = sY - (y - initialPosition.y) / scale.current;
-          break;
+  const getNodeSize = (x, y, sX, sY) => {
+    let newSX, newSY;
+    switch (direction) {
+      case "direction/left":
+        newSX = sX - (x - initialPosition.x) / scale;
+        newSY = sY;
+        break;
+      case "direction/right":
+        newSX = sX + (x - initialPosition.x) / scale;
+        newSY = sY;
+        break;
+      case "direction/top":
+        newSX = sX;
+        newSY = sY - (y - initialPosition.y) / scale;
+        break;
 
-        case "direction/top-left":
-          newSX = sX - (x - initialPosition.x) / scale.current;
-          newSY = sY - (y - initialPosition.y) / scale.current;
-          break;
+      case "direction/top-left":
+        newSX = sX - (x - initialPosition.x) / scale;
+        newSY = sY - (y - initialPosition.y) / scale;
+        break;
 
-        case "direction/top-right":
-          newSX = sX + (x - initialPosition.x) / scale.current;
-          newSY = sY - (y - initialPosition.y) / scale.current;
-          break;
-        case "direction/bottom":
-          newSX = sX;
-          newSY = sY + (y - initialPosition.y) / scale.current;
-          break;
-        case "direction/bottom-left":
-          newSX = sX - (x - initialPosition.x) / scale.current;
-          newSY = sY + (y - initialPosition.y) / scale.current;
-          break;
-        case "direction/bottom-right":
-          newSX = sX + (x - initialPosition.x) / scale.current;
-          newSY = sY + (y - initialPosition.y) / scale.current;
-          break;
-        default:
-          newSX = sX;
-          newSY = sY;
-          break;
-      }
-      return { x: newSX, y: newSY };
-    },
-    [nodes, direction]
-  );
+      case "direction/top-right":
+        newSX = sX + (x - initialPosition.x) / scale;
+        newSY = sY - (y - initialPosition.y) / scale;
+        break;
+      case "direction/bottom":
+        newSX = sX;
+        newSY = sY + (y - initialPosition.y) / scale;
+        break;
+      case "direction/bottom-left":
+        newSX = sX - (x - initialPosition.x) / scale;
+        newSY = sY + (y - initialPosition.y) / scale;
+        break;
+      case "direction/bottom-right":
+        newSX = sX + (x - initialPosition.x) / scale;
+        newSY = sY + (y - initialPosition.y) / scale;
+        break;
+      default:
+        newSX = sX;
+        newSY = sY;
+        break;
+    }
+    return { x: newSX, y: newSY };
+  };
+
+  // For some reason shiftKey does not work on dragend so I will do this for now
+  const shiftKey = useRef(false);
+  const ctrlKey = useRef(false);
 
   const handleDragStart = (event) => {
     if (event.dataTransfer.types.length < 0) return;
@@ -130,15 +143,11 @@ const DragLayer = ({
     requestAnimationFrame(() => {
       if (!dragLayerRef.current) return;
       dragLayerRef.current.style.transform =
-        transformRef.current.style.transform = `scale(${
-          scale.current
-        }) translate(${offset.current.x / scale.current}px, ${
-          offset.current.y / scale.current
-        }px)`;
+        transformRef.current.style.transform = `scale(${scale}) translate(${
+          offset.x / scale
+        }px, ${offset.y / scale}px)`;
     });
 
-    // Sidebar sets this data before the event bubbles
-    // So if the drag event data is already set, ignore the rest
     if (event.dataTransfer.types.includes("action/move")) {
       const selectedNodeData = { ...selectedNodes };
       const selectedNodeOffsets = {};
@@ -148,7 +157,6 @@ const DragLayer = ({
         if (item.type == BoardObjects.GROUP) {
           const group = nodes[item.id];
           const filteredNodes = Object.values(nodes).filter((item2) => {
-            console.log(item2);
             return (
               Object.hasOwn(item2, "parent") &&
               item2.parent.id == boardId &&
@@ -188,7 +196,7 @@ const DragLayer = ({
       const prev = document.createElement("span");
       prev.style.display = "none";
       event.dataTransfer.dropEffect = "move";
-      event.dataTransfer.setDragImage(prev, 0, 0);
+      event.dataTransfer.setDragImage(prev, 10000, 10000);
       event.dataTransfer.setData(
         "action/move",
         JSON.stringify({
@@ -209,15 +217,17 @@ const DragLayer = ({
         types: event.dataTransfer.types,
       });
     } else if (event.dataTransfer.types.includes("action/resize")) {
-      const { id, type, parent, direction } = JSON.parse(
-        event.dataTransfer.getData("action/resize")
-      );
-      const node = nodes[id];
       // hide drag preview image
+
+      console.log(event.dataTransfer.types);
+      const selectedNodeData = {};
+      Object.values(selectedNodes).forEach((item) => {
+        selectedNodeData[item.id] = nodes[item.id];
+      });
       const prev = document.createElement("span");
       prev.style.display = "none";
       event.dataTransfer.dropEffect = "move";
-      event.dataTransfer.setDragImage(prev, 0, 0);
+      event.dataTransfer.setDragImage(prev, 10000, 10000);
       event.dataTransfer.setData(
         "action/resize",
         JSON.stringify({
@@ -226,26 +236,26 @@ const DragLayer = ({
             y: event.clientY,
           },
           direction,
-          selectedNodes: {
-            [id]: { ...node, offset: { x: node.pX, y: node.pY } },
-          },
+          selectedNodes: selectedNodeData,
         })
       );
-
       setDragData({
         initialPosition: {
           x: event.clientX,
           y: event.clientY,
         },
-        nodes: { [id]: node },
+        nodes: selectedNodeData,
         types: event.dataTransfer.types,
       });
     } else if (event.dataTransfer.types.includes("action/select")) {
       // hide drag preview image
+      if (!event.shiftKey || !event.ctrlKey) {
+        dispatch(clearSelectNode());
+      }
       const prev = document.createElement("span");
       prev.style.display = "none";
       event.dataTransfer.dropEffect = "move";
-      event.dataTransfer.setDragImage(prev, 0, 0);
+      event.dataTransfer.setDragImage(prev, 10000, 10000);
       event.dataTransfer.setData(
         "action/select",
         JSON.stringify({
@@ -255,7 +265,6 @@ const DragLayer = ({
           },
         })
       );
-
       setDragData({
         initialPosition: {
           x: event.clientX,
@@ -268,20 +277,19 @@ const DragLayer = ({
   };
 
   const handleDrag = (event) => {
+    shiftKey.current = event.shiftKey;
+    ctrlKey.current = event.ctrlKey;
     requestAnimationFrame(() => {
       if (!dragLayerRef.current) return;
-      dragLayerRef.current.style.transform = `scale(${
-        scale.current
-      }) translate(${
+      dragLayerRef.current.style.transform = `scale(${scale}) translate(${
         direction == "direction/top" ||
         direction == "direction/top-right" ||
         direction == "direction/right" ||
         direction == "direction/bottom" ||
         direction == "direction/bottom-right" ||
         event.dataTransfer.types.includes("action/select")
-          ? offset.current.x / scale.current
-          : (event.clientX - initialPosition.x + offset.current.x) /
-            scale.current
+          ? offset.x / scale
+          : (event.clientX - initialPosition.x + offset.x) / scale
       }px, ${
         direction == "direction/left" ||
         direction == "direction/right" ||
@@ -289,42 +297,37 @@ const DragLayer = ({
         direction == "direction/bottom-left" ||
         direction == "direction/bottom-right" ||
         event.dataTransfer.types.includes("action/select")
-          ? offset.current.y / scale.current
-          : (event.clientY - initialPosition.y + offset.current.y) /
-            scale.current
+          ? offset.y / scale
+          : (event.clientY - initialPosition.y + offset.y) / scale
       }px)`;
     });
   };
 
   const handleDragEnd = (event) => {
     if (types.includes("action/select")) {
-      console.log(draggedNodes);
       if (!boardRef.current) return;
       const boardBounds = boardRef.current.getBoundingClientRect();
       const startX =
         (Math.min(initialPosition.x, event.clientX) -
           boardBounds.left -
-          offset.current.x) /
-        scale.current;
+          offset.x) /
+        scale;
       const startY =
         (Math.min(initialPosition.y, event.clientY) -
           boardBounds.top -
-          offset.current.y) /
-        scale.current;
+          offset.y) /
+        scale;
       const endX =
         (Math.max(initialPosition.x, event.clientX) -
           boardBounds.left -
-          offset.current.x) /
-        scale.current;
+          offset.x) /
+        scale;
       const endY =
         (Math.max(initialPosition.y, event.clientY) -
           boardBounds.top -
-          offset.current.y) /
-        scale.current;
+          offset.y) /
+        scale;
 
-      console.log(
-        `Start X: ${startX}\nStart Y: ${startY}\nEnd X: ${endX}End Y: ${endY}`
-      );
       // GUT THIS OF ANYTHING NOT VISUAL AND MOVE STATE CHANGES TO DRAGLAYER
       const nodesInBounds = {};
       boardChildren.forEach((child) => {
@@ -338,12 +341,6 @@ const DragLayer = ({
           right: node.pX + node.sX,
           bottom: node.pY + node.sY,
         };
-        console.log(
-          bounds.left < endX &&
-            bounds.top < endY &&
-            bounds.right > startX &&
-            bounds.bottom > startY // crosses right wall
-        );
         if (
           bounds.left < endX &&
           bounds.top < endY &&
@@ -353,7 +350,11 @@ const DragLayer = ({
           nodesInBounds[node.id] = node;
         }
       });
-      dispatch(setSelectedNodes(nodesInBounds));
+      if (shiftKey.current || ctrlKey.current) {
+        dispatch(addSelectedNodes(nodesInBounds));
+      } else {
+        dispatch(setSelectedNodes(nodesInBounds));
+      }
     }
     dispatch(clearDragDataAction());
   };
@@ -376,11 +377,17 @@ const DragLayer = ({
 
   return (
     <div ref={dragLayerRef} className="clone-container">
+      <ResizeMarquee
+        scale={scale}
+        offset={offset}
+        getNodeSize={getNodeSize}
+        preview
+      />
       <SelectionMarquee
         boardId={boardId}
         boardRef={boardRef.current}
-        scale={scale.current}
-        offset={offset.current}
+        scale={scale}
+        offset={offset}
         active={types.includes("action/select")}
       />
       {Object.values(draggedNodes).map(({ id, type }) => {

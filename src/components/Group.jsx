@@ -46,6 +46,7 @@ const Group = ({ id, onContextMenu, scale, offset }) => {
         as={"p"}
         canEdit={selected}
         text={title}
+        adjustSelf
         textStyle={previewStyle}
         onChange={(value) =>
           dispatch(

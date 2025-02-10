@@ -220,6 +220,7 @@ export default forwardRef(
         }`}
         style={{
           width: columnWidth ? `${columnWidth}px` : sX ? `${sX}px` : undefined,
+          height: sY ? `${sY}px` : undefined,
           transform: `translate(${pX}px, ${pY}px)`,
         }}
         tabIndex={-1}
@@ -247,7 +248,11 @@ export default forwardRef(
             }
             const bounds = nodeRef.current?.getBoundingClientRect();
             if (!bounds) return;
-            const resizePadding = Math.min(8, (8 * Number(sX)) / bounds.width);
+
+            const resizePadding =
+              scale < 1
+                ? (10 * bounds.width) / Math.max(Number(sX))
+                : (10 * Math.max(Number(sX))) / bounds.width;
             let direction = "none";
             if (e.clientX - bounds.left < resizePadding) {
               direction = "left";
@@ -287,14 +292,14 @@ export default forwardRef(
             }
 
             if (direction !== "none") {
-              e.dataTransfer.setData(
-                "action/resize",
-                JSON.stringify({
+              dispatch(
+                selectNode({
                   id,
                   type,
                   parent: { id: parentId, type: parentType },
                 })
               );
+              e.dataTransfer.setData("action/resize", "");
               e.dataTransfer.setData(`direction/${direction}`, "");
             } else {
               e.dataTransfer.setData("action/move", "");
@@ -305,14 +310,14 @@ export default forwardRef(
       >
         {canResize ? (
           <>
-            <div className="resize-handle top" tabIndex={1000} />
-            <div className="resize-handle left" tabIndex={1000} />
-            <div className="resize-handle bottom" tabIndex={1000} />
-            <div className="resize-handle right" tabIndex={1000} />
-            <div className="resize-handle top-left" tabIndex={1000} />
-            <div className="resize-handle top-right" tabIndex={1000} />
-            <div className="resize-handle bottom-left" tabIndex={1000} />
-            <div className="resize-handle bottom-right" tabIndex={1000} />
+            <div className="resize-handle top" tabIndex={3} />
+            <div className="resize-handle left" tabIndex={3} />
+            <div className="resize-handle bottom" tabIndex={3} />
+            <div className="resize-handle right" tabIndex={3} />
+            <div className="resize-handle top-left" tabIndex={3} />
+            <div className="resize-handle top-right" tabIndex={3} />
+            <div className="resize-handle bottom-left" tabIndex={3} />
+            <div className="resize-handle bottom-right" tabIndex={3} />
           </>
         ) : null}
         {props.children}

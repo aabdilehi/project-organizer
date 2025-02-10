@@ -8,12 +8,13 @@ import { connect, useDispatch, useSelector } from "react-redux";
 import { EditorContent } from "@tiptap/react";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { useNavigate } from "react-router-dom";
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { TbStar as StarIcon } from "react-icons/tb";
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
 import { updateTitle } from "../utils/slices/nodeActions.ts";
 import { Modal } from "./Modular/Modal";
 import _ from "lodash";
+import { selectDraggedNodes } from "../utils/slices/selectors.ts";
 
 const previewStyle = {
   fontWeight: "800",
@@ -21,14 +22,23 @@ const previewStyle = {
   margin: "auto",
   borderRadius: "5px",
 };
+function isEmpty(obj) {
+  for (var prop in obj) {
+    if (Object.hasOwn(obj, prop)) return false;
+  }
+  return true;
+}
 
 const BoardIcon = ({ id, allowDrop, drop, onContextMenu, columnWidth }) => {
   const dispatch = useDispatch();
-  const { pX, pY, title, parent } = useSelector((state) => state.boards[id]);
-  const dragging = useSelector(
-    (state) =>
-      !_.isEmpty(state.drag.nodes) && !state.drag.nodes.hasOwnProperty(id)
-  );
+
+  const pX = useSelector((state) => state.boards[id].pX);
+  const pY = useSelector((state) => state.boards[id].pY);
+  const title = useSelector((state) => state.boards[id].title);
+  const parent = useSelector((state) => state.boards[id].parent);
+
+  const draggedNodes = useSelector(selectDraggedNodes);
+  const dragging = !isEmpty(draggedNodes) && !Object.hasOwn(draggedNodes, id);
   const navigate = useNavigate();
   const nodeRef = useRef();
 

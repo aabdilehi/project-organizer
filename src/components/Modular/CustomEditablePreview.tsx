@@ -78,7 +78,7 @@ function CustomEditablePreview({
   style,
 }: {
   canEdit?: boolean;
-  as?: HTMLParagraphElement | HTMLHeadingElement | undefined;
+  as?: "p" | "h1" | "h2" | "h3" | "h4" | "h5";
   text?: string;
   textStyle?: React.CSSProperties;
   changeOnSubmit?: boolean;

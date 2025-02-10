@@ -9,6 +9,7 @@ const selectTasks = (state: RootState) => state.tasks;
 const selectDocuments = (state: RootState) => state.documents;
 const selectGroups = (state: RootState) => state.groups;
 
+// This is such an ugly selector but it is annoyingly necessary
 export const selectNodes = createSelector(
   [
     selectBoards,
@@ -20,7 +21,6 @@ export const selectNodes = createSelector(
     selectGroups,
   ],
   (boards, columns, notes, pictures, tasks, documents, groups) => {
-    console.log("Node query is running");
     return {
       ...boards,
       ...columns,
@@ -33,52 +33,34 @@ export const selectNodes = createSelector(
   }
 );
 
-const selectBoardId = (state: RootState, boardId: string) => boardId; // This is dumb
-export const selectBoard = createSelector(
-  [selectBoards, selectBoardId],
-  (boards, boardId) => boards[boardId]
-);
+//#endregion
 
-export const selectBoardTitle = createSelector(
-  [selectBoard],
-  (board) => board.title
-);
-export const selectBoardParent = createSelector(
-  [selectBoard],
-  (board) => board.parent
-);
-export const selectBoardScale = createSelector(
-  [selectBoard],
-  (board) => board.scale
-);
-export const selectBoardOffset = createSelector(
-  [selectBoard],
-  (board) => board.offset
-);
-export const selectBoardChildren = createSelector(
-  [selectBoard],
-  (board) => board.childRefs
-);
+export const selectBoardPosition = (state, id) => state.boards[id].position;
+export const selectBoardOffset = (state, id) => state.boards[id].offset;
+export const selectBoardParent = (state, id) => state.boards[id].parent;
+export const selectBoardChildren = (state, id) => state.boards[id].childRefs;
 
-const selectDrag = (state: RootState) => state.drag;
-export const selectDraggedNodes = createSelector([selectDrag], (drag) => {
-  console.log(drag.nodes);
-  return drag.nodes;
-});
-export const selectInitialPosition = createSelector(
-  [selectDrag],
-  (drag) => drag.initialPosition
-);
-export const selectTypes = createSelector([selectDrag], (drag) => drag.types);
+//#region Drag properties
+export const selectDraggedNodes = (state: RootState) => state.drag.nodes;
+export const selectInitialPosition = (state: RootState) =>
+  state.drag.initialPosition;
+export const selectTypes = (state: RootState) => state.drag.types;
 
-const selectCopied = (state: RootState) => state.copied;
-export const selectCopiedNodes = createSelector([selectCopied], (copied) => {
-  console.log(copied.nodes);
-  return copied.nodes;
-});
-export const selectCopiedPosition = createSelector(
-  [selectCopied],
-  (copied) => copied.position
-);
+export const selectDragRelatedNodes = (state: RootState) => {
+  const nodes = {};
+  Object.values(state.drag.nodes).forEach((node) => {
+    // drag specific replacement to nodes selector
+    const retrievedNode = state[`${node.type}s`][node.id];
+    if (!retrievedNode) return;
+    nodes[retrievedNode.id] = retrievedNode;
+  });
+  return nodes;
+};
+//#endregion
+
+//#region Copy properties
+export const selectCopiedNodes = (state: RootState) => state.copied.nodes;
+export const selectCopiedPosition = (state: RootState) => state.copied.position;
+//#endregion
 
 export const selectSelection = (state) => state.selection;

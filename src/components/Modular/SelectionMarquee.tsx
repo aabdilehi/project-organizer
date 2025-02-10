@@ -17,17 +17,6 @@ const SelectionMarquee = ({
   active: boolean;
 } & React.HTMLAttributes<HTMLDivElement>) => {
   const ref = useRef(null);
-  const dispatch = useDispatch();
-
-  const nodes = useSelector((state) => ({
-    ...state.boards,
-    ...state.columns,
-    ...state.notes,
-    ...state.pictures,
-    ...state.tasks,
-    ...state.documents,
-    ...state.groups,
-  }));
 
   let initX, initY;
   let nodeElements; // node elements shouldnt change during this time anyway

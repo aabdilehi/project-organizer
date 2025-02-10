@@ -12,17 +12,19 @@ const GroupPreview = ({ id, resize, getNodeSize }) => {
   const { pX, pY, sX, sY, title, parent } = useSelector(
     (state) => state.groups[id] ?? state.drag.nodes[id]
   );
-  const sizeRef = useRef({ x: sX, y: sY });
+  let sizeX = sX;
+  let sizeY = sY;
   const animateResize = (e) => {
-    sizeRef.current = getNodeSize(e.clientX, e.clientY, sX, sY);
     requestAnimationFrame(() => {
       if (!nodeRef.current) return;
-      nodeRef.current.style.width = `${sizeRef.current.x}px`;
-      nodeRef.current.style.height = `${sizeRef.current.y}px`;
+      const { x, y } = getNodeSize(e.clientX, e.clientY, sX, sY);
+      sizeX = x;
+      sizeY = y;
+      nodeRef.current.style.width = `${sizeX}px`;
+      nodeRef.current.style.height = `${sizeY}px`;
     });
   };
   useEffect(() => {
-    console.log(resize);
     if (resize) {
       window.addEventListener("drag", animateResize);
     } else {
@@ -42,13 +44,16 @@ const GroupPreview = ({ id, resize, getNodeSize }) => {
       preview
       pX={pX}
       pY={pY}
-      sX={sizeRef.current.x}
-      sY={sizeRef.current.y}
+      sX={sizeX}
+      sY={sizeY}
       parentId={parent.id}
       parentType={parent.type}
       isInColumn={false}
     >
-      <p class="editable" style={{ borderRadius: "5px", fontWeight: "800" }}>
+      <p
+        className="editable"
+        style={{ borderRadius: "5px", fontWeight: "800" }}
+      >
         {title}
       </p>
     </NodeWrapper>

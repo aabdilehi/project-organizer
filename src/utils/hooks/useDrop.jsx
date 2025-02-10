@@ -12,14 +12,8 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { PictureC } from "../classes/classes";
 import { useRef } from "react";
-import {
-  BoardClass,
-  ColumnClass,
-  DocumentClass,
-  NoteClass,
-  TaskClass,
-  TypeClassMap,
-} from "../classes/new-classes";
+import { formatData, NodeTypeMap } from "../classes/new-classes";
+import { selectNodes } from "../slices/selectors";
 
 const columnAcceptedTypes = [
   BoardObjects.NOTE,
@@ -53,7 +47,7 @@ const boardAcceptedTypes = [
 
 export function useDrop({ boardRef, scale, offset }) {
   const dispatch = useDispatch();
-  const state = useSelector((state) => state);
+  const nodes = useSelector(selectNodes);
   const handledNodes = useRef([]);
 
   function allowDropOnBoard(event) {
@@ -84,7 +78,6 @@ export function useDrop({ boardRef, scale, offset }) {
     //#region Drop from board/column
     if (event.dataTransfer.types.includes("action/move")) {
       let data = event.dataTransfer.getData("action/move");
-      console.log(data == "");
       data = JSON.parse(data);
       if (!data.hasOwnProperty("selectedNodes")) return;
       Object.values(data.selectedNodes).forEach((item) => {
@@ -188,10 +181,8 @@ export function useDrop({ boardRef, scale, offset }) {
 
   function createNode(event, data, pId, pType, offset, scale) {
     const boundingRect = boardRef.current.getBoundingClientRect();
-    const xCoord =
-      (event.clientX - boundingRect.left - offset.current.x) / scale.current;
-    const yCoord =
-      (event.clientY - boundingRect.top - offset.current.y) / scale.current;
+    const xCoord = (event.clientX - boundingRect.left - offset.x) / scale;
+    const yCoord = (event.clientY - boundingRect.top - offset.y) / scale;
     let node;
 
     switch (data.type) {
@@ -201,14 +192,17 @@ export function useDrop({ boardRef, scale, offset }) {
       case SidebarObjects.COLUMN:
       case SidebarObjects.GROUP:
       case SidebarObjects.DOCUMENT:
-        node = new TypeClassMap[data.type]({
-          pX: xCoord,
-          pY: yCoord,
-          parent: {
-            id: pId,
-            type: pType,
+        node = formatData(
+          {
+            pX: xCoord,
+            pY: yCoord,
+            parent: {
+              id: pId,
+              type: pType,
+            },
           },
-        }).serialize();
+          NodeTypeMap[data.type]
+        );
         break;
       case SidebarObjects.IMAGE:
         node = new PictureC({
@@ -264,10 +258,10 @@ export function useDrop({ boardRef, scale, offset }) {
   }
   function setNodePosition(event, data, initial) {
     const boundingRect = boardRef.current.getBoundingClientRect();
-    const node = state[data.type + "s"][data.id];
+    const node = nodes[data.id];
     if (!node || !data.offset) {
-      const xCoord = (event.clientX - boundingRect.left) / scale.current;
-      const yCoord = (event.clientY - boundingRect.top) / scale.current;
+      const xCoord = (event.clientX - boundingRect.left) / scale;
+      const yCoord = (event.clientY - boundingRect.top) / scale;
 
       dispatch(
         updatePosition.action({
@@ -280,8 +274,8 @@ export function useDrop({ boardRef, scale, offset }) {
       return;
     }
 
-    const xCoord = data.offset.x + (event.clientX - initial.x) / scale.current;
-    const yCoord = data.offset.y + (event.clientY - initial.y) / scale.current;
+    const xCoord = data.offset.x + (event.clientX - initial.x) / scale;
+    const yCoord = data.offset.y + (event.clientY - initial.y) / scale;
     dispatch(
       updatePosition.action({
         id: data.id,
@@ -293,63 +287,59 @@ export function useDrop({ boardRef, scale, offset }) {
   }
 
   function setNodeSize(event, data, initial, direction) {
-    if (!data.offset) {
-      return;
-    }
-
     console.log(data);
     let pX, pY, sX, sY;
 
     switch (direction) {
       case "direction/left":
-        pX = data.pX + (event.clientX - initial.x) / scale.current;
+        pX = data.pX + (event.clientX - initial.x) / scale;
         pY = data.pY;
-        sX = data.sX - (event.clientX - initial.x) / scale.current;
+        sX = data.sX - (event.clientX - initial.x) / scale;
         sY = data.sY;
         break;
       case "direction/right":
         pX = data.pX;
         pY = data.pY;
-        sX = data.sX + (event.clientX - initial.x) / scale.current;
+        sX = data.sX + (event.clientX - initial.x) / scale;
         sY = data.sY;
         break;
       case "direction/top":
         pX = data.pX;
-        pY = data.pY + (event.clientY - initial.y) / scale.current;
+        pY = data.pY + (event.clientY - initial.y) / scale;
         sX = data.sX;
-        sY = data.sY - (event.clientY - initial.y) / scale.current;
+        sY = data.sY - (event.clientY - initial.y) / scale;
         break;
 
       case "direction/top-left":
-        pX = data.pX + (event.clientX - initial.x) / scale.current;
-        pY = data.pY + (event.clientY - initial.y) / scale.current;
-        sX = data.sX - (event.clientX - initial.x) / scale.current;
-        sY = data.sY - (event.clientY - initial.y) / scale.current;
+        pX = data.pX + (event.clientX - initial.x) / scale;
+        pY = data.pY + (event.clientY - initial.y) / scale;
+        sX = data.sX - (event.clientX - initial.x) / scale;
+        sY = data.sY - (event.clientY - initial.y) / scale;
         break;
 
       case "direction/top-right":
         pX = data.pX;
-        pY = data.pY + (event.clientY - initial.y) / scale.current;
-        sX = data.sX + (event.clientX - initial.x) / scale.current;
-        sY = data.sY - (event.clientY - initial.y) / scale.current;
+        pY = data.pY + (event.clientY - initial.y) / scale;
+        sX = data.sX + (event.clientX - initial.x) / scale;
+        sY = data.sY - (event.clientY - initial.y) / scale;
         break;
       case "direction/bottom":
         pX = data.pX;
         pY = data.pY;
         sX = data.sX;
-        sY = data.sY + (event.clientY - initial.y) / scale.current;
+        sY = data.sY + (event.clientY - initial.y) / scale;
         break;
       case "direction/bottom-left":
-        pX = data.pX + (event.clientX - initial.x) / scale.current;
-        pY = data.pY + (event.clientY - initial.y) / scale.current;
-        sX = data.sX - (event.clientX - initial.x) / scale.current;
-        sY = data.sY + (event.clientY - initial.y) / scale.current;
+        pX = data.pX + (event.clientX - initial.x) / scale;
+        pY = data.pY + (event.clientY - initial.y) / scale;
+        sX = data.sX - (event.clientX - initial.x) / scale;
+        sY = data.sY + (event.clientY - initial.y) / scale;
         break;
       case "direction/bottom-right":
         pX = data.pX;
         pY = data.pY;
-        sX = data.sX + (event.clientX - initial.x) / scale.current;
-        sY = data.sY + (event.clientY - initial.y) / scale.current;
+        sX = data.sX + (event.clientX - initial.x) / scale;
+        sY = data.sY + (event.clientY - initial.y) / scale;
         break;
       default:
         pX = data.pX;

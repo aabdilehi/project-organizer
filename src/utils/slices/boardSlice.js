@@ -38,7 +38,6 @@ const boardSlice = createSlice({
     },
     updateScale: (state, action) => {
       const { id, scale } = action.payload;
-      console.log(id);
       const board = state[id];
       if (!board || !scale) return;
       return {

@@ -1,7 +1,13 @@
 import { BoardObjects, SidebarObjects } from "../enums/items";
 import { v4 as uuidv4 } from "uuid";
 
-export class NodeClass {
+//#region Node type definitions
+export type BadgeType = {
+  id: string;
+  text: string;
+  color: string;
+};
+export type NodeType = {
   id: string;
   type: BoardObjects;
   pX: number;
@@ -9,249 +15,149 @@ export class NodeClass {
   sX: number;
   sY: number;
   parent: { id: string; type: BoardObjects };
-  constructor({
-    id,
-    type,
-    pX = 0,
-    pY = 0,
-    sX = 0,
-    sY = 0,
-    parent,
-  }: {
-    id?: string;
-    type?: BoardObjects;
-    pX?: number;
-    pY?: number;
-    sX?: number;
-    sY?: number;
-    parent: { id: string; type: BoardObjects };
-  }) {
-    this.id = id ?? uuidv4();
-    this.type = type || BoardObjects.NONE;
-    this.pX = pX;
-    this.pY = pY;
-    this.sX = sX;
-    this.sY = sY;
-    this.parent = parent;
-  }
-
-  serialize() {
-    // everything except this method and the constructor
-    const { constructor, serialize, ...node } = Object.assign(this, {});
-    return node;
-  }
-}
-export class BadgeClass {
-  id: string;
-  text: string;
-  color: string;
-  constructor(text: string = "New Badge", color?: string) {
-    this.id = uuidv4();
-    this.text = text;
-    this.color = color ?? "red"; // random colour eventually
-  }
-  serialize() {
-    // everything except this method and the constructor
-    const { constructor, serialize, ...badge } = Object.assign(this, {});
-    return badge;
-  }
-}
-
-export class NoteClass extends NodeClass {
+};
+export type NoteType = NodeType & {
   content: string;
-  constructor({
-    id = undefined,
-    pX = 0,
-    pY = 0,
-    sX = 200,
-    sY = 200,
-    content = `<p>New note</p>`,
-    parent,
-  }: {
-    id?: string;
-    pX?: number;
-    pY?: number;
-    sX?: number;
-    sY?: number;
-    content?: string;
-    parent: { id: string; type: BoardObjects };
-  }) {
-    super({ id, type: BoardObjects.NOTE, pX, pY, sX, sY, parent });
-    this.content = content;
-  }
-}
-export class DocumentClass extends NodeClass {
+};
+export type DocumentType = NodeType & {
   title: string;
   content: string;
-  constructor({
-    id = undefined,
-    pX = 0,
-    pY = 0,
-    sX = 0,
-    sY = 0,
-    title = "New document",
-    content = `<p>New note</p>`,
-    parent,
-  }: {
-    id?: string;
-    pX?: number;
-    pY?: number;
-    sX?: number;
-    sY?: number;
-    title?: string;
-    content?: string;
-    parent: { id: string; type: BoardObjects };
-  }) {
-    super({ id, type: BoardObjects.DOCUMENT, pX, pY, sX, sY, parent });
-    (this.title = title), (this.content = content);
-  }
-}
-export class TaskClass extends NodeClass {
+};
+export type TaskType = NodeType & {
   title: string;
   status: boolean;
   content: string | undefined;
-  badges: BadgeClass[] | [];
+  badges: BadgeType[] | [];
   deadline: Date | undefined;
-
-  constructor({
-    id = undefined,
-    pX = 0,
-    pY = 0,
-    sX = 0,
-    sY = 0,
-    title = "New Task",
-    content,
-    status = false,
-    badges = [],
-    deadline,
-    parent,
-  }: {
-    id?: string;
-    pX?: number;
-    pY?: number;
-    sX?: number;
-    sY?: number;
-    title?: string;
-    content?: string;
-    status?: boolean;
-    badges?: BadgeClass[];
-    deadline?: Date;
-    parent: { id: string; type: BoardObjects };
-  }) {
-    super({ id, type: BoardObjects.TASK, pX, pY, sX, sY, parent });
-    this.title = title;
-    this.status = status;
-    this.content = content;
-    this.badges = badges;
-    this.deadline = deadline;
-  }
-}
-export class GroupClass extends NodeClass {
+};
+export type GroupType = NodeType & {
   title: string;
-  constructor({
-    id = undefined,
-    pX = 0,
-    pY = 0,
-    sX = 500,
-    sY = 500,
-    title = "New group",
-    parent,
-  }: {
-    id?: string;
-    pX?: number;
-    pY?: number;
-    sX?: number;
-    sY?: number;
-    title?: string;
-    parent: { id: string; type: BoardObjects };
-  }) {
-    super({ id, type: BoardObjects.GROUP, pX, pY, sX, sY, parent });
-    this.title = title;
-  }
-}
-export class BoardClass extends NodeClass {
+};
+export type BoardType = NodeType & {
   title: string;
   offset: { x: number; y: number };
   scale: number;
-  childRefs: NodeClass[];
-  constructor({
-    id,
-    pX = 0,
-    pY = 0,
-    sX = 0,
-    sY = 0,
-    title = "New board",
-    offset = { x: 0, y: 0 },
-    scale = 1,
-    parent,
-    childRefs = [],
-  }: {
-    id?: string;
-    pX?: number;
-    pY?: number;
-    sX?: number;
-    sY?: number;
-    title?: string;
-    offset?: { x: number; y: number };
-    scale?: number;
-    parent: { id: string; type: BoardObjects };
-    childRefs?: NodeClass[];
-  }) {
-    super({ id, type: BoardObjects.BOARD, pX, pY, sX, sY, parent });
-    this.title = title;
-    this.offset = offset;
-    this.scale = scale;
-    this.childRefs = childRefs;
-  }
-}
-export class ColumnClass extends NodeClass {
-  title: string;
-  childRefs: NodeClass[];
-  constructor({
-    id,
-    pX = 0,
-    pY = 0,
-    sX = 300,
-    sY = 0,
-    title = "New column",
-    parent,
-    childRefs = [],
-  }: {
-    id?: string;
-    pX?: number;
-    pY?: number;
-    sX?: number;
-    sY?: number;
-    title?: string;
-    parent: { id: string; type: BoardObjects };
-    childRefs?: NodeClass[];
-  }) {
-    super({ id, type: BoardObjects.COLUMN, pX, pY, sX, sY, parent });
-    this.title = title;
-    this.childRefs = childRefs;
-  }
-}
+  childRefs: Partial<NodeType>[] | [];
+};
+//#endregion
 
-export const TypeClassMap: {
-  [type in BoardObjects | SidebarObjects]: typeof NodeClass;
-} = {
-  [BoardObjects.NOTE]: NoteClass,
-  [SidebarObjects.NOTE]: NoteClass,
-  [BoardObjects.BOARD]: BoardClass,
-  [SidebarObjects.BOARD]: BoardClass,
-  [BoardObjects.COLUMN]: ColumnClass,
-  [SidebarObjects.COLUMN]: ColumnClass,
-  [BoardObjects.TASK]: TaskClass,
-  [SidebarObjects.TASK]: TaskClass,
-  [BoardObjects.GROUP]: GroupClass,
-  [SidebarObjects.GROUP]: GroupClass,
-  [BoardObjects.DOCUMENT]: DocumentClass,
-  [SidebarObjects.DOCUMENT]: DocumentClass,
-  [BoardObjects.NONE]: NodeClass,
-  [BoardObjects.IMAGE]: NodeClass,
-  [SidebarObjects.IMAGE]: NodeClass,
+//#region Type guards
+function isNote(
+  node: NoteType | DocumentType | TaskType | GroupType | BoardType
+): node is NoteType {
+  return (node as NoteType).type !== BoardObjects.NOTE;
+}
+function isDocument(
+  node: DocumentType | DocumentType | TaskType | GroupType | BoardType
+): node is DocumentType {
+  return (node as DocumentType).type !== BoardObjects.DOCUMENT;
+}
+function isTask(
+  node: TaskType | DocumentType | TaskType | GroupType | BoardType
+): node is TaskType {
+  return (node as TaskType).type !== BoardObjects.TASK;
+}
+function isGroup(
+  node: GroupType | DocumentType | TaskType | GroupType | BoardType
+): node is GroupType {
+  return (node as GroupType).type !== BoardObjects.GROUP;
+}
+function isBoard(
+  node: BoardType | DocumentType | TaskType | GroupType | BoardType
+): node is BoardType {
+  return (node as BoardType).type !== BoardObjects.BOARD;
+}
+//#endregion
+
+//#region Default values for node types
+export const defaultNode: NodeType = {
+  id: "",
+  type: BoardObjects.NONE,
+  pX: 0,
+  pY: 0,
+  sX: 0,
+  sY: 0,
+  parent: {
+    id: "root",
+    type: BoardObjects.BOARD,
+  },
+};
+export const defaultNote: NoteType = {
+  ...defaultNode,
+  type: BoardObjects.NOTE,
+  sX: 200,
+  sY: 200,
+  content: `<p>New note</p>`,
+};
+export const defaultDocument: DocumentType = {
+  ...defaultNode,
+  type: BoardObjects.DOCUMENT,
+  title: "New document",
+  content: "",
+};
+export const defaultTask: TaskType = {
+  ...defaultNode,
+  type: BoardObjects.TASK,
+  title: "New task",
+  status: false,
+  badges: [],
+  content: "",
+  deadline: undefined,
+};
+export const defaultGroup: GroupType = {
+  ...defaultNode,
+  type: BoardObjects.GROUP,
+  sX: 500,
+  sY: 500,
+  title: "New group",
+};
+export const defaultBoard: BoardType = {
+  ...defaultNode,
+  type: BoardObjects.BOARD,
+  title: "New board",
+  offset: { x: 0, y: 0 },
+  scale: 1,
+  childRefs: [],
+};
+//#endregion
+
+export const NodeTypeMap: { [key in BoardObjects | SidebarObjects]: NodeType } =
+  {
+    [BoardObjects.NONE]: defaultNode,
+    [BoardObjects.NOTE]: defaultNote,
+    [BoardObjects.COLUMN]: defaultNode,
+    [BoardObjects.BOARD]: defaultBoard,
+    [BoardObjects.TASK]: defaultTask,
+    [BoardObjects.GROUP]: defaultGroup,
+    [BoardObjects.IMAGE]: defaultNode,
+    [BoardObjects.DOCUMENT]: defaultDocument,
+    [SidebarObjects.NOTE]: defaultNote,
+    [SidebarObjects.COLUMN]: defaultNode,
+    [SidebarObjects.BOARD]: defaultBoard,
+    [SidebarObjects.TASK]: defaultTask,
+    [SidebarObjects.GROUP]: defaultGroup,
+    [SidebarObjects.IMAGE]: defaultNode,
+    [SidebarObjects.DOCUMENT]: defaultDocument,
+  };
+
+export const formatData = <T extends NodeType>(
+  input: Partial<T>,
+  defaults: T
+): T => {
+  return {
+    ...defaults,
+    ...input,
+    id: input.id ?? uuidv4(),
+  } as T;
 };
 
+const defaultBadge: Partial<BadgeType> = {
+  text: "New Badge",
+  color: "red",
+};
+export const createBadge = (badge: Partial<BadgeType>): BadgeType => {
+  return { ...defaultBadge, ...badge, id: badge.id ?? uuidv4() } as BadgeType;
+};
 type Size = {
   min?: {
     x?: Number;

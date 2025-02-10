@@ -19,7 +19,7 @@ import { setBadges, updateTaskStatus } from "../utils/slices/taskSlice.js";
 import { BadgeEdit, BadgePreview } from "./Modular/Badge.tsx";
 import AutoResizeTextArea from "./Modular/AutoResizeTextArea.tsx";
 import IconButton from "./Modular/IconButton.tsx";
-import { BadgeClass } from "../utils/classes/new-classes.ts";
+import { createBadge } from "../utils/classes/new-classes.ts";
 
 const previewStyle = {
   fontWeight: "800",
@@ -234,7 +234,7 @@ const Task = ({ id, columnWidth, onContextMenu, scale, offset }) => {
               className="badge"
               icon={TbPlus}
               onClick={() => {
-                const badge = new BadgeClass().serialize();
+                const badge = createBadge();
                 const copy = { ...tempBadges, [badge.id]: badge };
                 setTempBadges(copy);
               }}

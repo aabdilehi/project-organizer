@@ -9,13 +9,15 @@ import {
   removeNode,
 } from "./slices/nodeActions";
 import {
-  BoardClass,
-  ColumnClass,
-  DocumentClass,
-  NodeClass,
-  NoteClass,
-  TaskClass,
-  GroupClass,
+  formatData,
+  defaultNote,
+  defaultDocument,
+  defaultBoard,
+  defaultTask,
+  defaultGroup,
+  NodeType,
+  defaultNode,
+  NodeTypeMap,
 } from "./classes/new-classes";
 import sanitizeHtml from "sanitize-html";
 
@@ -25,17 +27,20 @@ const convertNoteToDocument = (note) => {
   const sanitizedContent = sanitizeHtml(note.content, { allowedTags: [] });
   console.log(sanitizedContent);
 
-  const { ...newDocument } = new DocumentClass({
-    id: note.id,
-    pX: note.pX,
-    pY: note.pY,
-    title:
-      sanitizedContent.length > 10
-        ? `${sanitizedContent.slice(0, 10)}...`
-        : sanitizedContent,
-    content: note.content,
-    parent: note.parent,
-  });
+  const newDocument = formatData(
+    {
+      id: note.id,
+      pX: note.pX,
+      pY: note.pY,
+      title:
+        sanitizedContent.length > 10
+          ? `${sanitizedContent.slice(0, 10)}...`
+          : sanitizedContent,
+      content: note.content,
+      parent: note.parent,
+    },
+    defaultDocument
+  );
 
   store.dispatch(
     removeChild.action({
@@ -76,14 +81,16 @@ const convertSelectedNodesToDocuments = () => {
 
 const convertDocumentToNote = (document) => {
   if (!document) return;
-
-  const { ...newNote } = new NoteClass({
-    id: document.id,
-    pX: document.pX,
-    pY: document.pY,
-    content: document.content,
-    parent: document.parent,
-  });
+  const newNote = formatData(
+    {
+      id: document.id,
+      pX: document.pX,
+      pY: document.pY,
+      content: document.content,
+      parent: document.parent,
+    },
+    defaultNote
+  );
 
   store.dispatch(
     removeChild.action({
@@ -124,24 +131,13 @@ const convertSelectedNodesToNotes = () => {
   }
 };
 
-export const NodeTypeMap: { [key in BoardObjects]: typeof NodeClass } = {
-  [BoardObjects.NONE]: NodeClass,
-  [BoardObjects.NOTE]: NoteClass,
-  [BoardObjects.COLUMN]: ColumnClass,
-  [BoardObjects.BOARD]: BoardClass,
-  [BoardObjects.TASK]: TaskClass,
-  [BoardObjects.GROUP]: GroupClass,
-  [BoardObjects.IMAGE]: NodeClass,
-  [BoardObjects.DOCUMENT]: DocumentClass,
-};
-
 const createNode = (
   type: BoardObjects,
   parent: { id: string; type: BoardObjects },
   x?: number,
   y?: number
 ) => {
-  const newNode = new NodeTypeMap[type]({ parent, pX: x, pY: y }).serialize();
+  const newNode = formatData({ parent, pX: x, pY: y }, NodeTypeMap[type]);
   store.dispatch(addNode.action(newNode));
   store.dispatch(
     addChild.action({

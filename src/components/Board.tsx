@@ -1,5 +1,5 @@
 //#region Imports
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { connect, useDispatch, useSelector } from "react-redux";
 
@@ -31,18 +31,13 @@ import {
 import ContextMenu from "../utils/hooks/ContextMenu.tsx";
 import Group from "./Group.jsx";
 import {
-  selectBoard,
-  selectBoardChildren,
-  selectBoardOffset,
-  selectBoardParent,
-  selectBoardScale,
-  selectBoardTitle,
   selectCopiedNodes,
   selectCopiedPosition,
   selectNodes,
   selectSelection,
 } from "../utils/slices/selectors.ts";
 import { RootState } from "../store.ts";
+import ResizeMarquee from "./Modular/ResizeMarquee.tsx";
 //#endregion
 
 const Board = ({ validBoard, router }) => {
@@ -52,19 +47,19 @@ const Board = ({ validBoard, router }) => {
 
   //#region Selectors
 
-  const scale = useSelector((state: RootState) =>
-    selectBoardScale(state, boardId)
+  const scale = useSelector((state: RootState) => state.boards[boardId].scale);
+  const offset = useSelector(
+    (state: RootState) => state.boards[boardId].offset
   );
-  const offset = useSelector((state: RootState) =>
-    selectBoardOffset(state, boardId)
+  const childRefs = useSelector(
+    (state: RootState) => state.boards[boardId].childRefs
   );
-  const childRefs = useSelector((state: RootState) =>
-    selectBoardChildren(state, boardId)
-  );
+
+  const shouldAnimateResizeMarquee = useRef(false);
 
   const nodes = useSelector(selectNodes);
 
-  if (!nodes[boardId]) return;
+  if (!scale || !offset) return;
 
   const selectedNodes = useSelector(selectSelection);
   const copiedNodes = useSelector(selectCopiedNodes);
@@ -75,8 +70,8 @@ const Board = ({ validBoard, router }) => {
   //#region References
   const ref = useRef();
   const transformRef = useRef();
-  const currentPosition = useRef(offset);
-  const currentScale = useRef(scale);
+  let currentPosition = offset;
+  let currentScale = scale;
   const currentMousePos = useRef({ x: 0, y: 0 });
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   //#endregion
@@ -85,193 +80,6 @@ const Board = ({ validBoard, router }) => {
 
   const dispatch = useDispatch();
 
-  //#region Delete functions
-  const deleteSelection = () => {
-    Object.values(selectedNodes).forEach(
-      ({
-        id,
-        type,
-        parent,
-      }: {
-        id: string;
-        type: BoardObjects;
-        parent: { id: string; type: BoardObjects };
-      }) => {
-        manualDelete(id, type, parent);
-      }
-    );
-  };
-
-  const manualDelete = (
-    id: string,
-    type: BoardObjects,
-    parent: { id: string; type: BoardObjects }
-  ) => {
-    switch (type) {
-      case BoardObjects.BOARD:
-      case BoardObjects.COLUMN:
-        deleteContainer(id, parent);
-        break;
-      default:
-        deleteOther(id, type, parent);
-        break;
-    }
-  };
-
-  const deleteContainer = (
-    id: string,
-    parent: { id: string; type: BoardObjects }
-  ) => {
-    const board = nodes[id];
-    if (!board) return;
-
-    board.childRefs.forEach(({ childId, childType }) => {
-      manualDelete(childId, childType, { id: board.id, type: board.type });
-    });
-
-    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
-    dispatch(removeNode.action({ id: board.id, type: board.type }));
-  };
-  // note, task, picture, document
-  const deleteOther = (
-    id: string,
-    type: BoardObjects,
-    parent: { id: string; type: BoardObjects }
-  ) => {
-    dispatch(removeChild.action({ id: parent.id, type: parent.type, cId: id }));
-    dispatch(removeNode.action({ id, type }));
-  };
-  //#endregion
-
-  //#region Copy functions
-  const copySelection = (x?: number, y?: number) => {
-    if (x && y) {
-      dispatch(setPosition({ x, y }));
-    } else {
-      let centroidX = 0;
-      let centroidY = 0;
-      let centroidCount = 0;
-      Object.values(selectedNodes).forEach((sel) => {
-        if (sel.parent.type == BoardObjects.COLUMN) return;
-        let node = nodes[sel.id];
-        if (!node) return;
-        centroidCount += 1;
-        centroidX += node.pX;
-        centroidY += node.pY;
-      });
-
-      const centroid = {
-        x: centroidX / centroidCount,
-        y: centroidY / centroidCount,
-      };
-      dispatch(setPosition(centroid));
-    }
-    dispatch(clearCopiedNodes(undefined));
-    Object.values(selectedNodes).forEach(({ id }: { id: string }) => {
-      manualCopy(id);
-    });
-  };
-
-  const manualCopy = (id: string) => {
-    const node = nodes[id];
-    if (!node) return;
-
-    if (node.hasOwnProperty("childRefs")) {
-      node.childRefs.forEach(({ childId }) => {
-        manualCopy(childId);
-      });
-    }
-
-    dispatch(addCopyNode(node));
-  };
-  //#endregion
-
-  //#region Paste functions
-
-  const pasteToSelectedNodes = (x?: number, y?: number) => {
-    if (Object.values(selectedNodes).length <= 0) {
-      duplicateCopiedNodes(boardId, BoardObjects.BOARD, x, y);
-    } else {
-      Object.values(selectedNodes).forEach(
-        ({ id, type }: { id: string; type: BoardObjects }) => {
-          duplicateCopiedNodes(id, type, x, y);
-        }
-      );
-    }
-  };
-
-  const duplicateCopiedNodes = (
-    id: string,
-    type: BoardObjects,
-    x?: number,
-    y?: number
-  ) => {
-    const mappedIDs = {};
-
-    // Important to get all of them done first even though it is wasteful
-    // Both the nodes, their parents, and their children need to have a corresponding ID to map to
-
-    // I guess the copied nodes have the parent and childrefs so there is no need for two loops or even adding children?
-    // Just edit the values and addNode
-
-    Object.values(copiedNodes).forEach((item) => {
-      mappedIDs[item.id] = uuidv4();
-    });
-
-    // duplicate nodes with newly assigned IDs
-    Object.values(copiedNodes).forEach((item) => {
-      const node = {
-        ...item,
-        id: mappedIDs[item.id],
-        pX: item.pX - copiedPosition.x + x,
-        pY: item.pY - copiedPosition.y + y,
-      };
-
-      // Check if parent's ID is in object.
-      // if true, use mappedIDs to update; else assign id of node that triggered the paste
-      node.parent = !!mappedIDs[node.parent.id]
-        ? { ...node.parent, id: mappedIDs[node.parent.id] }
-        : { id, type }; // paste node id;
-
-      if (!node.childRefs) {
-        dispatch(addNode.action(node));
-        if (!mappedIDs[item.parent.id]) {
-          dispatch(
-            addChild.action({ id, type, cId: node.id, cType: node.type })
-          );
-          return;
-        }
-      } else {
-        // Update childRefs of IDS
-        node.childRefs = node.childRefs
-          .map(({ childId, childType }) => {
-            return { childId: mappedIDs[childId] ?? undefined, childType };
-          })
-          .filter(({ childId }) => childId !== undefined);
-
-        dispatch(addNode.action(node));
-        if (!mappedIDs[item.parent.id]) {
-          if (node.type == type && type == BoardObjects.COLUMN) {
-            dispatch(
-              addChild.action({
-                id: boardId,
-                type: BoardObjects.BOARD,
-                cId: node.id,
-                cType: node.type,
-              })
-            );
-          } else {
-            dispatch(
-              addChild.action({ id, type, cId: node.id, cType: node.type })
-            );
-          }
-        }
-      }
-
-      return;
-    });
-  };
-  //#endregion
   //#endregion
 
   let wheelEventEndTimeout;
@@ -281,43 +89,37 @@ const Board = ({ validBoard, router }) => {
       event.target.parentNode === ref.current
     ) {
       if (wheelEventEndTimeout == undefined) {
-        currentScale.current = scale;
+        currentScale = scale;
       }
       clearTimeout(wheelEventEndTimeout);
       wheelEventEndTimeout = setTimeout(() => {
         dispatch(
           updateScale({
             id: boardId,
-            scale: currentScale.current,
+            scale: currentScale,
           })
         );
         wheelEventEndTimeout = undefined;
-      }, 100);
+      }, 250);
 
-      const newScale = Math.max(
-        0.05,
-        currentScale.current + event.deltaY * -0.0025
-      );
-      currentScale.current += (newScale - currentScale.current) * 0.2;
-      console.log(currentScale.current);
+      const newScale = Math.max(0.05, currentScale + event.deltaY * -0.0025);
+      currentScale += (newScale - currentScale) * 0.2;
 
       requestAnimationFrame(() => {
-        transformRef.current.style.transform = `scale(${
-          currentScale.current
-        }) translate(${currentPosition.current.x / currentScale.current}px, ${
-          currentPosition.current.y / currentScale.current
-        }px)`;
+        transformRef.current.style.transform = `scale(${currentScale}) translate(${
+          currentPosition.x / currentScale
+        }px, ${currentPosition.y / currentScale}px)`;
 
-        ref.current.style.backgroundSize = `${100 * currentScale.current}px ${
-          100 * currentScale.current
+        ref.current.style.backgroundSize = `${100 * currentScale}px ${
+          100 * currentScale
         }px`;
-        ref.current.style.backgroundPosition = `${currentPosition.current.x}px ${currentPosition.current.y}px`;
+        ref.current.style.backgroundPosition = `${currentPosition.x}px ${currentPosition.y}px`;
         // This should be changed as you cannot pan and scale at the same time rn
       });
     }
   };
 
-  const handleRightClick = useCallback((event) => {
+  const handleRightClick = (event) => {
     event.preventDefault();
     const boundingRect = ref.current.getBoundingClientRect();
     const x = event.clientX - boundingRect.left;
@@ -326,7 +128,7 @@ const Board = ({ validBoard, router }) => {
     currentMousePos.current = { x, y };
 
     setContextMenuOpen(true);
-  }, []);
+  };
 
   const handleMouseDown = (event) => {
     if (event.type == "mousedown") {
@@ -338,34 +140,30 @@ const Board = ({ validBoard, router }) => {
         event.preventDefault();
         const startX = event.pageX - offset.x;
         const startY = event.pageY - offset.y;
+        shouldAnimateResizeMarquee.current = true;
         const handleMouseMove = (event) => {
           event.preventDefault();
-          if (
-            transformRef.current !== null &&
-            currentPosition.current !== null
-          ) {
-            currentPosition.current = {
+          if (transformRef.current !== null && currentPosition !== null) {
+            currentPosition = {
               x: event.pageX - startX,
               y: event.pageY - startY,
             };
 
             requestAnimationFrame(() => {
-              transformRef.current.style.transform = `scale(${
-                currentScale.current
-              }) translate(${
-                currentPosition.current.x / currentScale.current
-              }px, ${currentPosition.current.y / currentScale.current}px)`;
-              ref.current.style.backgroundSize = `${
-                100 * currentScale.current
-              }px ${100 * currentScale.current}px`;
-              ref.current.style.backgroundPosition = `${currentPosition.current.x}px ${currentPosition.current.y}px`;
+              transformRef.current.style.transform = `scale(${currentScale}) translate(${
+                currentPosition.x / currentScale
+              }px, ${currentPosition.y / currentScale}px)`;
+              ref.current.style.backgroundSize = `${100 * currentScale}px ${
+                100 * currentScale
+              }px`;
+              ref.current.style.backgroundPosition = `${currentPosition.x}px ${currentPosition.y}px`;
             });
           }
         };
 
         const handleMouseUp = (event) => {
-          console.log(event.pageX - startX);
           // Clear selection if user left clicks on board
+          shouldAnimateResizeMarquee.current = false;
           if (event.button === 0) {
             dispatch(clearSelectNode());
           }
@@ -388,12 +186,13 @@ const Board = ({ validBoard, router }) => {
   };
 
   const calculateRelativePosition = (x, y) => {
-    const newX = (x - currentPosition.current.x) / currentScale.current;
-    const newY = (y - currentPosition.current.y) / currentScale.current;
+    const boundingRect = ref.current.getBoundingClientRect();
+    const xCoord = (x - boundingRect.left - offset.x) / scale;
+    const yCoord = (y - boundingRect.top - offset.y) / scale;
 
     return {
-      x: newX,
-      y: newY,
+      x: xCoord,
+      y: yCoord,
     };
   };
 
@@ -421,10 +220,8 @@ const Board = ({ validBoard, router }) => {
         className="actualboard"
         onMouseDown={(event) => handleMouseDown(event)}
         style={{
-          backgroundSize: `${100 * currentScale.current}px ${
-            100 * currentScale.current
-          }px`,
-          backgroundPosition: `${currentPosition.current.x}px ${currentPosition.current.y}px`,
+          backgroundSize: `${100 * currentScale}px ${100 * currentScale}px`,
+          backgroundPosition: `${currentPosition.x}px ${currentPosition.y}px`,
         }}
         onWheel={(event) => handleWheel(event)}
         onClick={(e) => {
@@ -467,15 +264,17 @@ const Board = ({ validBoard, router }) => {
           mousePosition={currentMousePos}
           calculatePosition={calculateRelativePosition}
         />
+        {/* <ResizeMarquee scale={currentScale} offset={currentPosition} /> */}
         <div
           ref={transformRef}
           className="board-transform"
           style={{
-            transform: `scale(${currentScale.current}) translate(${
-              currentPosition.current.x / currentScale.current
-            }px, ${currentPosition.current.y / currentScale.current}px)`,
+            transform: `scale(${currentScale}) translate(${
+              currentPosition.x / currentScale
+            }px, ${currentPosition.y / currentScale}px)`,
           }}
         >
+          <ResizeMarquee scale={currentScale} offset={currentPosition} />
           {childRefs.map(({ childId, childType }) => {
             switch (childType) {
               case BoardObjects.NOTE:
@@ -484,7 +283,7 @@ const Board = ({ validBoard, router }) => {
                     key={childId}
                     id={childId}
                     onContextMenu={handleRightClick}
-                    scale={currentScale.current}
+                    scale={currentScale}
                     offset={currentPosition}
                   />
                 );
@@ -494,7 +293,7 @@ const Board = ({ validBoard, router }) => {
                     key={childId}
                     id={childId}
                     onContextMenu={handleRightClick}
-                    scale={currentScale.current}
+                    scale={currentScale}
                     offset={currentPosition}
                   />
                 );
@@ -504,7 +303,7 @@ const Board = ({ validBoard, router }) => {
                     key={childId}
                     id={childId}
                     onContextMenu={handleRightClick}
-                    scale={currentScale.current}
+                    scale={currentScale}
                     offset={currentPosition}
                   />
                 );

@@ -66,19 +66,21 @@ button.badge:active {
 }
 
 .resize-wrapper {
-  position: relative;
-  z-index: 1;
-  width: 100% !important;
-  min-height: 100% !important;
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 0.75rem;
+  padding: 0;
+  word-wrap: break;
+  transition: none !important;
+  outline: 5px solid white;
+  z-index: 0;
 }
 
 .resize-handle {
-  opacity: 0.3;
   position: absolute;
   z-index: 1;
   width: 8px;
   height: 8px;
-  background-color: red;
 }
 
 .resize-handle.top,
@@ -152,11 +154,13 @@ button.badge:active {
   outline: 3px solid rgba(255, 255, 255, 0.8);
 }
 
-.node.dragging {
+.node.dragging,
+.resize-wrapper.dragging {
   opacity: 0 !important;
 }
 
-.node.dragging * {
+.node.dragging *,
+.resize-wrapper.dragging * {
   pointer-events: none;
 }
 
@@ -235,13 +239,14 @@ button.badge:active {
   z-index: 2;
   background-color: transparent;
   cursor: grab;
-  height: min-content;
-  max-height: unset;
+  height: 100px;
+  max-height: 100px;
   outline: none !important;
   display: flex;
   flex-direction: column;
   height: fit-content;
   width: 100px;
+  overflow-y: visible;
 }
 
 .board .icon-wrapper,

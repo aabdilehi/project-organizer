@@ -32,7 +32,6 @@ const ResizeWrapper = ({
         className="resize-handle left"
         tabIndex={99}
       />
-
       <div
         draggable={true}
         onDragStart={(e) => {

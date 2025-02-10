@@ -14,9 +14,9 @@ const NotePreview = ({
   getNodeSize,
   isInColumn = false,
 }) => {
-  const { pX, pY, sX, sY, content, parent } = useSelector(
-    (state) => state.notes[id] ?? state.drag.nodes[id]
-  );
+  const storedNode = useSelector((state) => state.notes[id]);
+  const draggedNode = useSelector((state) => state.drag.nodes[id]);
+  const { pX, pY, sX, sY, content, parent } = storedNode ?? draggedNode; // dragged node is used if the item does not exist yet, e.g. dragging from sidebar
   const nodeRef = useRef(null);
   const sizeRef = useRef({ x: sX, y: sY });
   const animateResize = (e) => {

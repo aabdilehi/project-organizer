@@ -1,10 +1,6 @@
 import { useEffect, useRef } from "react";
 import { connect, useDispatch, useSelector } from "react-redux";
-import {
-  ContextMenuItem,
-  NewNodeMenuItem,
-  reduceContextMenu,
-} from "../context-menu-types";
+import { ContextMenuItem, reduceContextMenu } from "../context-menu-types";
 import React from "react";
 import ReactDOM from "react-dom";
 import { BoardObjects } from "../enums/items";
@@ -12,6 +8,7 @@ import {
   setPosition,
   clearCopiedNodes,
   addCopyNode,
+  copyNodeData,
 } from "../slices/copiedSlice";
 import {
   removeChild,
@@ -27,6 +24,11 @@ import {
   selectCopiedNodes,
   selectCopiedPosition,
 } from "../slices/selectors";
+import { createSelector } from "@reduxjs/toolkit";
+
+const selectedNodeTypes = createSelector([selectSelection], (selectedNodes) =>
+  reduceContextMenu(Object.values(selectedNodes).map((node) => node.type))
+);
 
 const ContextMenu = ({
   boardId,
@@ -42,11 +44,11 @@ const ContextMenu = ({
   const copiedNodes = useSelector(selectCopiedNodes);
   const copiedPosition = useSelector(selectCopiedPosition);
 
-  const contextMenu = reduceContextMenu(
-    Object.values(selectedNodes).map((node) => node.type)
-  );
+  const contextMenu = useSelector(selectedNodeTypes);
 
   const dispatch = useDispatch();
+
+  let tempCopy: any[] = [];
 
   //#region Delete functions
   const deleteSelection = () => {
@@ -108,9 +110,13 @@ const ContextMenu = ({
 
   //#region Copy functions
   const copySelection = (x?: number, y?: number) => {
+    // Set "copy position" or "copy offset"
+    // Used when pasting at new location
     if (x && y) {
       dispatch(setPosition({ x, y }));
     } else {
+      // No copy position if copied using keyboard shortcut
+      // Just find middle point of all copied nodes
       let centroidX = 0;
       let centroidY = 0;
       let centroidCount = 0;
@@ -130,9 +136,13 @@ const ContextMenu = ({
       dispatch(setPosition(centroid));
     }
     dispatch(clearCopiedNodes(undefined));
+    tempCopy = [];
     Object.values(selectedNodes).forEach(({ id }: { id: string }) => {
       manualCopy(id);
     });
+
+    dispatch(copyNodeData(tempCopy));
+    tempCopy = [];
   };
 
   const manualCopy = (id: string) => {
@@ -145,7 +155,7 @@ const ContextMenu = ({
       });
     }
 
-    dispatch(addCopyNode(node));
+    tempCopy.push(node);
   };
   //#endregion
 
@@ -281,11 +291,7 @@ const ContextMenu = ({
                 <div
                   className="context-menu-item"
                   onClick={(event) => {
-                    const { x, y } = calculatePosition(
-                      mousePosition.current.x,
-                      mousePosition.current.y
-                    );
-                    copySelection(x, y);
+                    copySelection(event.clientX, event.clientY);
                   }}
                 >
                   Copy
@@ -300,11 +306,7 @@ const ContextMenu = ({
                 <div
                   className="context-menu-item"
                   onClick={(event) => {
-                    const { x, y } = calculatePosition(
-                      mousePosition.current.x,
-                      mousePosition.current.y
-                    );
-                    pasteToSelectedNodes(boardId, x, y);
+                    pasteToSelectedNodes(event.clientX, event.clientY);
                   }}
                 >
                   Paste

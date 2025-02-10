@@ -71,9 +71,6 @@ export function useSmoothBoardControls(boardId, transformRef, boardRef) {
       event.target !== transformRef.current
     )
       return;
-    if (event.button === 0) {
-      dispatch(clearSelectNode());
-    }
 
     if (event.button === 1) {
       event.preventDefault();

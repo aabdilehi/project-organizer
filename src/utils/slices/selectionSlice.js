@@ -14,6 +14,11 @@ const selectionSlice = createSlice({
       const { ...nodes } = action.payload;
       return nodes;
     },
+    addSelectedNodes: (state, action) => {
+      const nodes = action.payload;
+      console.log(nodes);
+      return { ...state, ...nodes };
+    },
     addSelectNode: (state, action) => {
       // Can also be used to update the selection on data change
       const { id, type, parent } = action.payload;
@@ -44,6 +49,7 @@ const selectionSlice = createSlice({
 export const {
   selectNode,
   setSelectedNodes,
+  addSelectedNodes,
   addSelectNode,
   toggleSelectNode,
   clearSelectNode,
