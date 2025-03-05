@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
 import { BoardObjects } from "../utils/enums/items.tsx";
-import { updateTitle } from "../utils/slices/nodeActions.ts";
+import { updatePosition, updateTitle } from "../utils/slices/nodeActions.ts";
 
 const previewStyle = {
   fontWeight: "800",
@@ -22,6 +22,8 @@ const Group = ({ id, onContextMenu, scale, offset }) => {
     (state) => state.groups[id]
   );
 
+  // make group "taller" by including the title within the bounds
+  // big div that is a stack of two divs. Top div has pointer events, bottom doesn't
   const selected = useSelector((state) => Object.hasOwn(state.selection, id));
 
   return (
@@ -39,7 +41,6 @@ const Group = ({ id, onContextMenu, scale, offset }) => {
       offset={offset}
       parentId={parent.id}
       parentType={parent.type}
-      isInColumn={false}
       onContextMenu={onContextMenu}
     >
       <CustomEditablePreview

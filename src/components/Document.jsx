@@ -16,7 +16,11 @@ import React, {
   useState,
 } from "react";
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
-import { updateContent, updateTitle } from "../utils/slices/nodeActions.ts";
+import {
+  updateContent,
+  updateSize,
+  updateTitle,
+} from "../utils/slices/nodeActions.ts";
 import { Modal } from "./Modular/Modal";
 import Color from "@tiptap/extension-color";
 import Highlight from "@tiptap/extension-highlight";
@@ -28,53 +32,22 @@ import Underline from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
 import { TbFileText } from "react-icons/tb";
 import { MenuBar } from "./Modular/Editor.jsx";
-import _ from "lodash";
+import _, { debounce } from "lodash";
 
-class Debouncer {
-  start;
-  func;
-  wait;
-  maxWait;
-  lastInvoked;
-  timeout;
+const updateDocContent = (dispatch, id, editor) => {
+  console.log("Done");
+  dispatch(
+    updateContent.action({
+      id,
+      type: BoardObjects.NOTE,
+      content: editor.getHTML(),
+    })
+  );
+  let { from, to } = editor.state.selection;
+  editor.commands.setTextSelection({ from, to });
+};
 
-  constructor(func = (any) => {}, wait = 100, maxWait = -1) {
-    this.func = func;
-    this.wait = wait;
-    this.maxWait = maxWait;
-    const now = new Date();
-    this.start = now;
-    this.lastInvoked = now;
-  }
-
-  debounce(args) {
-    const now = new Date();
-    this.start = this.start;
-    this.lastInvoked = this.lastInvoked;
-
-    console.log(now.getTime() - this.start.getTime());
-    while (true) {
-      if (now.getTime() - this.lastInvoked.getTime() <= this.wait) {
-        continue;
-      } else {
-        break;
-      }
-    }
-    console.log("DOING IT");
-    this.start = now;
-    const argsArray = Array.isArray(args) ? args : [args];
-    this.func(...argsArray);
-    this.lastInvoked = now;
-  }
-
-  debounce2(args) {
-    clearTimeout(this.timeout);
-    this.timeout = setTimeout(() => {
-      const argsArray = Array.isArray(args) ? args : [args];
-      this.func(...argsArray);
-    }, this.wait);
-  }
-}
+const debouncedUpdate = debounce(updateDocContent, 250, { maxWait: 1000 });
 
 const previewStyle = {
   fontWeight: "800",
@@ -83,51 +56,16 @@ const previewStyle = {
   borderRadius: "5px",
 };
 
-const Document = ({ id, columnWidth, onContextMenu }) => {
+const Document = ({ id, onContextMenu, scale, offset }) => {
   const dispatch = useDispatch();
-  const { pX, pY, title, content, parent } = useSelector(
+  const { pX, pY, sX, sY, title, content, parent } = useSelector(
     (state) => state.documents[id]
   );
 
-  const uC = useMemo(
-    () =>
-      new Debouncer((editor) => {
-        console.log("THIS IS WHERE IT DEBOUNCES THE STATE CHANGE");
-        dispatch(
-          updateContent.action({
-            id,
-            type: BoardObjects.DOCUMENT,
-            content: editor.getHTML(),
-          })
-        );
-      }, 1000),
-    []
-  );
-
-  const uB = useMemo(
-    () =>
-      new Debouncer(() => {
-        console.log("THIS IS WHERE IT UPDATES USING STATE");
-        if (editor) {
-          if (editor.getHTML() !== content) {
-            let { from, to } = editor.state.selection;
-            console.log(`From: ${from}\nTo: ${to}`);
-            editor.commands.setContent(content, false, {
-              preserveWhitespace: "full",
-            });
-            editor.commands.setTextSelection({ from, to });
-          }
-        }
-      }, 1000),
-    [content]
-  );
   const selection = useRef(null);
 
   const [open, setOpen] = useState(false);
   const nodeRef = useRef();
-
-  // Determines sizing and positioning based on whether in column or not
-  let isInColumn = parent.type === BoardObjects.COLUMN;
 
   const editor = useEditor({
     extensions: [
@@ -153,19 +91,31 @@ const Document = ({ id, columnWidth, onContextMenu }) => {
       }),
     ],
     content: content,
-    onUpdate: ({ editor }) => {
-      console.log("THIS IS WHERE IT DEBOUNCES THE STATE CHANGE");
-      dispatch(
-        updateContent.action({
-          id,
-          type: BoardObjects.DOCUMENT,
-          content: editor.getHTML(),
-        })
-      );
-    },
+    onUpdate: ({ editor }) => debouncedUpdate(dispatch, id, editor),
   });
 
-  uB.debounce();
+  const updateSizeFromElement = () =>
+    requestAnimationFrame(() => {
+      if (nodeRef.current != null) {
+        nodeRef.current.style.height = "unset";
+        const bounds = nodeRef.current.getBoundingClientRect();
+        if (
+          Math.abs(sY - bounds.height / scale) > 10 // Padding is 10 on each side
+        ) {
+          dispatch(
+            updateSize.action({
+              id,
+              type: BoardObjects.DOCUMENT,
+              sX: bounds.width / scale,
+              sY: bounds.height / scale,
+            })
+          );
+        }
+        nodeRef.current.style.height = sY;
+      }
+    });
+
+  updateSizeFromElement();
 
   return (
     <>
@@ -177,10 +127,10 @@ const Document = ({ id, columnWidth, onContextMenu }) => {
         canResize={false}
         pX={pX}
         pY={pY}
+        sX={sX}
+        sY={sY}
         parentId={parent.id}
         parentType={parent.type}
-        isInColumn={isInColumn}
-        columnWidth={columnWidth}
         onContextMenu={onContextMenu}
       >
         <div className="icon-wrapper" onDoubleClick={() => setOpen(true)}>
@@ -191,6 +141,7 @@ const Document = ({ id, columnWidth, onContextMenu }) => {
           canEdit={true}
           text={title}
           textStyle={previewStyle}
+          changeOnSubmit
           onChange={(value) =>
             dispatch(
               updateTitle.action({
@@ -200,6 +151,7 @@ const Document = ({ id, columnWidth, onContextMenu }) => {
               })
             )
           }
+          onImmediateChange={updateSizeFromElement}
         />
       </NodeWrapper>
       <Modal

@@ -28,6 +28,13 @@ const selectionSlice = createSlice({
         [id]: { id, type, parent },
       };
     },
+    removeSelectNode: (state, action) => {
+      const { id } = action.payload;
+      if (!id) return;
+      if (!!state[id]) {
+        delete state[id];
+      }
+    },
     toggleSelectNode: (state, action) => {
       const { id, type, parent } = action.payload;
       if (!id) return;
@@ -52,6 +59,7 @@ export const {
   addSelectedNodes,
   addSelectNode,
   toggleSelectNode,
+  removeSelectNode,
   clearSelectNode,
 } = selectionSlice.actions;
 

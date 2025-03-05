@@ -72,6 +72,7 @@ function CustomEditablePreview({
   text = "Default",
   textStyle,
   onChange,
+  onImmediateChange,
   changeOnSubmit = true,
   adjustSelf = false,
   width,
@@ -84,6 +85,7 @@ function CustomEditablePreview({
   changeOnSubmit?: boolean;
   adjustSelf?: boolean;
   onChange?: (value: string) => void;
+  onImmediateChange?: (args?: any) => any;
   width?: number;
   style?: React.CSSProperties;
 }) {
@@ -96,7 +98,9 @@ function CustomEditablePreview({
   const submitChanges = () => {
     if (value !== text) {
       console.log("YOOOOO");
-      onChange(value);
+      if (onChange) {
+        onChange(value);
+      }
     }
     if (editing) {
       setEditing(false);
@@ -147,6 +151,9 @@ function CustomEditablePreview({
     setValue(e.target.value);
     if (!!onChange && !changeOnSubmit) {
       onChange(value);
+    }
+    if (onImmediateChange) {
+      onImmediateChange();
     }
     updateTextAreaSize();
   };

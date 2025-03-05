@@ -8,7 +8,9 @@ import {
   removeNode,
   updateTitle,
   updateSize,
+  setSliceData,
 } from "./nodeActions";
+import { BoardObjects } from "../enums/items";
 
 const boardSlice = createSlice({
   name: "boards",
@@ -50,14 +52,30 @@ const boardSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(addNode.action, addNode.reducer("board"));
-    builder.addCase(removeNode.action, removeNode.reducer("board"));
-    builder.addCase(addChild.action, addChild.reducer("board"));
-    builder.addCase(removeChild.action, removeChild.reducer("board"));
-    builder.addCase(updateTitle.action, updateTitle.reducer("board"));
-    builder.addCase(updatePosition.action, updatePosition.reducer("board"));
-    builder.addCase(updateSize.action, updateSize.reducer("board")); // Used for data purposes, not rendering
-    builder.addCase(updateParent.action, updateParent.reducer("board"));
+    builder.addCase(
+      setSliceData.action,
+      setSliceData.reducer(BoardObjects.BOARD)
+    );
+    builder.addCase(addNode.action, addNode.reducer(BoardObjects.BOARD));
+    builder.addCase(removeNode.action, removeNode.reducer(BoardObjects.BOARD));
+    builder.addCase(addChild.action, addChild.reducer(BoardObjects.BOARD));
+    builder.addCase(
+      removeChild.action,
+      removeChild.reducer(BoardObjects.BOARD)
+    );
+    builder.addCase(
+      updateTitle.action,
+      updateTitle.reducer(BoardObjects.BOARD)
+    );
+    builder.addCase(
+      updatePosition.action,
+      updatePosition.reducer(BoardObjects.BOARD)
+    );
+    builder.addCase(updateSize.action, updateSize.reducer(BoardObjects.BOARD)); // Used for data purposes, not rendering
+    builder.addCase(
+      updateParent.action,
+      updateParent.reducer(BoardObjects.BOARD)
+    );
   },
 });
 

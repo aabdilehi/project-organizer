@@ -22,6 +22,7 @@ button.badge:active {
   flex-direction: row;
   height: 100%;
   width: 100%;
+  background-color: var(--primary-background-color);
 }
 
 .actualboard {
@@ -31,11 +32,7 @@ button.badge:active {
   overflow: hidden;
   margin: 0;
   padding: 0;
-  background-image: radial-gradient(
-    circle,
-    #000000 1px,
-    var(--secondary-color) 2px
-  );
+  /* background-size: 75px 100px;  */
   transition: background 0.1s cubic-bezier(0.5, 1, 0.89, 1);
 }
 
@@ -65,7 +62,9 @@ button.badge:active {
   filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.2));
 }
 
-.resize-wrapper {
+.resize-wrapper,
+.group,
+.selection-marquee {
   position: absolute;
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 0.75rem;
@@ -144,12 +143,6 @@ button.badge:active {
   outline: 1px solid grey;
 }
 
-.node.in-column {
-  position: relative;
-  transform: translate(0px, 0px) !important;
-  box-sizing: content-box;
-}
-
 .node.selected {
   outline: 3px solid rgba(255, 255, 255, 0.8);
 }
@@ -176,30 +169,37 @@ button.badge:active {
   overflow: hidden;
 }
 
+.note .ProseMirror {
+  height: 100% !important;
+  min-height: 100% !important;
+  box-sizing: border-box;
+}
+/* 
 .note.editing {
   height: max-content !important;
   overflow: auto !important;
-}
+} */
 
-.selection-marquee {
+/* .selection-marquee {
   background-color: #646cff5f;
   border: #646cff;
   position: absolute;
-}
+  z-index: 99;
+} */
 
 .group {
   width: 500px;
   height: 500px;
   min-height: 100px;
   min-width: 100px;
-  max-height: 1250px;
-  max-height: 1250px;
-  z-index: 0;
+  z-index: -10;
 }
 
 .group .editable {
   position: relative;
+  pointer-events: auto;
   top: -46px;
+  /* box-sizing: border-box; */
   text-align: left;
   background-color: #1a1c46;
   width: fit-content;
@@ -208,39 +208,13 @@ button.badge:active {
   border-radius: 5px;
 }
 
-.column {
-  position: absolute;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 5px;
-  min-width: 300px;
-  max-width: 1000px;
-  height: max-content !important;
-  overflow: hidden;
-  border-radius: 10px;
-  background-color: var(--primary-color);
-  cursor: grab;
-}
-
-.column .editable {
-  margin: auto;
-  margin-bottom: 3px;
-  width: 100%;
-}
-
-.column span .node:not(:last-child) {
-  margin-bottom: 5px;
-}
-
 .board,
 .document {
   z-index: 2;
   background-color: transparent;
   cursor: grab;
-  height: 100px;
-  max-height: 100px;
+  /* height: 100px; */
+  /* max-height: 100px; */
   outline: none !important;
   display: flex;
   flex-direction: column;
@@ -269,39 +243,6 @@ button.badge:active {
 .board.selected .icon-wrapper,
 .document.selected .icon-wrapper {
   outline: 3px solid rgba(255, 255, 255, 0.8);
-}
-
-.board.in-column,
-.document.in-column {
-  flex-direction: row;
-  align-items: center;
-  outline: 1px solid grey !important;
-  background-color: var(--primary-color);
-}
-
-.board.in-column.selected,
-.document.in-column.selected {
-  outline: 3px solid rgba(255, 255, 255, 0.8) !important;
-}
-
-.board.in-column.selected .icon-wrapper,
-.board.in-column .icon-wrapper,
-.document.in-column.selected .icon-wrapper,
-.document.in-column .icon-wrapper {
-  background-color: var(--secondary-color);
-  flex: 0;
-  flex-basis: 65px;
-  border-radius: 5px;
-  margin: 5px;
-  outline: none !important;
-}
-
-.board.in-column .editable,
-.document.in-column .editable {
-  margin: 0 auto;
-  width: 150px !important;
-  flex: 1 1 150px !important;
-  margin: 10px;
 }
 
 .board .editable,

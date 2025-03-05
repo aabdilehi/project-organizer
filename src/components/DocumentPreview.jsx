@@ -8,28 +8,23 @@ import { connect, useSelector } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { useMemo, useRef } from "react";
 import { TbFileText } from "react-icons/tb";
-
-const DocumentPreview = ({ id, columnWidth, isInColumn = false }) => {
+const previewStyle = {
+  fontWeight: "800",
+  width: "100%",
+  borderRadius: "5px",
+  outline: "2px solid transparent",
+  border: "none",
+  wordWrap: "break-word",
+  whiteSpace: "pre-wrap",
+  overflow: "auto",
+  overflowWrap: "anywhere",
+  boxSizing: "border-box",
+};
+const DocumentPreview = ({ id }) => {
   const { pX, pY, title, parent } = useSelector(
     (state) => state.documents[id] ?? state.drag.nodes[id]
   );
-  const previewStyle = useMemo(
-    () => ({
-      fontWeight: "800",
-      width: "100%",
-      margin: isInColumn ? undefined : "auto",
-      marginBottom: isInColumn ? undefined : "3px",
-      borderRadius: "5px",
-      outline: "2px solid transparent",
-      border: "none",
-      wordWrap: "break-word",
-      whiteSpace: "pre-wrap",
-      overflow: "auto",
-      overflowWrap: "anywhere",
-      boxSizing: "border-box",
-    }),
-    [isInColumn]
-  );
+
   const nodeRef = useRef();
   return (
     <NodeWrapper
@@ -43,8 +38,6 @@ const DocumentPreview = ({ id, columnWidth, isInColumn = false }) => {
       parentId={parent.id}
       parentType={parent.type}
       preview
-      isInColumn={isInColumn}
-      columnWidth={columnWidth}
     >
       <div className="icon-wrapper">
         <TbFileText pointerEvents={"none"} />

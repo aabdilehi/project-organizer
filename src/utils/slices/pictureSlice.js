@@ -6,7 +6,9 @@ import {
   updateSize,
   updateParent,
   offsetPosition,
+  setSliceData,
 } from "./nodeActions";
+import { BoardObjects } from "../enums/items";
 
 const pictureSlice = createSlice({
   name: "pictures",
@@ -47,12 +49,25 @@ const pictureSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(addNode.action, addNode.reducer("image"));
-    builder.addCase(removeNode.action, removeNode.reducer("image"));
-    builder.addCase(updatePosition.action, updatePosition.reducer("image"));
-    builder.addCase(offsetPosition.action, offsetPosition.reducer("image"));
-    builder.addCase(updateSize.action, updateSize.reducer("image"));
-    builder.addCase(updateParent.action, updateParent.reducer("image"));
+    builder.addCase(
+      setSliceData.action,
+      setSliceData.reducer(BoardObjects.IMAGE)
+    );
+    builder.addCase(addNode.action, addNode.reducer(BoardObjects.IMAGE));
+    builder.addCase(removeNode.action, removeNode.reducer(BoardObjects.IMAGE));
+    builder.addCase(
+      updatePosition.action,
+      updatePosition.reducer(BoardObjects.IMAGE)
+    );
+    builder.addCase(
+      offsetPosition.action,
+      offsetPosition.reducer(BoardObjects.IMAGE)
+    );
+    builder.addCase(updateSize.action, updateSize.reducer(BoardObjects.IMAGE));
+    builder.addCase(
+      updateParent.action,
+      updateParent.reducer(BoardObjects.IMAGE)
+    );
   },
 });
 

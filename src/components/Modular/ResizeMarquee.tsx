@@ -62,10 +62,12 @@ export default forwardRef(
 
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
-      startX = !startX || node.pX < startX ? node.pX : startX;
-      endX = !endX || node.pX + node.sX > endX ? node.pX + node.sX : endX;
-      startY = !startY || node.pY < startY ? node.pY : startY;
-      endY = !endY || node.pY + node.sY > endY ? node.pY + node.sY : endY;
+      if (node) {
+        startX = !startX || node.pX < startX ? node.pX : startX;
+        endX = !endX || node.pX + node.sX > endX ? node.pX + node.sX : endX;
+        startY = !startY || node.pY < startY ? node.pY : startY;
+        endY = !endY || node.pY + node.sY > endY ? node.pY + node.sY : endY;
+      }
     }
 
     const padding = Math.min(20, (endX - startX) / 8);

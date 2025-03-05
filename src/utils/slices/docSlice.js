@@ -7,7 +7,9 @@ import {
   updateParent,
   updateContent,
   updateTitle,
+  setSliceData,
 } from "./nodeActions";
+import { BoardObjects } from "../enums/items";
 
 const docSlice = createSlice({
   name: "documents",
@@ -26,13 +28,35 @@ const docSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(addNode.action, addNode.reducer("document"));
-    builder.addCase(removeNode.action, removeNode.reducer("document"));
-    builder.addCase(updateTitle.action, updateTitle.reducer("document"));
-    builder.addCase(updateContent.action, updateContent.reducer("document"));
-    builder.addCase(updatePosition.action, updatePosition.reducer("document"));
-    builder.addCase(updateSize.action, updateSize.reducer("document")); // Used for data purposes, not rendering
-    builder.addCase(updateParent.action, updateParent.reducer("document"));
+    builder.addCase(
+      setSliceData.action,
+      setSliceData.reducer(BoardObjects.DOCUMENT)
+    );
+    builder.addCase(addNode.action, addNode.reducer(BoardObjects.DOCUMENT));
+    builder.addCase(
+      removeNode.action,
+      removeNode.reducer(BoardObjects.DOCUMENT)
+    );
+    builder.addCase(
+      updateTitle.action,
+      updateTitle.reducer(BoardObjects.DOCUMENT)
+    );
+    builder.addCase(
+      updateContent.action,
+      updateContent.reducer(BoardObjects.DOCUMENT)
+    );
+    builder.addCase(
+      updatePosition.action,
+      updatePosition.reducer(BoardObjects.DOCUMENT)
+    );
+    builder.addCase(
+      updateSize.action,
+      updateSize.reducer(BoardObjects.DOCUMENT)
+    ); // Used for data purposes, not rendering
+    builder.addCase(
+      updateParent.action,
+      updateParent.reducer(BoardObjects.DOCUMENT)
+    );
   },
 });
 

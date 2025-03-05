@@ -8,7 +8,9 @@ import {
   updateParent,
   offsetPosition,
   updateSize,
+  setSliceData,
 } from "./nodeActions";
+import { BoardObjects } from "../enums/items";
 
 const taskSlice = createSlice({
   name: "tasks",
@@ -52,14 +54,30 @@ const taskSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(addNode.action, addNode.reducer("task"));
-    builder.addCase(removeNode.action, removeNode.reducer("task"));
-    builder.addCase(updateTitle.action, updateTitle.reducer("task"));
-    builder.addCase(updateContent.action, updateContent.reducer("task"));
-    builder.addCase(updatePosition.action, updatePosition.reducer("task"));
-    builder.addCase(offsetPosition.action, offsetPosition.reducer("task"));
-    builder.addCase(updateSize.action, updateSize.reducer("task")); // Used for data purposes, not rendering
-    builder.addCase(updateParent.action, updateParent.reducer("task"));
+    builder.addCase(
+      setSliceData.action,
+      setSliceData.reducer(BoardObjects.TASK)
+    );
+    builder.addCase(addNode.action, addNode.reducer(BoardObjects.TASK));
+    builder.addCase(removeNode.action, removeNode.reducer(BoardObjects.TASK));
+    builder.addCase(updateTitle.action, updateTitle.reducer(BoardObjects.TASK));
+    builder.addCase(
+      updateContent.action,
+      updateContent.reducer(BoardObjects.TASK)
+    );
+    builder.addCase(
+      updatePosition.action,
+      updatePosition.reducer(BoardObjects.TASK)
+    );
+    builder.addCase(
+      offsetPosition.action,
+      offsetPosition.reducer(BoardObjects.TASK)
+    );
+    builder.addCase(updateSize.action, updateSize.reducer(BoardObjects.TASK)); // Used for data purposes, not rendering
+    builder.addCase(
+      updateParent.action,
+      updateParent.reducer(BoardObjects.TASK)
+    );
   },
 });
 

@@ -1,4 +1,4 @@
-import { BoardObjects, SidebarObjects } from "../enums/items";
+import { BoardObjects } from "../enums/items";
 import { v4 as uuidv4 } from "uuid";
 
 //#region Node type definitions
@@ -121,24 +121,15 @@ export const defaultBoard: BoardType = {
 };
 //#endregion
 
-export const NodeTypeMap: { [key in BoardObjects | SidebarObjects]: NodeType } =
-  {
-    [BoardObjects.NONE]: defaultNode,
-    [BoardObjects.NOTE]: defaultNote,
-    [BoardObjects.COLUMN]: defaultNode,
-    [BoardObjects.BOARD]: defaultBoard,
-    [BoardObjects.TASK]: defaultTask,
-    [BoardObjects.GROUP]: defaultGroup,
-    [BoardObjects.IMAGE]: defaultNode,
-    [BoardObjects.DOCUMENT]: defaultDocument,
-    [SidebarObjects.NOTE]: defaultNote,
-    [SidebarObjects.COLUMN]: defaultNode,
-    [SidebarObjects.BOARD]: defaultBoard,
-    [SidebarObjects.TASK]: defaultTask,
-    [SidebarObjects.GROUP]: defaultGroup,
-    [SidebarObjects.IMAGE]: defaultNode,
-    [SidebarObjects.DOCUMENT]: defaultDocument,
-  };
+export const NodeTypeMap: { [key in BoardObjects]: NodeType } = {
+  [BoardObjects.NONE]: defaultNode,
+  [BoardObjects.NOTE]: defaultNote,
+  [BoardObjects.BOARD]: defaultBoard,
+  [BoardObjects.TASK]: defaultTask,
+  [BoardObjects.GROUP]: defaultGroup,
+  [BoardObjects.IMAGE]: defaultNode,
+  [BoardObjects.DOCUMENT]: defaultDocument,
+};
 
 export const formatData = <T extends NodeType>(
   input: Partial<T>,
@@ -155,8 +146,8 @@ const defaultBadge: Partial<BadgeType> = {
   text: "New Badge",
   color: "red",
 };
-export const createBadge = (badge: Partial<BadgeType>): BadgeType => {
-  return { ...defaultBadge, ...badge, id: badge.id ?? uuidv4() } as BadgeType;
+export const createBadge = (badge?: Partial<BadgeType>): BadgeType => {
+  return { ...defaultBadge, id: uuidv4(), ...badge } as BadgeType;
 };
 type Size = {
   min?: {
@@ -172,10 +163,9 @@ type Size = {
 export const SizeClassMap: { [type in BoardObjects]: Size } = {
   [BoardObjects.NOTE]: { min: { x: 75, y: 75 }, max: { x: 1000, y: 1000 } },
   [BoardObjects.NONE]: {},
-  [BoardObjects.COLUMN]: { min: { x: 300 }, max: { x: 1000 } },
-  [BoardObjects.BOARD]: {},
-  [BoardObjects.TASK]: {},
-  [BoardObjects.GROUP]: { min: { x: 100, y: 100 }, max: { x: 1250, y: 1250 } },
+  [BoardObjects.BOARD]: { min: { x: 75, y: 75 }, max: { x: 1000, y: 1000 } },
+  [BoardObjects.TASK]: { min: { x: 200 }, max: { x: 200 } },
+  [BoardObjects.GROUP]: { min: { x: 100, y: 100 } },
   [BoardObjects.IMAGE]: { min: { x: 100, y: 100 } },
   [BoardObjects.DOCUMENT]: { min: { x: 75, y: 75 }, max: { x: 1000, y: 1000 } },
 };

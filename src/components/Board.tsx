@@ -1,5 +1,11 @@
 //#region Imports
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { v4 as uuidv4 } from "uuid";
 import { connect, useDispatch, useSelector } from "react-redux";
 
@@ -15,8 +21,6 @@ import {
 
 import { useDrop } from "../utils/hooks/useDrop.jsx";
 import { withRouter } from "./Modular/ComponentWithRouterProp.jsx";
-import { useContextMenu } from "../utils/hooks/useContextMenu.tsx";
-import Column from "./Column.jsx";
 import { clearSelectNode } from "../utils/slices/selectionSlice.js";
 import BoardIcon from "./BoardIcon.jsx";
 import Document from "./Document.jsx";
@@ -40,6 +44,99 @@ import { RootState } from "../store.ts";
 import ResizeMarquee from "./Modular/ResizeMarquee.tsx";
 //#endregion
 
+const setOriginalBackground = (
+  element: HTMLDivElement,
+  position: { x: number; y: number },
+  scale: number
+) => {
+  element.style.background = originalBackground;
+  element.style.backgroundPosition = originalBackgroundPosition(
+    position,
+    scale
+  );
+  element.style.backgroundSize = originalBackgroundSize(scale);
+};
+
+const originalBackground = `radial-gradient(
+    circle,
+    var(--secondary-background-color) 1px,
+    var(--primary-background-color) 2px
+  )`;
+const originalBackgroundSize = (scale) => {
+  return `${50 * scale}px ${50 * scale}px`;
+};
+const originalBackgroundPosition = (position, scale) => {
+  return `${position.x}px ${position.y}px`;
+};
+
+const setCrossBackground = (
+  element: HTMLDivElement,
+  position: { x: number; y: number },
+  scale: number
+) => {
+  element.style.background = crossBackground;
+  element.style.backgroundPosition = crossBackgroundPosition(position, scale);
+  element.style.backgroundSize = crossBackgroundSize(scale);
+};
+
+const crossBackground = `radial-gradient(circle, transparent 20%, slategray 20%,
+    slategray 80%, transparent 80%, transparent),
+  radial-gradient(circle, transparent 20%, slategray 20%,
+    slategray 80%, transparent 80%, transparent) 50px 50px,
+  linear-gradient(#A8B1BB 8px, transparent 8px) 0 -4px,
+  linear-gradient(90deg, #A8B1BB 8px, transparent 8px) -4px 0`;
+const crossBackgroundPosition = (position, scale) => {
+  return `${position.x}px ${position.y}px,${position.x + 50 * scale}px ${
+    position.y + 50 * scale
+  }px,${position.x}px ${position.y - 4 * scale}px,${position.x - 4 * scale}px ${
+    position.y
+  }px`;
+};
+
+const crossBackgroundSize = (scale) => {
+  const size1 = 100 * scale;
+  const size2 = 50 * scale;
+  return `${size1}px ${size1}px, ${size1}px ${size1}px, ${size2}px ${size2}px, ${size2}px ${size2}px`;
+};
+
+const setWaveBackground = (
+  element: HTMLDivElement,
+  position: { x: number; y: number },
+  scale: number
+) => {
+  element.style.background = waveBackground;
+  element.style.backgroundSize = waveBackgroundSize(scale);
+  element.style.backgroundPosition = waveBackgroundPosition(position, scale);
+};
+
+const waveBackground = `radial-gradient(
+      circle at 100% 50%,
+      transparent 20%,
+      var(--secondary-background-color) 21%,
+      var(--secondary-background-color) 34%,
+      transparent 35%,
+      transparent
+    ),
+    radial-gradient(
+        circle at 0% 50%,
+        transparent 20%,
+        var(--secondary-background-color) 21%,
+        var(--secondary-background-color) 34%,
+        transparent 35%,
+        transparent
+      )
+      `;
+
+const waveBackgroundSize = (scale) => {
+  return `${75 * scale}px ${100 * scale}px`;
+};
+
+const waveBackgroundPosition = (position, scale) => {
+  return `${position.x}px ${position.y}px, ${position.x}px ${
+    position.y - 50 * scale
+  }px`;
+};
+
 const Board = ({ validBoard, router }) => {
   //#region Handle initial page setup
   const { id } = router.params;
@@ -47,10 +144,8 @@ const Board = ({ validBoard, router }) => {
 
   //#region Selectors
 
-  const scale = useSelector((state: RootState) => state.boards[boardId].scale);
-  const offset = useSelector(
-    (state: RootState) => state.boards[boardId].offset
-  );
+  const scale = 0.75;
+  const offset = { x: 0, y: 500 };
   const childRefs = useSelector(
     (state: RootState) => state.boards[boardId].childRefs
   );
@@ -110,10 +205,7 @@ const Board = ({ validBoard, router }) => {
           currentPosition.x / currentScale
         }px, ${currentPosition.y / currentScale}px)`;
 
-        ref.current.style.backgroundSize = `${100 * currentScale}px ${
-          100 * currentScale
-        }px`;
-        ref.current.style.backgroundPosition = `${currentPosition.x}px ${currentPosition.y}px`;
+        setWaveBackground(ref.current, currentPosition, currentScale);
         // This should be changed as you cannot pan and scale at the same time rn
       });
     }
@@ -153,10 +245,8 @@ const Board = ({ validBoard, router }) => {
               transformRef.current.style.transform = `scale(${currentScale}) translate(${
                 currentPosition.x / currentScale
               }px, ${currentPosition.y / currentScale}px)`;
-              ref.current.style.backgroundSize = `${100 * currentScale}px ${
-                100 * currentScale
-              }px`;
-              ref.current.style.backgroundPosition = `${currentPosition.x}px ${currentPosition.y}px`;
+
+              setWaveBackground(ref.current, currentPosition, currentScale);
             });
           }
         };
@@ -164,9 +254,9 @@ const Board = ({ validBoard, router }) => {
         const handleMouseUp = (event) => {
           // Clear selection if user left clicks on board
           shouldAnimateResizeMarquee.current = false;
-          if (event.button === 0) {
-            dispatch(clearSelectNode());
-          }
+          // if (event.button === 0) {
+          //   dispatch(clearSelectNode());
+          // }
           dispatch(
             updateOffset({
               id: boardId,
@@ -199,12 +289,11 @@ const Board = ({ validBoard, router }) => {
   //#endregion
 
   //#region Drop behaviour
-  const { dropOnBoard, dropOnColumn, allowDropOnBoard, allowDropOnColumn } =
-    useDrop({
-      boardRef: ref,
-      scale: currentScale,
-      offset: currentPosition,
-    });
+  const { dropOnBoard, allowDropOnBoard } = useDrop({
+    boardRef: ref,
+    scale: currentScale,
+    offset: currentPosition,
+  });
   //#endregion
 
   function openContextMenu(open: boolean) {
@@ -220,12 +309,16 @@ const Board = ({ validBoard, router }) => {
         className="actualboard"
         onMouseDown={(event) => handleMouseDown(event)}
         style={{
-          backgroundSize: `${100 * currentScale}px ${100 * currentScale}px`,
-          backgroundPosition: `${currentPosition.x}px ${currentPosition.y}px`,
+          background: originalBackground,
+          backgroundSize: originalBackgroundSize(scale),
+          backgroundPosition: originalBackgroundPosition(offset, scale),
         }}
         onWheel={(event) => handleWheel(event)}
         onClick={(e) => {
-          if (e.target == transformRef.current || e.target == ref.current) {
+          if (
+            e.target == transformRef.current ||
+            (e.target == ref.current && !e.shiftKey && !e.ctrlKey)
+          ) {
             dispatch(clearSelectNode());
           }
         }}
@@ -307,18 +400,6 @@ const Board = ({ validBoard, router }) => {
                     offset={currentPosition}
                   />
                 );
-              // case BoardObjects.COLUMN:
-              //   return (
-              //     <Column
-              //       key={childId}
-              //       id={childId}
-              //       drop={dropOnColumn}
-              //       allowDrop={allowDropOnColumn}
-              //       dropOnBoard={dropOnBoard}
-              //       allowDropOnBoard={allowDropOnBoard}
-              //       onContextMenu={handleRightClick}
-              //     />
-              //   );
               case BoardObjects.BOARD:
                 return (
                   <BoardIcon

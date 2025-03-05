@@ -23,11 +23,10 @@ const previewStyle = {
   boxSizing: "border-box",
 };
 
-const TaskPreview = ({ id, isInColumn = false, columnWidth }) => {
+const TaskPreview = ({ id }) => {
   const nodeRef = useRef();
-  const { pX, pY, title, status, deadline, badges, parent } = useSelector(
-    (state) => state.tasks[id] ?? state.drag.nodes[id]
-  );
+  const { pX, pY, sX, sY, title, status, deadline, badges, parent } =
+    useSelector((state) => state.tasks[id] ?? state.drag.nodes[id]);
   return (
     <>
       <NodeWrapper
@@ -39,10 +38,10 @@ const TaskPreview = ({ id, isInColumn = false, columnWidth }) => {
         canResize={false}
         pX={pX}
         pY={pY}
+        sX={sX}
+        sY={sY}
         parentId={parent.id}
         parentType={parent.type}
-        isInColumn={isInColumn}
-        columnWidth={columnWidth}
       >
         <input
           type="checkbox"
@@ -54,7 +53,6 @@ const TaskPreview = ({ id, isInColumn = false, columnWidth }) => {
           style={{
             gridArea: "title",
             ...previewStyle,
-            marginBottom: isInColumn ? "3px" : undefined,
           }}
         >
           {title}

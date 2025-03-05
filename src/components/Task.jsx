@@ -28,37 +28,40 @@ const previewStyle = {
   borderRadius: "5px",
 };
 
-const Task = ({ id, columnWidth, onContextMenu, scale, offset }) => {
+const Task = ({ id, onContextMenu, scale, offset }) => {
   const dispatch = useDispatch();
   const nodeRef = useRef(null);
 
   const { pX, pY, sX, sY, content, title, status, deadline, badges, parent } =
     useSelector((state) => state.tasks[id]);
 
-  if (nodeRef.current !== null) {
-    const bounds = nodeRef.current.getBoundingClientRect();
-    if (
-      Math.abs(sX - bounds.width / scale) > 10 + 20 || // Padding is 10 on each side
-      Math.abs(sY - bounds.height / scale) > 10 + 20 // Padding is 10 on each side
-    ) {
-      dispatch(
-        updateSize.action({
-          id,
-          type: BoardObjects.TASK,
-          sX: bounds.width / scale,
-          sY: bounds.height / scale,
-        })
-      );
-    }
-  }
+  const updateSizeFromElement = () =>
+    requestAnimationFrame(() => {
+      if (nodeRef.current != null) {
+        nodeRef.current.style.height = "unset";
+        const bounds = nodeRef.current.getBoundingClientRect();
+        if (
+          Math.abs(sY - bounds.height / scale) > 10 // Padding is 10 on each side
+        ) {
+          dispatch(
+            updateSize.action({
+              id,
+              type: BoardObjects.TASK,
+              sX: bounds.width / scale,
+              sY: bounds.height / scale,
+            })
+          );
+        }
+        nodeRef.current.style.height = sY;
+      }
+    });
+
+  updateSizeFromElement();
 
   const [open, setOpen] = useState(false);
   const taskTitleRef = useRef(null);
   const taskSummaryRef = useRef(null);
   const [tempBadges, setTempBadges] = useState(badges);
-
-  // Determines sizing and positioning based on whether in column or not
-  let isInColumn = parent.type === BoardObjects.COLUMN;
 
   return (
     <>
@@ -74,10 +77,8 @@ const Task = ({ id, columnWidth, onContextMenu, scale, offset }) => {
         sY={sY}
         parentId={parent.id}
         parentType={parent.type}
-        isInColumn={isInColumn}
         scale={scale}
         offset={offset}
-        columnWidth={columnWidth}
         onContextMenu={onContextMenu}
       >
         <input
@@ -101,15 +102,17 @@ const Task = ({ id, columnWidth, onContextMenu, scale, offset }) => {
           canEdit={true}
           text={title}
           textStyle={previewStyle}
-          onChange={(value) =>
+          onChange={(value) => {
             dispatch(
               updateTitle.action({
                 id,
                 type: BoardObjects.TASK,
                 title: value,
               })
-            )
-          }
+            );
+            updateSizeFromElement();
+          }}
+          onImmediateChange={updateSizeFromElement}
         />
         <button
           type="button"

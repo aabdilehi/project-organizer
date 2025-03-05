@@ -19,7 +19,22 @@ import { updateContent } from "../utils/slices/nodeActions";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { debounce } from "lodash";
 
-const Note = ({ id, columnWidth, onContextMenu, offset, scale, ...props }) => {
+const updateNoteContent = (dispatch, id, editor) => {
+  console.log("Done");
+  dispatch(
+    updateContent.action({
+      id,
+      type: BoardObjects.NOTE,
+      content: editor.getHTML(),
+    })
+  );
+  let { from, to } = editor.state.selection;
+  editor.commands.setTextSelection({ from, to });
+};
+
+const debouncedUpdate = debounce(updateNoteContent, 250, { maxWait: 1000 });
+
+const Note = ({ id, onContextMenu, offset, scale, ...props }) => {
   const nodeRef = useRef();
 
   const { pX, pY, sX, sY, content, parent } = useSelector(
@@ -57,21 +72,7 @@ const Note = ({ id, columnWidth, onContextMenu, offset, scale, ...props }) => {
     onBlur: ({ editor }) => {
       editor.setEditable(false);
     },
-    onUpdate: ({ editor }) => {
-      debounce(
-        () =>
-          dispatch(
-            updateContent.action({
-              id,
-              type: BoardObjects.NOTE,
-              content: editor.getHTML(),
-            })
-          ),
-        100
-      );
-      let { from, to } = editor.state.selection;
-      editor.commands.setTextSelection({ from, to });
-    },
+    onUpdate: ({ editor }) => debouncedUpdate(dispatch, id, editor),
   });
 
   const handleClick = (event) => {
@@ -104,8 +105,6 @@ const Note = ({ id, columnWidth, onContextMenu, offset, scale, ...props }) => {
       scale={scale}
       offset={offset}
       className={`${editor?.isEditable ? " editing" : ""}`}
-      isInColumn={props.isInColumn}
-      columnWidth={columnWidth}
       onContextMenu={onContextMenu}
     >
       <EditorContent
@@ -114,13 +113,13 @@ const Note = ({ id, columnWidth, onContextMenu, offset, scale, ...props }) => {
           padding: 0,
           margin: 0,
           width: "100%",
-          height: "fit-content",
+          height: "100%",
           minHeight: sY + "px",
           overflow: "none",
           border: "none",
         }}
         editor={editor}
-        onMouseUp={(e) => e.preventDefault()}
+        // onMouseUp={(e) => e.preventDefault()}
         onClick={handleClick}
       />
     </NodeWrapper>

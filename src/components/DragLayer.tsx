@@ -6,9 +6,8 @@ import React, {
   useState,
 } from "react";
 import { connect, useDispatch, useSelector } from "react-redux";
-import { BoardObjects, SidebarObjects } from "../utils/enums/items";
+import { BoardObjects } from "../utils/enums/items";
 import NotePreview from "./NotePreview";
-import ColumnPreview from "./ColumnPreview";
 import {
   clearDragData as clearDragDataAction,
   setDragData as setDragDataAction,
@@ -125,13 +124,24 @@ const DragLayer = ({
     return { x: newSX, y: newSY };
   };
 
-  // For some reason shiftKey does not work on dragend so I will do this for now
-  const shiftKey = useRef(false);
-  const ctrlKey = useRef(false);
+  let shiftKey = false;
+  let ctrlKey = false;
+
+  const setkbdModifiers = (e) => {
+    shiftKey = e.shiftKey;
+    ctrlKey = e.ctrlKey;
+  };
+  useEffect(() => {
+    window.addEventListener("keydown", setkbdModifiers);
+    window.addEventListener("keyup", setkbdModifiers);
+    return () => {
+      window.removeEventListener("keydown", setkbdModifiers);
+      window.removeEventListener("keyup", setkbdModifiers);
+    };
+  }, []);
 
   const handleDragStart = (event) => {
     if (event.dataTransfer.types.length < 0) return;
-    if (event.dataTransfer.types.includes("origin/column")) return;
 
     event.stopPropagation();
 
@@ -248,10 +258,9 @@ const DragLayer = ({
         types: event.dataTransfer.types,
       });
     } else if (event.dataTransfer.types.includes("action/select")) {
+      dispatch(clearSelectNode());
+
       // hide drag preview image
-      if (!event.shiftKey || !event.ctrlKey) {
-        dispatch(clearSelectNode());
-      }
       const prev = document.createElement("span");
       prev.style.display = "none";
       event.dataTransfer.dropEffect = "move";
@@ -265,20 +274,19 @@ const DragLayer = ({
           },
         })
       );
+
       setDragData({
         initialPosition: {
           x: event.clientX,
           y: event.clientY,
         },
-        nodes: event.shiftKey ? selectedNodes : {},
+        nodes: {},
         types: event.dataTransfer.types,
       });
     }
   };
 
   const handleDrag = (event) => {
-    shiftKey.current = event.shiftKey;
-    ctrlKey.current = event.ctrlKey;
     requestAnimationFrame(() => {
       if (!dragLayerRef.current) return;
       dragLayerRef.current.style.transform = `scale(${scale}) translate(${
@@ -328,7 +336,6 @@ const DragLayer = ({
           offset.y) /
         scale;
 
-      // GUT THIS OF ANYTHING NOT VISUAL AND MOVE STATE CHANGES TO DRAGLAYER
       const nodesInBounds = {};
       boardChildren.forEach((child) => {
         const node = nodes[child.childId];
@@ -341,7 +348,16 @@ const DragLayer = ({
           right: node.pX + node.sX,
           bottom: node.pY + node.sY,
         };
-        if (
+        if (node.type == BoardObjects.GROUP) {
+          if (
+            bounds.left > startX &&
+            bounds.top > startY &&
+            bounds.right < endX &&
+            bounds.bottom < endY // crosses right wall
+          ) {
+            nodesInBounds[node.id] = node;
+          }
+        } else if (
           bounds.left < endX &&
           bounds.top < endY &&
           bounds.right > startX &&
@@ -350,11 +366,7 @@ const DragLayer = ({
           nodesInBounds[node.id] = node;
         }
       });
-      if (shiftKey.current || ctrlKey.current) {
-        dispatch(addSelectedNodes(nodesInBounds));
-      } else {
-        dispatch(setSelectedNodes(nodesInBounds));
-      }
+      dispatch(setSelectedNodes(nodesInBounds));
     }
     dispatch(clearDragDataAction());
   };
@@ -373,7 +385,16 @@ const DragLayer = ({
       window.removeEventListener("dragend", handleDragEnd);
       boardRef.current.removeEventListener("drop", clearDragData);
     };
-  }, [nodes, draggedNodes, selectedNodes, initialPosition, scale, offset]);
+  }, [
+    nodes,
+    draggedNodes,
+    selectedNodes,
+    initialPosition,
+    scale,
+    offset,
+    shiftKey,
+    ctrlKey,
+  ]);
 
   return (
     <div ref={dragLayerRef} className="clone-container">
@@ -395,15 +416,6 @@ const DragLayer = ({
           case BoardObjects.NOTE:
             return (
               <NotePreview
-                key={id}
-                id={id}
-                resize={resize}
-                getNodeSize={getNodeSize}
-              />
-            );
-          case BoardObjects.COLUMN:
-            return (
-              <ColumnPreview
                 key={id}
                 id={id}
                 resize={resize}

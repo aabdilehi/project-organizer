@@ -1,4 +1,4 @@
-import { BoardObjects, SidebarObjects } from "../enums/items";
+import { BoardObjects } from "../enums/items";
 
 import {
   addNode,
@@ -9,40 +9,22 @@ import {
   updateSize,
 } from "../slices/nodeActions";
 
+import { v4 as uuidv4 } from "uuid";
+import { createNodeThunk } from "../slices/thunks";
+
 import { useDispatch, useSelector } from "react-redux";
 import { PictureC } from "../classes/classes";
 import { useRef } from "react";
 import { formatData, NodeTypeMap } from "../classes/new-classes";
 import { selectNodes } from "../slices/selectors";
 
-const columnAcceptedTypes = [
-  BoardObjects.NOTE,
-  BoardObjects.TASK,
-  BoardObjects.IMAGE,
-  BoardObjects.BOARD,
-  BoardObjects.DOCUMENT,
-  SidebarObjects.NOTE,
-  SidebarObjects.IMAGE,
-  SidebarObjects.TASK,
-  SidebarObjects.BOARD,
-  SidebarObjects.DOCUMENT,
-];
-
 const boardAcceptedTypes = [
   BoardObjects.BOARD,
   BoardObjects.NOTE,
-  BoardObjects.COLUMN,
   BoardObjects.TASK,
   BoardObjects.GROUP,
   BoardObjects.IMAGE,
   BoardObjects.DOCUMENT,
-  SidebarObjects.NOTE,
-  SidebarObjects.COLUMN,
-  SidebarObjects.IMAGE,
-  SidebarObjects.TASK,
-  SidebarObjects.GROUP,
-  SidebarObjects.BOARD,
-  SidebarObjects.DOCUMENT,
 ];
 
 export function useDrop({ boardRef, scale, offset }) {
@@ -134,99 +116,25 @@ export function useDrop({ boardRef, scale, offset }) {
     handledNodes.current = [];
   }
 
-  const allowDropOnColumn = (event) => {
-    if (event.dataTransfer.types.length <= 0) return;
-    if (
-      !event.dataTransfer.types.includes("origin/board") &&
-      !event.dataTransfer.types.includes("origin/sidebar")
-    )
-      return;
-    event.stopPropagation();
-    event.preventDefault();
-  };
-
-  function dropOnColumn(event, id) {
-    //#region Drop from sidebar
-    let data = event.dataTransfer.getData("origin/sidebar");
-    if (data) {
-      data = JSON.parse(data);
-      if (!columnAcceptedTypes.includes(data.type)) {
-        return;
-      }
-      event.stopPropagation();
-      event.preventDefault();
-      createNode(event, data, id, BoardObjects.COLUMN, offset, scale);
-      return;
-    }
-    //#endregion
-    // event.stopPropagation();
-    // event.preventDefault();
-    // return;
-    //#region Drop from board/column
-    data = event.dataTransfer.getData("action/move");
-    if (data) {
-      data = JSON.parse(data);
-      handledNodes.current = [];
-      // determine here what can be handled based on accepted types
-      if (!data.hasOwnProperty("selectedNodes")) return;
-      Object.values(data.selectedNodes).forEach((item) => {
-        if (!columnAcceptedTypes.includes(item.type) || item.id === id) return;
-        if (handledNodes.current.find((node) => node.id === item.id)) return;
-        updateNodeParent(item, id, BoardObjects.COLUMN);
-        handledNodes.current = [...handledNodes.current, item];
-      });
-    }
-    //#endregion
-  }
-
   function createNode(event, data, pId, pType, offset, scale) {
     const boundingRect = boardRef.current.getBoundingClientRect();
     const xCoord = (event.clientX - boundingRect.left - offset.x) / scale;
     const yCoord = (event.clientY - boundingRect.top - offset.y) / scale;
-    let node;
-
-    switch (data.type) {
-      case SidebarObjects.NOTE:
-      case SidebarObjects.TASK:
-      case SidebarObjects.BOARD:
-      case SidebarObjects.COLUMN:
-      case SidebarObjects.GROUP:
-      case SidebarObjects.DOCUMENT:
-        node = formatData(
-          {
-            pX: xCoord,
-            pY: yCoord,
-            parent: {
-              id: pId,
-              type: pType,
-            },
-          },
-          NodeTypeMap[data.type]
-        );
-        break;
-      case SidebarObjects.IMAGE:
-        node = new PictureC({
+    dispatch(
+      createNodeThunk(
+        {
+          id: uuidv4(),
           pX: xCoord,
           pY: yCoord,
+          type: data.type,
           parent: {
             id: pId,
             type: pType,
           },
-        });
-        break;
-    }
-
-    if (!!node) {
-      dispatch(addNode.action(node));
-      dispatch(
-        addChild.action({
-          id: pId,
-          type: pType,
-          cId: node.id,
-          cType: node.type,
-        })
-      );
-    }
+        },
+        NodeTypeMap[data.type]
+      )
+    );
   }
   function updateNodeParent(data, pId, pType) {
     console.log(data);
@@ -331,7 +239,7 @@ export function useDrop({ boardRef, scale, offset }) {
         break;
       case "direction/bottom-left":
         pX = data.pX + (event.clientX - initial.x) / scale;
-        pY = data.pY + (event.clientY - initial.y) / scale;
+        pY = data.pY;
         sX = data.sX - (event.clientX - initial.x) / scale;
         sY = data.sY + (event.clientY - initial.y) / scale;
         break;
@@ -369,7 +277,5 @@ export function useDrop({ boardRef, scale, offset }) {
   return {
     allowDropOnBoard,
     dropOnBoard,
-    allowDropOnColumn,
-    dropOnColumn,
   };
 }

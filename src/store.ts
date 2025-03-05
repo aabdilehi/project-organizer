@@ -1,11 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { combineReducers } from "redux";
 import { persistStore, persistReducer } from "redux-persist";
-import storage from "redux-persist/lib/storage";
+import storageDB from "redux-persist-indexeddb-storage";
+// import storage from "redux-persist/lib/storage";
 import { createStateSyncMiddleware } from "redux-state-sync";
 
 import boardReducer from "./utils/slices/boardSlice";
-import columnReducer from "./utils/slices/columnSlice";
 import noteReducer from "./utils/slices/noteSlice";
 import pictureReducer from "./utils/slices/pictureSlice";
 import taskReducer from "./utils/slices/taskSlice";
@@ -25,7 +25,6 @@ const initialState = {
       childRefs: [],
     },
   },
-  columns: {},
   notes: {},
   documents: {},
   pictures: {},
@@ -44,7 +43,6 @@ const initialState = {
 
 const rootReducer = combineReducers({
   boards: boardReducer,
-  columns: columnReducer,
   notes: noteReducer,
   pictures: pictureReducer,
   tasks: taskReducer,
@@ -55,6 +53,8 @@ const rootReducer = combineReducers({
   drag: dragReducer,
 });
 
+const storage = storageDB("myDB");
+console.log(storage);
 const persistConfig = {
   key: "root",
   storage,

@@ -63,7 +63,19 @@ const SelectionMarquee = ({
         nodeElements.forEach((element) => {
           const bounds = nodeElementBounds[element.id];
           const padding = 0; //Math.min(bounds.width / 6, bounds.height / 6);
-          if (
+          if (element.classList.contains("group")) {
+            if (
+              bounds.left > startX &&
+              bounds.top > startY &&
+              bounds.right < endX &&
+              bounds.bottom < endY
+            ) {
+              element.classList.add("selected");
+              return;
+            }
+            element.classList.remove("selected");
+            return;
+          } else if (
             // ensure it is in bounds first
             bounds.left < endX &&
             bounds.top < endY &&

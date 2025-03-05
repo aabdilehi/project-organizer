@@ -16,7 +16,7 @@ const copiedSlice = createSlice({
         nodes,
       };
     },
-    clearCopiedNodes: () => {
+    clearCopiedNodes: (state, action) => {
       return { position: { x: 0, y: 0 }, centroid: { x: 0, y: 0 }, nodes: [] };
     },
     setPosition: (state, action) => {

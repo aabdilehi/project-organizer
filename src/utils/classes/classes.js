@@ -134,23 +134,3 @@ export class BoardC {
     this.childRefs = childRefs;
   }
 }
-
-export class ColumnC {
-  constructor({
-    pX = 0,
-    pY = 0,
-    sX = 200,
-    title = "New Column",
-    parent,
-    childRefs = [],
-  }) {
-    this.id = uuidv4();
-    this.type = BoardObjects.COLUMN;
-    this.pX = pX;
-    this.pY = pY;
-    this.sX = sX;
-    this.title = title;
-    this.parent = parent;
-    this.childRefs = childRefs;
-  }
-}

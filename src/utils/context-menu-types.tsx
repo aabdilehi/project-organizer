@@ -2,11 +2,14 @@ import { BoardObjects } from "./enums/items";
 
 import { store } from "../store";
 import { DocumentC } from "./classes/classes";
+import { v4 as uuidv4 } from "uuid";
 import {
   addChild,
   addNode,
   removeChild,
   removeNode,
+  updatePosition,
+  updateSize,
 } from "./slices/nodeActions";
 import {
   formatData,
@@ -18,52 +21,38 @@ import {
   NodeType,
   defaultNode,
   NodeTypeMap,
+  DocumentType,
+  NoteType,
 } from "./classes/new-classes";
 import sanitizeHtml from "sanitize-html";
+import { createNodeThunk, removeNodeThunk } from "./slices/thunks";
+import { AnyAction, Dispatch } from "redux";
 
-const convertNoteToDocument = (note) => {
+const convertNoteToDocument = (note) => (dispatch, getState) => {
   if (!note) return;
 
   const sanitizedContent = sanitizeHtml(note.content, { allowedTags: [] });
   console.log(sanitizedContent);
 
-  const newDocument = formatData(
-    {
-      id: note.id,
-      pX: note.pX,
-      pY: note.pY,
-      title:
-        sanitizedContent.length > 10
-          ? `${sanitizedContent.slice(0, 10)}...`
-          : sanitizedContent,
-      content: note.content,
-      parent: note.parent,
-    },
-    defaultDocument
-  );
-
-  store.dispatch(
-    removeChild.action({
-      id: note.parent.id,
-      type: note.parent.type,
-      cId: note.id,
-    })
-  );
-  store.dispatch(removeNode.action({ id: note.id, type: BoardObjects.NOTE }));
-  store.dispatch(addNode.action(newDocument));
-  store.dispatch(
-    addChild.action({
-      id: note.parent.id,
-      type: note.parent.type,
-      cId: note.id,
-      cType: BoardObjects.DOCUMENT,
-    })
-  );
+  const newDocument: Partial<DocumentType> = {
+    id: note.id,
+    pX: note.pX,
+    pY: note.pY,
+    type: BoardObjects.DOCUMENT,
+    title:
+      sanitizedContent.length > 10
+        ? `${sanitizedContent.slice(0, 10)}...`
+        : sanitizedContent,
+    content: note.content,
+    parent: note.parent,
+  };
+  dispatch(removeNodeThunk(note.id, BoardObjects.NOTE));
+  dispatch(createNodeThunk(newDocument));
 };
 
-const convertSelectedNodesToDocuments = () => {
+const convertSelectedNodesToDocuments = () => (dispatch, getState) => {
   // I do not like accessing the state like this outside of components but to work around this would be such a huge pain
-  const state = store.getState();
+  const state = getState();
   const selectedNodes = state.selection;
   const notes = state.notes;
 
@@ -74,48 +63,29 @@ const convertSelectedNodesToDocuments = () => {
       // it should be notes but does not hurt to check
       if (!note) return;
 
-      convertNoteToDocument(note);
+      dispatch(convertNoteToDocument(note));
     }
   }
 };
 
-const convertDocumentToNote = (document) => {
+const convertDocumentToNote = (document) => (dispatch, getState) => {
   if (!document) return;
-  const newNote = formatData(
-    {
-      id: document.id,
-      pX: document.pX,
-      pY: document.pY,
-      content: document.content,
-      parent: document.parent,
-    },
-    defaultNote
-  );
+  const newNote: Partial<NoteType> = {
+    id: document.id,
+    pX: document.pX,
+    pY: document.pY,
+    type: BoardObjects.NOTE,
+    content: document.content,
+    parent: document.parent,
+  };
 
-  store.dispatch(
-    removeChild.action({
-      id: document.parent.id,
-      type: document.parent.type,
-      cId: document.id,
-    })
-  );
-  store.dispatch(
-    removeNode.action({ id: document.id, type: BoardObjects.DOCUMENT })
-  );
-  store.dispatch(addNode.action(newNote));
-  store.dispatch(
-    addChild.action({
-      id: document.parent.id,
-      type: document.parent.type,
-      cId: document.id,
-      cType: BoardObjects.NOTE,
-    })
-  );
+  dispatch(removeNodeThunk(document.id, BoardObjects.DOCUMENT));
+  dispatch(createNodeThunk(newNote));
 };
 
-const convertSelectedNodesToNotes = () => {
+const convertSelectedNodesToNotes = () => (dispatch, getState) => {
   // I do not like accessing the state like this outside of components but to work around this would be such a huge pain
-  const state = store.getState();
+  const state = getState();
   const selectedNodes = state.selection;
   const documents = state.documents;
 
@@ -126,32 +96,104 @@ const convertSelectedNodesToNotes = () => {
       // it should be documents but does not hurt to check
       if (!document) return;
 
-      convertDocumentToNote(document);
+      dispatch(convertDocumentToNote(document));
     }
   }
 };
 
-const createNode = (
-  type: BoardObjects,
-  parent: { id: string; type: BoardObjects },
-  x?: number,
-  y?: number
-) => {
-  const newNode = formatData({ parent, pX: x, pY: y }, NodeTypeMap[type]);
-  store.dispatch(addNode.action(newNode));
-  store.dispatch(
-    addChild.action({
-      id: parent.id,
-      type: parent.type,
-      cId: newNode.id,
-      cType: newNode.type,
-    })
-  );
+// This works fine but gets weird when there are nested groups
+const createColumnThunk = (boardId) => (dispatch, getState) => {
+  // Get nodes within bounds
+  const state = getState();
+  const selectedNodes = state.selection;
+  const groups = state.groups;
+  for (const id in selectedNodes) {
+    if (Object.prototype.hasOwnProperty.call(selectedNodes, id)) {
+      const group = groups[id];
+
+      // it should be only groups if you can see this option but check anyway
+      if (!group) return;
+
+      const { type, pX, pY, sX, sY } = group;
+      const nodes = state.boards[boardId].childRefs.map((node) => {
+        return state[`${node.childType}s`][node.childId];
+      });
+      const nodesInBound = nodes.filter((node) => {
+        const buffer = 30;
+        return (
+          node.id != id &&
+          node.pX > pX - buffer &&
+          node.pX + node.sX < pX + sX + buffer &&
+          node.pY > pY - buffer &&
+          node.pY + node.sY < pY + sY + buffer
+        );
+      });
+      // Sort by pY value
+      const sortedNodes = nodesInBound.sort((a, b) => a.pY - b.pY);
+      // Set position using cumulator for y value and group pX for x value
+      const padding = 10;
+      let y = pY + padding;
+      for (let i = 0; i < sortedNodes.length; i++) {
+        const node = sortedNodes[i];
+        dispatch(
+          updatePosition.action({
+            id: node.id,
+            type: node.type,
+            pX: pX + 10,
+            pY: y,
+          })
+        );
+        y += node.sY + padding;
+      }
+
+      dispatch(updateSize.action({ id, type, sX, sY: y - pY }));
+    }
+  }
+};
+
+// hinges on there being multiple selected nodes
+export const groupItemsThunk = (boardId) => (dispatch, getState) => {
+  const state = getState();
+  const selectedNodes = state.selection;
+
+  let startX, startY, endX, endY;
+  for (const sId in selectedNodes) {
+    const { id, type } = selectedNodes[sId];
+    const node = state[`${type}s`][id];
+    if (node) {
+      const { pX, pY, sX, sY } = node;
+      startX = !startX || pX < startX ? pX : startX;
+      startY = !startY || pY < startY ? pY : startY;
+      endX = !endX || pX + sX > endX ? pX + sX : endX;
+      endY = !endY || pY + sY > endY ? pY + sY : endY;
+    }
+  }
+
+  if (!startX || !startY || !endX || !endY) return;
+  const padding = 10;
+  const newGroup = {
+    id: uuidv4(),
+    type: BoardObjects.GROUP,
+    pX: startX - padding,
+    pY: startY - padding,
+    parent: {
+      id: boardId,
+      type: BoardObjects.BOARD,
+    },
+    sX: endX - startX + padding * 2,
+    sY: endY - startY + padding * 2,
+  };
+  dispatch(createNodeThunk(newGroup));
 };
 
 export type ContextMenuItem = {
   label: string;
-  onClick?: (id: string, x?: number, y?: number) => any;
+  onClick?: (
+    dispatch: Dispatch<AnyAction>,
+    boardId: string,
+    x?: number,
+    y?: number
+  ) => any;
 };
 
 type ContextMenu = {
@@ -175,18 +217,88 @@ export const NullContextMenu: ContextMenu = {
   items: [
     {
       label: "New Note",
-      onClick: (id: string, x?: number, y?: number) =>
-        createNode(BoardObjects.NOTE, { id, type: BoardObjects.BOARD }, x, y),
-    },
-    {
-      label: "New Column",
-      onClick: (id: string, x?: number, y?: number) =>
-        createNode(BoardObjects.COLUMN, { id, type: BoardObjects.BOARD }, x, y),
+      onClick: (
+        dispatch: Dispatch<AnyAction>,
+        boardId: string,
+        pX?: number,
+        pY?: number
+      ) =>
+        dispatch(
+          createNodeThunk({
+            type: BoardObjects.NOTE,
+            parent: { id: boardId, type: BoardObjects.BOARD },
+            pX,
+            pY,
+          })
+        ),
     },
     {
       label: "New Board",
-      onClick: (id: string, x?: number, y?: number) =>
-        createNode(BoardObjects.BOARD, { id, type: BoardObjects.BOARD }, x, y),
+      onClick: (
+        dispatch: Dispatch<AnyAction>,
+        id: string,
+        pX?: number,
+        pY?: number
+      ) =>
+        dispatch(
+          createNodeThunk({
+            type: BoardObjects.BOARD,
+            parent: { id, type: BoardObjects.BOARD },
+            pX,
+            pY,
+          })
+        ),
+    },
+    {
+      label: "New Group",
+      onClick: (
+        dispatch: Dispatch<AnyAction>,
+        id: string,
+        pX?: number,
+        pY?: number
+      ) =>
+        dispatch(
+          createNodeThunk({
+            type: BoardObjects.GROUP,
+            parent: { id, type: BoardObjects.BOARD },
+            pX,
+            pY,
+          })
+        ),
+    },
+    {
+      label: "New Task",
+      onClick: (
+        dispatch: Dispatch<AnyAction>,
+        id: string,
+        pX?: number,
+        pY?: number
+      ) =>
+        dispatch(
+          createNodeThunk({
+            type: BoardObjects.TASK,
+            parent: { id, type: BoardObjects.BOARD },
+            pX,
+            pY,
+          })
+        ),
+    },
+    {
+      label: "New Document",
+      onClick: (
+        dispatch: Dispatch<AnyAction>,
+        id: string,
+        pX?: number,
+        pY?: number
+      ) =>
+        dispatch(
+          createNodeThunk({
+            type: BoardObjects.DOCUMENT,
+            parent: { id, type: BoardObjects.BOARD },
+            pX,
+            pY,
+          })
+        ),
     },
   ],
 };
@@ -197,7 +309,15 @@ export const NoteContextMenu: ContextMenu = {
   canPaste: false,
   canDelete: true,
   items: [
-    { label: "Convert to Document", onClick: convertSelectedNodesToDocuments },
+    {
+      label: "Convert to Document",
+      onClick: (
+        dispatch: Dispatch<AnyAction>,
+        id: string,
+        pX?: number,
+        pY?: number
+      ) => dispatch(convertSelectedNodesToDocuments()),
+    },
   ],
 };
 
@@ -206,7 +326,17 @@ export const DocumentContextMenu: ContextMenu = {
   canCut: true,
   canPaste: false,
   canDelete: true,
-  items: [{ label: "Convert to Note", onClick: convertSelectedNodesToNotes }],
+  items: [
+    {
+      label: "Convert to Note",
+      onClick: (
+        dispatch: Dispatch<AnyAction>,
+        id: string,
+        pX?: number,
+        pY?: number
+      ) => dispatch(convertSelectedNodesToNotes()),
+    },
+  ],
 };
 
 export const ColumnContextMenu: ContextMenu = {
@@ -233,19 +363,26 @@ export const TaskContextMenu: ContextMenu = {
   items: [],
 };
 
+// Add support from board -> allow use of dispatch, boardId, and other useful stuff in this onclick stuff
 export const GroupContextMenu: ContextMenu = {
   canCopy: true,
   canCut: true,
   canPaste: false,
   canDelete: true,
-  items: [],
+  items: [
+    {
+      label: "Move items into column?",
+      onClick: (dispatch, boardId) => {
+        dispatch(createColumnThunk(boardId));
+      },
+    },
+  ],
 };
 
 export const ContextMenuTypes: ContextMenuMap = {
   [BoardObjects.NONE]: NullContextMenu,
   [BoardObjects.NOTE]: NoteContextMenu,
   [BoardObjects.BOARD]: BoardIconContextMenu,
-  [BoardObjects.COLUMN]: ColumnContextMenu,
   [BoardObjects.TASK]: TaskContextMenu,
   [BoardObjects.IMAGE]: NullContextMenu,
   [BoardObjects.DOCUMENT]: DocumentContextMenu,

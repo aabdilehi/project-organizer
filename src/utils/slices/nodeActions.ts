@@ -1,7 +1,17 @@
 import { createAction } from "@reduxjs/toolkit";
-import { SizeClassMap } from "../classes/new-classes";
+import {
+  formatData,
+  NodeType,
+  NodeTypeMap,
+  SizeClassMap,
+} from "../classes/new-classes";
+import { BoardObjects } from "../enums/items";
 
 // Actions
+
+const setSliceDataAction = createAction<{ nodes: NodeType[]; merge: boolean }>(
+  "setSliceData"
+);
 const addNodeAction = createAction<{}>("addNode");
 const removeNodeAction = createAction<{ id: string; type: string }>(
   "removeNode"
@@ -52,6 +62,50 @@ const updateParentAction = createAction<{
 }>("updateParent");
 
 // Reducers (Function wrapped in function so I can have extra params)
+const setSliceDataReducer = (nodeType: BoardObjects) => (state, action) => {
+  // Ensure payload has been properly set
+  if (!Object.hasOwn(action.payload, "merge")) return;
+  if (!Object.hasOwn(action.payload, "nodes")) return;
+
+  const {
+    nodes,
+    merge,
+  }: { nodes: { [id: string]: NodeType }; merge: boolean } = action.payload;
+
+  // Second check for redundancy (don't care if this does nothing, it's here)
+  // If nodes not provided, return
+  if (!nodes) return;
+
+  const keys = Object.keys(nodes);
+
+  // If empty object provided, return
+  if (keys.length <= 0) return;
+
+  // Filter keys for empty or incorrect values
+  const newKeys = keys.filter((key) => key.length > 0 && nodes[key].id == key);
+  // Construct new object containing only appropriate values
+  const newNodes = {};
+  newKeys.forEach((key) => {
+    if (!Object.hasOwn(nodes, key)) return; // Ensure it exists
+    if (key == "root" && nodeType == BoardObjects.BOARD) {
+      newNodes[key] = nodes[key];
+      return;
+    }
+    if (nodes[key].type != nodeType) return;
+    const newNode = nodes[key];
+    if (!newNode) return;
+    newNodes[key] = newNode;
+  });
+
+  // Might be redundant but I want to make sure things are proper before potentially breaking the state
+  if (!newNodes) return;
+  if (Object.keys(newNodes).length <= 0) return;
+
+  if (merge) {
+    return { ...state, ...newNodes };
+  }
+  return { ...newNodes };
+};
 const addNodeReducer = (nodeType) => (state, action) => {
   const node = action.payload;
   if (!node || node.type !== nodeType) return;
@@ -212,6 +266,10 @@ const updateParentReducer = (nodeType) => (state, action) => {
 };
 
 // Exports
+export const setSliceData = {
+  action: setSliceDataAction,
+  reducer: setSliceDataReducer,
+};
 export const addNode = {
   action: addNodeAction,
   reducer: addNodeReducer,

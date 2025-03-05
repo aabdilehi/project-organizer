@@ -1,19 +1,11 @@
-/** @jsxImportSource @emotion/react */
 import "../App.css";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 import "../editor.scss";
-import { connect, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
-import { BoardObjects } from "../utils/enums/items.tsx";
 
-const NotePreview = ({
-  id,
-  resize,
-  columnWidth,
-  getNodeSize,
-  isInColumn = false,
-}) => {
+const NotePreview = ({ id, resize, getNodeSize }) => {
   const storedNode = useSelector((state) => state.notes[id]);
   const draggedNode = useSelector((state) => state.drag.nodes[id]);
   const { pX, pY, sX, sY, content, parent } = storedNode ?? draggedNode; // dragged node is used if the item does not exist yet, e.g. dragging from sidebar
@@ -49,16 +41,14 @@ const NotePreview = ({
       sY={sizeRef.current.y}
       parentId={parent.id}
       parentType={parent.type}
-      isInColumn={isInColumn}
-      columnWidth={columnWidth}
     >
       <div
         className="ProseMirror"
         style={{
-          padding: "15px",
-          boxSizing: "border-box",
+          // padding: "15px",
+          // boxSizing: "border-box",
           margin: 0,
-          height: "fit-content",
+          height: "100%",
           minHeight: sY + "px",
           overflow: "none",
           border: "none",

@@ -9,33 +9,23 @@ import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { useMemo, useRef } from "react";
 import { TbStar as StarIcon } from "react-icons/tb";
 import { selectTypes } from "../utils/slices/selectors.ts";
+const previewStyle = {
+  fontWeight: "800",
+  width: "100%",
+  borderRadius: "5px",
+  outline: "2px solid transparent",
+  border: "none",
+  wordWrap: "break-word",
+  whiteSpace: "pre-wrap",
+  overflow: "auto",
+  overflowWrap: "anywhere",
+  boxSizing: "border-box",
+};
+const BoardIconPreview = ({ id }) => {
+  const storedNode = useSelector((state) => state.boards[id]);
+  const draggedNode = useSelector((state) => state.drag.nodes[id]);
+  const board = storedNode ?? draggedNode; // dragged node is used if the item does not exist yet, e.g. dragging from sidebar
 
-const BoardIconPreview = ({ id, columnWidth, isInColumn = false }) => {
-  const types = useSelector(selectTypes);
-  let board;
-  if (types.includes("origin/sidebar")) {
-    board = useSelector((state) => state.dragged[id]);
-  } else {
-    board = useSelector((state) => state.boards[id]);
-  }
-
-  const previewStyle = useMemo(
-    () => ({
-      fontWeight: "800",
-      width: "100%",
-      margin: isInColumn ? undefined : "auto",
-      marginBottom: isInColumn ? undefined : "3px",
-      borderRadius: "5px",
-      outline: "2px solid transparent",
-      border: "none",
-      wordWrap: "break-word",
-      whiteSpace: "pre-wrap",
-      overflow: "auto",
-      overflowWrap: "anywhere",
-      boxSizing: "border-box",
-    }),
-    [isInColumn]
-  );
   const nodeRef = useRef();
 
   return (
@@ -51,21 +41,11 @@ const BoardIconPreview = ({ id, columnWidth, isInColumn = false }) => {
         preview
         parentId={board.parent.id}
         parentType={board.parent.type}
-        isInColumn={isInColumn}
-        columnWidth={columnWidth}
       >
         <div className={"icon-wrapper"}>
           <StarIcon pointerEvents={"none"} w={"100%"} h={"100%"} />
         </div>
-        <p
-          style={{
-            ...previewStyle,
-            margin: isInColumn ? undefined : "auto",
-            marginBottom: isInColumn ? undefined : "3px",
-          }}
-        >
-          {board.title}
-        </p>
+        <p style={previewStyle}>{board.title}</p>
       </NodeWrapper>
     </>
   );

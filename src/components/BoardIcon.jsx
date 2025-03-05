@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { TbStar as StarIcon } from "react-icons/tb";
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
-import { updateTitle } from "../utils/slices/nodeActions.ts";
+import { updateSize, updateTitle } from "../utils/slices/nodeActions.ts";
 import { Modal } from "./Modular/Modal";
 import _ from "lodash";
 import { selectDraggedNodes } from "../utils/slices/selectors.ts";
@@ -29,23 +29,42 @@ function isEmpty(obj) {
   return true;
 }
 
-const BoardIcon = ({ id, allowDrop, drop, onContextMenu, columnWidth }) => {
+const BoardIcon = ({ id, allowDrop, drop, offset, scale, onContextMenu }) => {
   const dispatch = useDispatch();
 
-  const pX = useSelector((state) => state.boards[id].pX);
-  const pY = useSelector((state) => state.boards[id].pY);
-  const title = useSelector((state) => state.boards[id].title);
-  const parent = useSelector((state) => state.boards[id].parent);
+  const { pX, pY, sX, sY, title, parent } = useSelector(
+    (state) => state.boards[id]
+  );
 
   const draggedNodes = useSelector(selectDraggedNodes);
   const dragging = !isEmpty(draggedNodes) && !Object.hasOwn(draggedNodes, id);
   const navigate = useNavigate();
   const nodeRef = useRef();
 
-  // Determines sizing and positioning based on whether in column or not
-  let isInColumn = parent.type === BoardObjects.COLUMN;
-
   const [activeDropZone, setDropZoneActive] = useState(false);
+
+  const updateSizeFromElement = () =>
+    requestAnimationFrame(() => {
+      if (nodeRef.current != null) {
+        nodeRef.current.style.height = "unset";
+        const bounds = nodeRef.current.getBoundingClientRect();
+        if (
+          Math.abs(sY - bounds.height / scale) > 10 // Padding is 10 on each side
+        ) {
+          dispatch(
+            updateSize.action({
+              id,
+              type: BoardObjects.BOARD,
+              sX: bounds.width / scale,
+              sY: bounds.height / scale,
+            })
+          );
+        }
+        nodeRef.current.style.height = sY;
+      }
+    });
+
+  updateSizeFromElement();
 
   // Really annoying as this event sucks at bubbling properly so i have to do this
 
@@ -81,11 +100,11 @@ const BoardIcon = ({ id, allowDrop, drop, onContextMenu, columnWidth }) => {
         canResize={false}
         pX={pX}
         pY={pY}
+        sX={sX}
+        sY={sY}
         parentId={parent.id}
         parentType={parent.type}
-        isInColumn={isInColumn}
         onContextMenu={onContextMenu}
-        columnWidth={columnWidth}
       >
         <div
           className={`icon-wrapper${
@@ -120,6 +139,7 @@ const BoardIcon = ({ id, allowDrop, drop, onContextMenu, columnWidth }) => {
               })
             )
           }
+          onImmediateChange={updateSizeFromElement}
         />
       </NodeWrapper>
     </>

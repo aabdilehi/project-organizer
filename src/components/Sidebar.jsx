@@ -1,11 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { css } from "@emotion/react";
+import { useRef } from "react";
 
-import { BoardObjects, SidebarObjects } from "../utils/enums/items";
-import { Button } from "@chakra-ui/react";
+import { BoardObjects } from "../utils/enums/items";
 import React from "react";
 import {
-  TbArrowBack as IconArrowBack,
   TbArrowLeft as IconArrowLeft,
   TbCheckbox as IconCheckbox,
   TbFileText as IconFileText,
@@ -14,12 +11,15 @@ import {
   TbNote as IconNote,
   TbPhoto as IconPhoto,
   TbStack2 as IconStack2,
+  TbDownload as IconExport,
+  TbUpload as IconImport,
 } from "react-icons/tb";
 import { withRouter } from "./Modular/ComponentWithRouterProp";
-import { connect, useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { clearDragData, setDragData } from "../utils/slices/dragSlice";
 import { formatData, NodeTypeMap } from "../utils/classes/new-classes";
 import { v4 as uuidv4 } from "uuid";
+import { ExportButton, ImportButton } from "./Modular/ExportButton";
 
 const Sidebar = ({ router }) => {
   const sideBarRef = useRef();
@@ -72,6 +72,12 @@ const Sidebar = ({ router }) => {
       >
         <IconHome size={25} />
       </button>
+      <ImportButton className="sidebar-button">
+        <IconImport size={25} />
+      </ImportButton>
+      <ExportButton className="sidebar-button">
+        <IconExport size={25} />
+      </ExportButton>
       <button
         type="button"
         className="sidebar-button"
@@ -90,43 +96,37 @@ const Sidebar = ({ router }) => {
       <SidebarObject
         onDragStart={(event, type) => createNodeDragPreview(event, type)}
         name="Board"
-        type={SidebarObjects.BOARD}
+        type={BoardObjects.BOARD}
         icon={IconLayoutDashboard}
       />
       <SidebarObject
         onDragStart={(event, type) => createNodeDragPreview(event, type)}
         name="Note"
-        type={SidebarObjects.NOTE}
+        type={BoardObjects.NOTE}
         icon={IconNote}
       />
       <SidebarObject
         onDragStart={(event, type) => createNodeDragPreview(event, type)}
         name="Document"
-        type={SidebarObjects.DOCUMENT}
+        type={BoardObjects.DOCUMENT}
         icon={IconFileText}
       />
       <SidebarObject
         onDragStart={(event, type) => createNodeDragPreview(event, type)}
-        name="Column"
-        type={SidebarObjects.COLUMN}
-        icon={IconStack2}
-      />
-      <SidebarObject
-        onDragStart={(event, type) => createNodeDragPreview(event, type)}
         name="To-do"
-        type={SidebarObjects.TASK}
+        type={BoardObjects.TASK}
         icon={IconCheckbox}
       />
       <SidebarObject
         onDragStart={(event, type) => createNodeDragPreview(event, type)}
         name="Group"
-        type={SidebarObjects.GROUP}
+        type={BoardObjects.GROUP}
         icon={IconCheckbox}
       />
       <SidebarObject
         onDragStart={(event, type) => createNodeDragPreview(event, type)}
         name="Image"
-        type={SidebarObjects.IMAGE}
+        type={BoardObjects.IMAGE}
         icon={IconPhoto}
       />
     </div>

@@ -30,9 +30,7 @@ export default forwardRef(
       pY = 0,
       sX,
       sY,
-      isInColumn = false,
       preview = false,
-      columnWidth,
       onContextMenu,
       scale,
       offset,
@@ -54,8 +52,6 @@ export default forwardRef(
       clickCallback?: (params?: any[]) => void;
       menuProps?: { [menuProp: string]: boolean };
       menuItems?: Element[];
-      isInColumn?: boolean;
-      columnWidth?: number;
       preview?: boolean;
       onContextMenu?: React.MouseEventHandler<HTMLDivElement> | undefined;
       children?: ReactElement[];
@@ -71,10 +67,6 @@ export default forwardRef(
     const dragging = useSelector((state: RootState) =>
       state.drag.nodes.hasOwnProperty(id)
     );
-    const isActuallyInColumn =
-      (!preview && parentType === BoardObjects.COLUMN) ||
-      (preview && isInColumn);
-
     const handleSelect = (event, force = false) => {
       if (event.shiftKey && force == false) {
         dispatch(
@@ -125,30 +117,6 @@ export default forwardRef(
           parent: { id: parentId, type: parentType },
         })
       );
-    };
-
-    const updateRealPosition = () => {
-      //#region  Would be nice if the stored position of the node would update automatically based on the actual element's position
-      if (!nodeRef.current) return;
-      if (!!nodeRef.current && isActuallyInColumn) {
-        const nodeBounds =
-          nodeRef?.current?.getBoundingClientRect() ?? undefined;
-        if (
-          !!nodeBounds &&
-          (nodeRef.current.getBoundingClientRect().left !== pX ||
-            nodeRef.current.getBoundingClientRect().top !== pY)
-        ) {
-          dispatch(
-            updatePosition.action({
-              id,
-              type,
-              pX: nodeBounds.left,
-              pY: nodeBounds.top,
-            })
-          );
-        }
-      }
-      //#endregion
     };
 
     const nodeRef = useRef<HTMLDivElement>(null);
@@ -204,7 +172,6 @@ export default forwardRef(
       <div
         ref={nodeRef}
         id={id}
-        data-isincolumn={isActuallyInColumn}
         data-selected={selected}
         onClick={(e) => {
           e.stopPropagation();
@@ -213,13 +180,11 @@ export default forwardRef(
           }
         }}
         draggable={canPosition}
-        className={`node ${type}${isActuallyInColumn ? " in-column" : ""}${
-          selected ? " selected" : ""
-        }${!!className ? " " + className : ""}${
-          dragging && !preview ? " dragging" : ""
-        }`}
+        className={`node ${type}${selected ? " selected" : ""}${
+          !!className ? " " + className : ""
+        }${dragging && !preview ? " dragging" : ""}`}
         style={{
-          width: columnWidth ? `${columnWidth}px` : sX ? `${sX}px` : undefined,
+          width: sX ? `${sX}px` : undefined,
           height: sY ? `${sY}px` : undefined,
           transform: `translate(${pX}px, ${pY}px)`,
         }}
@@ -236,88 +201,100 @@ export default forwardRef(
           // HOLY SHIT THIS SOLVES MY ISSUE
           // ADDING A PLACEHOLDER DATATRANSFER DATA THAT CONTAINS THE TYPE OF DRAG AND THE ID OF THE NODE
           // IF THE DATA IS SET THEN NODES IGNORE
+
+          if (!selected) {
+            handleSelect(e);
+          }
           if (e.dataTransfer.types.length <= 0) {
-            if (!selected) {
-              handleSelect(e);
-            }
-
-            if (isActuallyInColumn) {
-              e.dataTransfer.setData("origin/column", "Placeholder");
-            } else {
-              e.dataTransfer.setData("origin/board", "Placeholder");
-            }
-            const bounds = nodeRef.current?.getBoundingClientRect();
-            if (!bounds) return;
-
-            const resizePadding =
-              scale < 1
-                ? (10 * bounds.width) / Math.max(Number(sX))
-                : (10 * Math.max(Number(sX))) / bounds.width;
-            let direction = "none";
-            if (e.clientX - bounds.left < resizePadding) {
-              direction = "left";
-            }
-            if (e.clientY - bounds.top < resizePadding) {
-              direction = "top";
-            }
-            if (e.clientY - bounds.top > bounds.height - resizePadding) {
-              direction = "bottom";
-            }
-            if (e.clientX - bounds.left > bounds.width - resizePadding) {
-              direction = "right";
-            }
-            if (
-              e.clientX - bounds.left < resizePadding &&
-              e.clientY - bounds.top < resizePadding
-            ) {
-              direction = "top-left";
-            }
-            if (
-              e.clientX - bounds.left < resizePadding &&
-              e.clientY - bounds.top > bounds.height - resizePadding
-            ) {
-              direction = "bottom-left";
-            }
-            if (
-              e.clientX - bounds.left > bounds.width - resizePadding &&
-              e.clientY - bounds.top < resizePadding
-            ) {
-              direction = "top-right";
-            }
-            if (
-              e.clientX - bounds.left > bounds.width - resizePadding &&
-              e.clientY - bounds.top > bounds.height - resizePadding
-            ) {
-              direction = "bottom-right";
-            }
-
-            if (direction !== "none") {
-              dispatch(
-                selectNode({
-                  id,
-                  type,
-                  parent: { id: parentId, type: parentType },
-                })
-              );
-              e.dataTransfer.setData("action/resize", "");
-              e.dataTransfer.setData(`direction/${direction}`, "");
-            } else {
-              e.dataTransfer.setData("action/move", "");
-            }
+            e.dataTransfer.setData("origin/board", "Placeholder");
+            e.dataTransfer.setData("action/move", "");
           }
         }}
         {...props}
       >
         {canResize ? (
           <>
-            <div className="resize-handle top" tabIndex={3} />
-            <div className="resize-handle left" tabIndex={3} />
-            <div className="resize-handle bottom" tabIndex={3} />
-            <div className="resize-handle right" tabIndex={3} />
-            <div className="resize-handle top-left" tabIndex={3} />
-            <div className="resize-handle top-right" tabIndex={3} />
-            <div className="resize-handle bottom-left" tabIndex={3} />
-            <div className="resize-handle bottom-right" tabIndex={3} />
+            {" "}
+            <div
+              className="resize-handle top"
+              tabIndex={3}
+              style={{ pointerEvents: "auto" }}
+              draggable={!preview}
+              onDragStart={(e) => {
+                e.dataTransfer.setData("action/resize", "");
+                e.dataTransfer.setData(`direction/top`, "");
+              }}
+            />
+            <div
+              className="resize-handle left"
+              tabIndex={3}
+              style={{ pointerEvents: "auto" }}
+              draggable={!preview}
+              onDragStart={(e) => {
+                e.dataTransfer.setData("action/resize", "");
+                e.dataTransfer.setData(`direction/left`, "");
+              }}
+            />
+            <div
+              className="resize-handle bottom"
+              tabIndex={3}
+              style={{ pointerEvents: "auto" }}
+              draggable={!preview}
+              onDragStart={(e) => {
+                e.dataTransfer.setData("action/resize", "");
+                e.dataTransfer.setData(`direction/bottom`, "");
+              }}
+            />
+            <div
+              className="resize-handle right"
+              tabIndex={3}
+              style={{ pointerEvents: "auto" }}
+              draggable={!preview}
+              onDragStart={(e) => {
+                e.dataTransfer.setData("action/resize", "");
+                e.dataTransfer.setData(`direction/right`, "");
+              }}
+            />
+            <div
+              className="resize-handle top-left"
+              tabIndex={3}
+              style={{ pointerEvents: "auto" }}
+              draggable={!preview}
+              onDragStart={(e) => {
+                e.dataTransfer.setData("action/resize", "");
+                e.dataTransfer.setData(`direction/top-left`, "");
+              }}
+            />
+            <div
+              className="resize-handle top-right"
+              tabIndex={3}
+              style={{ pointerEvents: "auto" }}
+              draggable={!preview}
+              onDragStart={(e) => {
+                e.dataTransfer.setData("action/resize", "");
+                e.dataTransfer.setData(`direction/top-right`, "");
+              }}
+            />
+            <div
+              className="resize-handle bottom-left"
+              tabIndex={3}
+              style={{ pointerEvents: "auto" }}
+              draggable={!preview}
+              onDragStart={(e) => {
+                e.dataTransfer.setData("action/resize", "");
+                e.dataTransfer.setData(`direction/bottom-left`, "");
+              }}
+            />
+            <div
+              className="resize-handle bottom-right"
+              tabIndex={3}
+              style={{ pointerEvents: "auto" }}
+              draggable={!preview}
+              onDragStart={(e) => {
+                e.dataTransfer.setData("action/resize", "");
+                e.dataTransfer.setData(`direction/bottom-right`, "");
+              }}
+            />
           </>
         ) : null}
         {props.children}
