@@ -8,6 +8,8 @@ import { connect, useSelector } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { useRef } from "react";
 import { BadgePreview } from "./Modular/Badge.tsx";
+import IconButton from "./Modular/IconButton.tsx";
+import { TbEdit } from "react-icons/tb";
 
 const previewStyle = {
   fontWeight: "800",
@@ -57,9 +59,17 @@ const TaskPreview = ({ id }) => {
         >
           {title}
         </p>
-        <button type="button" disabled style={{ gridArea: "edit" }}>
-          Edit
-        </button>
+        <IconButton
+          style={{
+            gridArea: "edit",
+            height: "25px",
+            width: "25px",
+            borderRadius: "6px",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          icon={TbEdit}
+        />
         {Object.values(badges).length > 0 ? (
           <div
             style={{

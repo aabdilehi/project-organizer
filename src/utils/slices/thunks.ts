@@ -1,5 +1,11 @@
 import { RootState } from "../../store";
-import { formatData, NodeType, NodeTypeMap } from "../classes/new-classes";
+import { Binary, EJSON } from "bson";
+import {
+  defaultSubTask,
+  formatData,
+  NodeType,
+  NodeTypeMap,
+} from "../classes/new-classes";
 import { BoardObjects } from "../enums/items";
 import { addCopyNode, clearCopiedNodes, setPosition } from "./copiedSlice";
 import { clearDragData, setDragData } from "./dragSlice";
@@ -13,6 +19,10 @@ import {
   updateSize,
 } from "./nodeActions";
 import { removeSelectNode } from "./selectionSlice";
+import { updateTaskStatus as updateTaskStatusAction } from "./taskSlice";
+import { updateImage } from "./imageSlice";
+import { addImage, clearImages, setImages } from "./imageDataSlice";
+import { addImageUrl, clearImageUrls, setImageUrls } from "./imageMapSlice";
 
 // export function updateNodeSize(id: string, type: BoardObjects, sX: number, sY: number) {
 //     // fetchTodoByIdThunk is the "thunk function"
@@ -139,20 +149,27 @@ export function pasteCopiedNodes(
 ) {
   return (dispatch, getState) => {
     const state = getState();
+
     const { position, nodes } = state.copied;
 
+    // Get position relative to board
     const { offset, scale } = state.boards[boardId];
     const newX = (x - offset.x) / scale;
     const newY = (y - offset.y) / scale;
-    // create one to one mapping of existing id to new id
+
+    // Create one to one mapping of existing Ids to new Ids
     const mappedIds = {};
     nodes.forEach((node) => {
       const newId = uuidv4();
       mappedIds[node.id] = newId;
     });
 
+    // Iterate over nodes again and replace references to Id
     nodes.forEach((node) => {
+      // Check if node is top-level based on whether its parent exists in mapping
       const hasMappedParent = Object.hasOwn(mappedIds, node.parent.id);
+
+      // Create new node
       const newNode = {
         ...node,
         id: mappedIds[node.id],
@@ -160,15 +177,19 @@ export function pasteCopiedNodes(
         pY: node.pY - position.y + newY,
         parent: hasMappedParent
           ? { id: mappedIds[node.parent.id], type: node.parent.type }
-          : { id: boardId, type: BoardObjects.BOARD },
+          : { id: boardId, type: BoardObjects.BOARD }, // if top-level node, assign to board
       };
+
+      // Replace references to children to use new mapped Ids
       if (Object.hasOwn(node, "childRefs")) {
         newNode.childRefs = node.childRefs.map(({ childId, childType }) => ({
           childId: mappedIds[childId],
           childType,
         }));
       }
-      dispatch(createNodeThunk(newNode, !hasMappedParent));
+
+      // Actually create the nodes
+      dispatch(createNodeThunk(newNode, !hasMappedParent)); // Top-level nodes need to call "addChild"
     });
   };
 }
@@ -180,8 +201,8 @@ export function createNodeThunk(
   return (dispatch, getState) => {
     if (!Object.hasOwn(node, "type")) return;
     // Complete partial node data
-    const newNode = formatData(node, NodeTypeMap[node.type]);
-
+    const newNode = formatData(node, NodeTypeMap[node.type!]);
+    // console.log(newNode);
     // Create node and add to parent
     dispatch(addNode.action(newNode));
     if (!shouldAddChild) return;
@@ -196,20 +217,73 @@ export function createNodeThunk(
   };
 }
 
+// For importing
 export function importDataThunk(data) {
   return (dispatch, getState) => {
-    const keys = Object.keys(data);
-    keys.forEach((key) => {
+    const stateKeys = Object.keys(data);
+
+    // Clear out all current temp data
+    dispatch(clearDragData());
+    dispatch(clearCopiedNodes({}));
+    dispatch(clearDragData());
+    dispatch(clearImageUrls());
+    dispatch(clearImages([]));
+    // Set each slice's data (maybe put boards last?)
+    stateKeys.forEach((key) => {
       dispatch(setSliceData.action({ nodes: data[key], merge: false }));
     });
+    dispatch(generateImageUrlsThunk());
   };
 }
 
+export function addImageThunk(nodeId: string, image: Binary) {
+  return (dispatch, getState) => {
+    const imageId = uuidv4();
+    // Add image data to state
+    dispatch(addImage({ id: imageId, image }));
+
+    // Add imageId to node
+    dispatch(updateImage({ id: nodeId, imageId }));
+
+    // Create mapping between imageId and image data
+    const blob = new Blob([image.buffer]);
+    const blobUrl = URL.createObjectURL(blob);
+    dispatch(addImageUrl({ id: imageId, image: blobUrl })); // store blobURL in in-memory mapping
+  };
+}
+
+export function generateImageUrlsThunk() {
+  return (dispatch, getState) => {
+    dispatch(clearImageUrls()); // Clear existing URLs
+
+    const state = getState();
+    const images = state.imageData;
+
+    const imageMap = {};
+    Object.keys(images).forEach((id: string) => {
+      const image: Binary | undefined = images[id];
+      if (!image) return;
+
+      const blob = new Blob([image.buffer]);
+      const url = URL.createObjectURL(blob);
+      imageMap[id] = url;
+    });
+    console.log(state.imageData);
+    console.log(imageMap);
+
+    dispatch(setImageUrls(imageMap));
+  };
+}
+
+// For exporting
 export function prepareDataThunk() {
   return (dispatch, getState) => {
-    const { selection, copied, drag, _persist, ...state } = getState();
+    // Weed out non-persisted state slices
+    const { selection, copied, drag, imageMap, _persist, ...state } =
+      getState();
 
-    const jsonData = JSON.stringify(state);
+    // Convert state to extended JSON so that we can serialize images
+    const jsonData = EJSON.stringify(state);
     var file = new Blob([jsonData], { type: "application/json" });
     return file;
   };

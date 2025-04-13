@@ -9,10 +9,12 @@ import {
   updateTitle,
 } from "./nodeActions";
 import { BoardObjects } from "../enums/items";
+import { GroupType } from "../classes/new-classes";
 
+const initialState: { [groupId: string]: GroupType } = {};
 const groupSlice = createSlice({
   name: "groups",
-  initialState: {},
+  initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder.addCase(

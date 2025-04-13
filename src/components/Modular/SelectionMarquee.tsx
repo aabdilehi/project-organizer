@@ -11,7 +11,7 @@ const SelectionMarquee = ({
   active,
 }: {
   boardId: string;
-  boardRef?: HTMLDivElement;
+  boardRef?: React.LegacyRef<HTMLDivElement>;
   scale?: number;
   offset?: { x: number; y: number };
   active: boolean;
@@ -21,8 +21,10 @@ const SelectionMarquee = ({
   let initX, initY;
   let nodeElements; // node elements shouldnt change during this time anyway
   let nodeElementBounds = {}; // do not want to recalculate bounds every frame
-
+  let boardBounds;
   const init = (e) => {
+    if (!boardRef.current) return;
+    boardBounds = boardRef.current.getBoundingClientRect();
     if (!e.dataTransfer.types.includes("action/select")) return;
     initX = e.clientX;
     initY = e.clientY;
@@ -39,6 +41,9 @@ const SelectionMarquee = ({
   };
   const animate = (e) => {
     if (!e.dataTransfer.types.includes("action/select")) return;
+    if (!boardBounds && boardRef.current) {
+      boardBounds = boardRef.current.getBoundingClientRect();
+    }
     requestAnimationFrame(() => {
       if (!!ref.current) {
         const sX = (e.clientX - initX) / scale;
@@ -47,8 +52,10 @@ const SelectionMarquee = ({
         const actualSY = Math.abs(sY);
 
         // Determine if top corner should be initial or current x and y position based on which is smaller
-        const actualPX = (Math.min(initX, e.clientX) - 100 - offset.x) / scale;
-        const actualPY = (Math.min(initY, e.clientY) - offset.y) / scale;
+        const actualPX =
+          (Math.min(initX, e.clientX) - boardBounds.left - offset.x) / scale;
+        const actualPY =
+          (Math.min(initY, e.clientY) - boardBounds.top - offset.y) / scale;
 
         // Set position and size of selection marquee
         ref.current.style.transform = `translate(${actualPX}px, ${actualPY}px)`;

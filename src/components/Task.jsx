@@ -6,8 +6,8 @@ import "../editor.scss";
 import { bindActionCreators } from "redux";
 import { connect, useDispatch, useSelector } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
-import { useRef, useState } from "react";
-import { TbCheck, TbPlus, TbX } from "react-icons/tb";
+import { useEffect, useRef, useState } from "react";
+import { TbCheck, TbEdit, TbPlus, TbX } from "react-icons/tb";
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
 import {
   updateContent,
@@ -15,11 +15,15 @@ import {
   updateTitle,
 } from "../utils/slices/nodeActions.ts";
 import { Modal } from "./Modular/Modal.tsx";
-import { setBadges, updateTaskStatus } from "../utils/slices/taskSlice.js";
+import {
+  setBadges,
+  setSubTasks,
+  updateTaskStatus,
+} from "../utils/slices/taskSlice.ts";
 import { BadgeEdit, BadgePreview } from "./Modular/Badge.tsx";
 import AutoResizeTextArea from "./Modular/AutoResizeTextArea.tsx";
 import IconButton from "./Modular/IconButton.tsx";
-import { createBadge } from "../utils/classes/new-classes.ts";
+import { createBadge, createSubTask } from "../utils/classes/new-classes.ts";
 
 const previewStyle = {
   fontWeight: "800",
@@ -31,10 +35,22 @@ const previewStyle = {
 const Task = ({ id, onContextMenu, scale, offset }) => {
   const dispatch = useDispatch();
   const nodeRef = useRef(null);
-
-  const { pX, pY, sX, sY, content, title, status, deadline, badges, parent } =
-    useSelector((state) => state.tasks[id]);
-
+  const checkBoxRef = useRef(null); // React does not seem to support the indeterminate property so we have to set it manually
+  const task = useSelector((state) => state.tasks[id]);
+  const {
+    pX,
+    pY,
+    sX,
+    sY,
+    content,
+    title,
+    status,
+    indeterminate,
+    badges,
+    subTasks,
+    parent,
+  } = task;
+  if (!parent) return null;
   const updateSizeFromElement = () =>
     requestAnimationFrame(() => {
       if (nodeRef.current != null) {
@@ -52,16 +68,21 @@ const Task = ({ id, onContextMenu, scale, offset }) => {
             })
           );
         }
-        nodeRef.current.style.height = sY;
+        nodeRef.current.style.height = sY + "px";
       }
     });
 
   updateSizeFromElement();
 
+  if (checkBoxRef.current) {
+    checkBoxRef.current.indeterminate = indeterminate;
+  }
+
   const [open, setOpen] = useState(false);
   const taskTitleRef = useRef(null);
   const taskSummaryRef = useRef(null);
   const [tempBadges, setTempBadges] = useState(badges);
+  const [tempSubTasks, setTempSubTasks] = useState(subTasks);
 
   return (
     <>
@@ -83,22 +104,22 @@ const Task = ({ id, onContextMenu, scale, offset }) => {
       >
         <input
           type="checkbox"
+          ref={checkBoxRef}
           style={{ gridArea: "checkbox", height: "20px", alignSelf: "center" }}
           checked={status}
           onChange={(e) => {
-            console.log(e.target.value);
-
             dispatch(
               updateTaskStatus({
                 taskId: id,
                 status: e.target.checked,
+                indeterminate: false,
               })
             );
           }}
         />
         <CustomEditablePreview
           as={"p"}
-          style={{ gridArea: "title" }}
+          style={{ gridArea: "title", width: "100%" }}
           canEdit={true}
           text={title}
           textStyle={previewStyle}
@@ -114,15 +135,23 @@ const Task = ({ id, onContextMenu, scale, offset }) => {
           }}
           onImmediateChange={updateSizeFromElement}
         />
-        <button
-          type="button"
-          style={{ gridArea: "edit" }}
+        <IconButton
+          style={{
+            gridArea: "edit",
+            height: "25px",
+            width: "25px",
+            borderRadius: "6px",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          icon={TbEdit}
           onClick={() => {
+            setTempBadges(badges);
+            setTempSubTasks(subTasks);
             setOpen(true);
           }}
-        >
-          Edit
-        </button>
+        />
+
         {Object.values(badges).length > 0 ? (
           <div
             style={{
@@ -139,7 +168,6 @@ const Task = ({ id, onContextMenu, scale, offset }) => {
             ))}
           </div>
         ) : undefined}
-
         <Modal
           open={open}
           setOpen={(boolean) => setOpen(boolean)}
@@ -202,6 +230,93 @@ const Task = ({ id, onContextMenu, scale, offset }) => {
                 borderRadius: "0.375rem",
                 fontSize: "inherit",
                 outline: "none",
+              }}
+            />
+          </div>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              gap: "5px",
+            }}
+          >
+            <p>Sub-tasks</p>
+            {Object.values(tempSubTasks).length > 0
+              ? Object.values(tempSubTasks).map((subTask, index) => (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      padding: "10px",
+                      margin: "10px",
+                      border: "1px solid grey",
+                      borderRadius: "10px",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      style={{
+                        gridArea: "checkbox",
+                        height: "20px",
+                        alignSelf: "center",
+                      }}
+                      checked={subTask.status}
+                      onChange={(e) => {
+                        const copy = {
+                          ...tempSubTasks,
+                          [subTask.id]: {
+                            ...subTask,
+                            status: e.target.checked,
+                          },
+                        };
+                        setTempSubTasks(copy);
+                      }}
+                    />
+                    <AutoResizeTextArea
+                      name={`subTask-${index}`}
+                      defaultValue={subTask.text}
+                      onChange={(e) => {
+                        const copy = {
+                          ...tempSubTasks,
+                          [subTask.id]: {
+                            ...subTask,
+                            text: e.target.value,
+                          },
+                        };
+                        setTempSubTasks(copy);
+                      }}
+                      style={{
+                        width: "70%",
+                        padding: "8px",
+                        appearance: "none",
+                        boxSizing: "border-box",
+                        border: "1px grey",
+                        lineHeight: "1.375",
+                        borderRadius: "0.375rem",
+                        fontSize: "inherit",
+                        outline: "none",
+                      }}
+                    />
+                    <IconButton
+                      className="badge"
+                      icon={TbX}
+                      onClick={() => {
+                        const copy = { ...tempSubTasks };
+                        delete copy[subTask.id];
+                        setTempSubTasks(copy);
+                      }}
+                    />
+                  </div>
+                ))
+              : undefined}
+            <IconButton
+              className="badge"
+              icon={TbPlus}
+              onClick={() => {
+                const subTask = createSubTask();
+                const copy = { ...tempSubTasks, [subTask.id]: subTask };
+                setTempSubTasks(copy);
               }}
             />
           </div>
@@ -284,6 +399,15 @@ const Task = ({ id, onContextMenu, scale, offset }) => {
                     })
                   );
                 }
+                if (tempSubTasks) {
+                  dispatch(
+                    setSubTasks({
+                      taskId: id,
+                      subTasks: tempSubTasks,
+                    })
+                  );
+                }
+                updateSizeFromElement();
                 setOpen(false);
               }}
             >
@@ -299,6 +423,7 @@ const Task = ({ id, onContextMenu, scale, offset }) => {
               }}
               onClick={() => {
                 setTempBadges(badges);
+                setTempSubTasks(subTasks);
                 setOpen(false);
               }}
             >

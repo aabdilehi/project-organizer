@@ -97,7 +97,6 @@ function CustomEditablePreview({
 
   const submitChanges = () => {
     if (value !== text) {
-      console.log("YOOOOO");
       if (onChange) {
         onChange(value);
       }
@@ -127,7 +126,7 @@ function CustomEditablePreview({
       textAreaWidth;
       submitChanges();
     }
-  }, [editing]);
+  }, [editing, text]);
 
   useEffect(() => {
     setValue(text);

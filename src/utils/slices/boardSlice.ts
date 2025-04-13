@@ -11,18 +11,20 @@ import {
   setSliceData,
 } from "./nodeActions";
 import { BoardObjects } from "../enums/items";
+import { BoardType, RootBoardType } from "../classes/new-classes";
 
+const initialState: { [boardId: string]: BoardType | RootBoardType } = {
+  root: {
+    id: "root",
+    title: "Home",
+    offset: { x: 0, y: 0 },
+    scale: 1,
+    childRefs: [],
+  },
+};
 const boardSlice = createSlice({
   name: "boards",
-  initialState: {
-    root: {
-      id: "root",
-      title: "Home",
-      offset: { x: 0, y: 0 },
-      scale: 1,
-      childRefs: [],
-    },
-  },
+  initialState,
   reducers: {
     // Can probably merge board and board version of this function
     // Will need to move it out of both

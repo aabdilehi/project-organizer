@@ -3,7 +3,7 @@ import { RootState } from "../../store";
 
 const selectBoards = (state: RootState) => state.boards;
 const selectNotes = (state: RootState) => state.notes;
-const selectPictures = (state: RootState) => state.pictures;
+const selectImages = (state: RootState) => state.images;
 const selectTasks = (state: RootState) => state.tasks;
 const selectDocuments = (state: RootState) => state.documents;
 const selectGroups = (state: RootState) => state.groups;
@@ -13,16 +13,16 @@ export const selectNodes = createSelector(
   [
     selectBoards,
     selectNotes,
-    selectPictures,
+    selectImages,
     selectTasks,
     selectDocuments,
     selectGroups,
   ],
-  (boards, notes, pictures, tasks, documents, groups) => {
+  (boards, notes, images, tasks, documents, groups) => {
     return {
       ...boards,
       ...notes,
-      ...pictures,
+      ...images,
       ...tasks,
       ...documents,
       ...groups,

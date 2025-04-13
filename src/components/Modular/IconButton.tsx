@@ -11,7 +11,11 @@ export default ({
 }) => {
   return (
     <button type="button" {...buttonProps}>
-      <Icon className="icon" style={{ margin: "auto" }} {...iconProps} />
+      <Icon
+        className="icon"
+        style={{ justifySelf: "center", alignSelf: "center" }}
+        {...iconProps}
+      />
     </button>
   );
 };

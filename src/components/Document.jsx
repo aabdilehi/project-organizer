@@ -35,7 +35,6 @@ import { MenuBar } from "./Modular/Editor.jsx";
 import _, { debounce } from "lodash";
 
 const updateDocContent = (dispatch, id, editor) => {
-  console.log("Done");
   dispatch(
     updateContent.action({
       id,

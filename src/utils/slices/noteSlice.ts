@@ -10,10 +10,12 @@ import {
   updateSize,
 } from "./nodeActions";
 import { BoardObjects } from "../enums/items";
+import { NoteType } from "../classes/new-classes";
 
+const initialState: { [noteId: string]: NoteType } = {};
 const noteSlice = createSlice({
   name: "notes",
-  initialState: {},
+  initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder.addCase(

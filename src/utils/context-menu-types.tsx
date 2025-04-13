@@ -32,7 +32,6 @@ const convertNoteToDocument = (note) => (dispatch, getState) => {
   if (!note) return;
 
   const sanitizedContent = sanitizeHtml(note.content, { allowedTags: [] });
-  console.log(sanitizedContent);
 
   const newDocument: Partial<DocumentType> = {
     id: note.id,
@@ -347,6 +346,14 @@ export const ColumnContextMenu: ContextMenu = {
   items: [],
 };
 
+export const ImageContextMenu: ContextMenu = {
+  canCopy: true,
+  canCut: true,
+  canPaste: true,
+  canDelete: true,
+  items: [],
+};
+
 export const BoardIconContextMenu: ContextMenu = {
   canCopy: true,
   canCut: true,
@@ -384,7 +391,7 @@ export const ContextMenuTypes: ContextMenuMap = {
   [BoardObjects.NOTE]: NoteContextMenu,
   [BoardObjects.BOARD]: BoardIconContextMenu,
   [BoardObjects.TASK]: TaskContextMenu,
-  [BoardObjects.IMAGE]: NullContextMenu,
+  [BoardObjects.IMAGE]: ImageContextMenu,
   [BoardObjects.DOCUMENT]: DocumentContextMenu,
   [BoardObjects.GROUP]: GroupContextMenu,
 };

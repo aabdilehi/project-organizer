@@ -16,7 +16,6 @@ const selectionSlice = createSlice({
     },
     addSelectedNodes: (state, action) => {
       const nodes = action.payload;
-      console.log(nodes);
       return { ...state, ...nodes };
     },
     addSelectNode: (state, action) => {

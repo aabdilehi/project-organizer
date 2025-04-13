@@ -47,8 +47,6 @@ export function useSmoothBoardControls(boardId, transformRef, boardRef) {
       event.target === boardRef.current ||
       event.target.parentNode === boardRef.current
     ) {
-      console.log(event.deltaY);
-
       const newScale = Math.max(0.05, scale + event.deltaY * -0.0025);
       lerpedScale.current += (newScale - scale) * 0.2;
       setScale((prev) => {

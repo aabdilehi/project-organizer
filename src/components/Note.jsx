@@ -20,7 +20,6 @@ import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { debounce } from "lodash";
 
 const updateNoteContent = (dispatch, id, editor) => {
-  console.log("Done");
   dispatch(
     updateContent.action({
       id,

@@ -13,7 +13,6 @@ import { v4 as uuidv4 } from "uuid";
 import { createNodeThunk } from "../slices/thunks";
 
 import { useDispatch, useSelector } from "react-redux";
-import { PictureC } from "../classes/classes";
 import { useRef } from "react";
 import { formatData, NodeTypeMap } from "../classes/new-classes";
 import { selectNodes } from "../slices/selectors";
@@ -37,16 +36,16 @@ export function useDrop({ boardRef, scale, offset }) {
     event.preventDefault();
   }
 
-  // "board", "sidebar" (or some other form of differentiating between existing nodes and new nodes, eg. "node/new", "node/existing")
+  // "board", "toolbar" (or some other form of differentiating between existing nodes and new nodes, eg. "node/new", "node/existing")
   function dropOnBoard(event, id) {
     event.stopPropagation();
     event.preventDefault();
 
     const boardId = id ?? "root";
-
-    //#region Drop from sidebar
-    if (event.dataTransfer.types.includes("origin/sidebar")) {
-      let data = JSON.parse(event.dataTransfer.getData("origin/sidebar"));
+    console.log(event.dataTransfer.types);
+    //#region Drop from toolbar
+    if (event.dataTransfer.types.includes("origin/toolbar")) {
+      let data = JSON.parse(event.dataTransfer.getData("origin/toolbar"));
       if (!boardAcceptedTypes.includes(data.type)) return;
       createNode(event, data, boardId, BoardObjects.BOARD, offset, scale);
       return;
@@ -90,7 +89,6 @@ export function useDrop({ boardRef, scale, offset }) {
       let direction = event.dataTransfer.types.find((value) =>
         value.includes("direction/")
       );
-      console.log(direction);
       if (!data.hasOwnProperty("selectedNodes")) return;
       Object.values(data.selectedNodes).forEach((item) => {
         if (boardAcceptedTypes.includes(item.type)) {
@@ -121,23 +119,19 @@ export function useDrop({ boardRef, scale, offset }) {
     const xCoord = (event.clientX - boundingRect.left - offset.x) / scale;
     const yCoord = (event.clientY - boundingRect.top - offset.y) / scale;
     dispatch(
-      createNodeThunk(
-        {
-          id: uuidv4(),
-          pX: xCoord,
-          pY: yCoord,
-          type: data.type,
-          parent: {
-            id: pId,
-            type: pType,
-          },
+      createNodeThunk({
+        id: uuidv4(),
+        pX: xCoord,
+        pY: yCoord,
+        type: data.type,
+        parent: {
+          id: pId,
+          type: pType,
         },
-        NodeTypeMap[data.type]
-      )
+      })
     );
   }
   function updateNodeParent(data, pId, pType) {
-    console.log(data);
     dispatch(
       updateParent.action({
         id: data.id,
@@ -195,7 +189,6 @@ export function useDrop({ boardRef, scale, offset }) {
   }
 
   function setNodeSize(event, data, initial, direction) {
-    console.log(data);
     let pX, pY, sX, sY;
 
     switch (direction) {

@@ -9,41 +9,42 @@ import {
   setSliceData,
 } from "./nodeActions";
 import { BoardObjects } from "../enums/items";
+import { Binary } from "bson";
 
-const pictureSlice = createSlice({
-  name: "pictures",
+const imageSlice = createSlice({
+  name: "images",
   initialState: {},
   reducers: {
     updateLabel: (state, action) => {
-      const { pictureId, label } = action.payload;
-      const picture = state[pictureId];
+      const { id, label } = action.payload;
+      const image = state[id];
       return {
         ...state,
-        [pictureId]: {
-          ...picture,
+        [id]: {
+          ...image,
           label,
         },
       };
     },
     updateLabelVisibility: (state, action) => {
-      const { pictureId, showLabel } = action.payload;
-      const picture = state[pictureId];
+      const { id, showLabel } = action.payload;
+      const image = state[id];
       return {
         ...state,
-        [pictureId]: {
-          ...picture,
+        [id]: {
+          ...image,
           showLabel,
         },
       };
     },
     updateImage: (state, action) => {
-      const { pictureId, image } = action.payload;
-      const picture = state[pictureId];
+      const { id, imageId }: { id: string; imageId: string } = action.payload;
+      const imageNode = state[id];
       return {
         ...state,
-        [pictureId]: {
-          ...picture,
-          image,
+        [id]: {
+          ...imageNode,
+          imageId,
         },
       };
     },
@@ -72,6 +73,6 @@ const pictureSlice = createSlice({
 });
 
 export const { updateImage, updateLabel, updateLabelVisibility } =
-  pictureSlice.actions;
+  imageSlice.actions;
 
-export default pictureSlice.reducer;
+export default imageSlice.reducer;

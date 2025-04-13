@@ -11,20 +11,41 @@ import {
   setSliceData,
 } from "./nodeActions";
 import { BoardObjects } from "../enums/items";
+import { SubTaskType, TaskType } from "../classes/new-classes";
+
+const initialState: { [taskId: string]: TaskType } = {};
 
 const taskSlice = createSlice({
   name: "tasks",
-  initialState: {},
+  initialState,
   reducers: {
     updateTaskStatus: (state, action) => {
-      const { taskId, status } = action.payload;
+      const {
+        taskId,
+        status,
+        indeterminate,
+      }: { taskId: string; status: boolean; indeterminate: boolean } =
+        action.payload;
       const task = state[taskId];
       if (!task) return;
+
+      // Update status of subtasks to match main task
+      const subTasks = { ...task.subTasks };
+      Object.values(subTasks).forEach(
+        (subTask) =>
+          (subTasks[subTask.id] = {
+            ...subTask,
+            status,
+          })
+      );
+
       return {
         ...state,
         [taskId]: {
           ...task,
           status,
+          indeterminate,
+          subTasks,
         },
       };
     },
@@ -37,6 +58,33 @@ const taskSlice = createSlice({
         [taskId]: {
           ...task,
           deadline,
+        },
+      };
+    },
+    setSubTasks: (state, action) => {
+      const {
+        taskId,
+        subTasks,
+      }: { taskId: string; subTasks: { [subTaskId: string]: SubTaskType } } =
+        action.payload;
+      if (!taskId || !subTasks) return;
+      const task = state[taskId];
+      if (!task) return;
+      let completedSubTasks = 0;
+      const subTaskValues = Object.values(subTasks);
+      subTaskValues.forEach(
+        (subTask) => (completedSubTasks += +subTask.status)
+      );
+      return {
+        ...state,
+        [taskId]: {
+          ...task,
+          subTasks,
+          status:
+            completedSubTasks >= subTaskValues.length &&
+            subTaskValues.length > 0,
+          indeterminate:
+            completedSubTasks < subTaskValues.length && completedSubTasks > 0,
         },
       };
     },
@@ -81,7 +129,7 @@ const taskSlice = createSlice({
   },
 });
 
-export const { setBadges, updateDeadline, updateTaskStatus } =
+export const { setBadges, setSubTasks, updateDeadline, updateTaskStatus } =
   taskSlice.actions;
 
 export default taskSlice.reducer;

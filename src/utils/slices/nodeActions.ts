@@ -1,6 +1,8 @@
 import { createAction } from "@reduxjs/toolkit";
 import {
+  defaultRoot,
   formatData,
+  formatRoot,
   NodeType,
   NodeTypeMap,
   SizeClassMap,
@@ -88,13 +90,13 @@ const setSliceDataReducer = (nodeType: BoardObjects) => (state, action) => {
   newKeys.forEach((key) => {
     if (!Object.hasOwn(nodes, key)) return; // Ensure it exists
     if (key == "root" && nodeType == BoardObjects.BOARD) {
-      newNodes[key] = nodes[key];
+      newNodes[key] = formatRoot(nodes[key]);
       return;
     }
     if (nodes[key].type != nodeType) return;
     const newNode = nodes[key];
     if (!newNode) return;
-    newNodes[key] = newNode;
+    newNodes[key] = formatData(nodes[key], NodeTypeMap[nodes[key].type]);
   });
 
   // Might be redundant but I want to make sure things are proper before potentially breaking the state

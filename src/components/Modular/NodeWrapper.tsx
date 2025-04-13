@@ -132,11 +132,6 @@ export default forwardRef(
             Math.abs(sY! - bounds.height / scale) > 10)
         ) {
           updatingSize.current = true;
-          console.log(
-            `Type: ${type}\nx: ${Math.abs(
-              sX! - bounds.width / scale
-            )}px\ny: ${Math.abs(sY! - bounds.height / scale)}px`
-          );
           dispatch(
             updateSize.action({
               id,

@@ -1,5 +1,6 @@
 // Not sure what to call this but it is basically an icon that you can hover on and get more info in a tooltip
 
+import React from "react";
 import {
   Ref,
   forwardRef,
@@ -18,29 +19,13 @@ export const Tooltip = forwardRef(
       position,
     }: {
       text: string;
-      placement?: "top" | "bottom" | "custom";
+      placement?: "top" | "bottom" | "right" | "custom";
       position?: string;
     },
     ref
   ) => {
-    const placementStyle = useCallback(() => {
-      switch (placement) {
-        case "top":
-          return "mt-[-235%] left-1/2 translate-x-[-50%]";
-        case "custom":
-          return !!position && position;
-        case "bottom":
-        default:
-          return "mt-[35%] left-1/2 translate-x-[-50%]";
-      }
-    }, [placement]);
-
     return (
-      <div
-        ref={ref}
-        className={`bg-white p-2 ring-1 rounded-md ring-gray-300 z-10 absolute w-fit  min-w-8 ${placementStyle()}`}
-        role="menu"
-      >
+      <div ref={ref} className={`tooltip ${placement}`} role="menu">
         <p>{text}</p>
       </div>
     );

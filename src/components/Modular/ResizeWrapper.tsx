@@ -37,9 +37,6 @@ const ResizeWrapper = ({
         onDragStart={(e) => {
           onResize(e, "top");
         }}
-        onDrag={(e) => {
-          console.log("Hello???");
-        }}
         data-resize-type={"vertical"}
         data-resize-origin={"top"}
         className="resize-handle top"

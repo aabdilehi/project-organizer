@@ -7,27 +7,23 @@ import { createStateSyncMiddleware } from "redux-state-sync";
 
 import boardReducer from "./utils/slices/boardSlice";
 import noteReducer from "./utils/slices/noteSlice";
-import pictureReducer from "./utils/slices/pictureSlice";
+import imageReducer from "./utils/slices/imageSlice";
 import taskReducer from "./utils/slices/taskSlice";
 import groupReducer from "./utils/slices/groupSlice";
 import docReducer from "./utils/slices/docSlice";
 import selectionReducer from "./utils/slices/selectionSlice";
 import copiedReducer from "./utils/slices/copiedSlice";
 import dragReducer from "./utils/slices/dragSlice";
+import imageMapReducer from "./utils/slices/imageMapSlice";
+import imageDataReducer from "./utils/slices/imageDataSlice";
+import { defaultRoot } from "./utils/classes/new-classes";
+import { generateImageUrlsThunk } from "./utils/slices/thunks";
 
 const initialState = {
-  boards: {
-    root: {
-      id: "root",
-      title: "Home",
-      offset: { x: 0, y: 0 },
-      scale: 1,
-      childRefs: [],
-    },
-  },
+  boards: { root: defaultRoot },
   notes: {},
   documents: {},
-  pictures: {},
+  images: {},
   tasks: {},
   selection: {},
   copied: {
@@ -39,29 +35,68 @@ const initialState = {
     nodes: {},
     types: [],
   },
+  imageMap: {},
+  imageData: {},
 };
-
-const rootReducer = combineReducers({
-  boards: boardReducer,
-  notes: noteReducer,
-  pictures: pictureReducer,
-  tasks: taskReducer,
-  groups: groupReducer,
-  documents: docReducer,
-  selection: selectionReducer,
-  copied: copiedReducer,
-  drag: dragReducer,
-});
 
 const storage = storageDB("myDB");
-console.log(storage);
-const persistConfig = {
-  key: "root",
-  storage,
-  blacklist: ["selection", "copied", "drag"],
-};
 
-const persistedReducer = persistReducer(persistConfig, rootReducer);
+let persistConfig = {
+  key: "boards",
+  storage,
+  serialize: false,
+  deserialize: false,
+};
+const persistedBoardReducer = persistReducer(persistConfig, boardReducer);
+
+persistConfig = {
+  key: "notes",
+  storage,
+  serialize: false,
+  deserialize: false,
+};
+const persistedNoteReducer = persistReducer(persistConfig, noteReducer);
+
+persistConfig = {
+  key: "images",
+  storage,
+  serialize: false,
+  deserialize: false,
+};
+const persistedImageReducer = persistReducer(persistConfig, imageReducer);
+
+persistConfig = {
+  key: "imageData",
+  storage,
+  serialize: false,
+  deserialize: false,
+};
+const persistedImageDataReducer = persistReducer(
+  persistConfig,
+  imageDataReducer
+);
+
+persistConfig = {
+  key: "tasks",
+  storage,
+  serialize: false,
+  deserialize: false,
+};
+const persistedTaskReducer = persistReducer(persistConfig, taskReducer);
+persistConfig = {
+  key: "groups",
+  storage,
+  serialize: false,
+  deserialize: false,
+};
+const persistedGroupReducer = persistReducer(persistConfig, groupReducer);
+persistConfig = {
+  key: "documents",
+  storage,
+  serialize: false,
+  deserialize: false,
+};
+const persistedDocReducer = persistReducer(persistConfig, docReducer);
 
 const stateSyncConfig = {
   blacklist: [
@@ -73,11 +108,27 @@ const stateSyncConfig = {
   ],
 };
 
-export const store = configureStore({
-  reducer: persistedReducer,
-  initialState,
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(createStateSyncMiddleware(stateSyncConfig)),
+const rootReducer = combineReducers({
+  boards: persistedBoardReducer,
+  notes: persistedNoteReducer,
+  images: persistedImageReducer,
+  tasks: persistedTaskReducer,
+  groups: persistedGroupReducer,
+  documents: persistedDocReducer,
+  selection: selectionReducer,
+  copied: copiedReducer,
+  drag: dragReducer,
+  imageMap: imageMapReducer,
+  imageData: persistedImageDataReducer,
 });
+
+export const store = configureStore({
+  reducer: rootReducer,
+  initialState,
+});
+
 export type RootState = ReturnType<typeof rootReducer>;
-export const persistor = persistStore(store);
+export const persistor = persistStore(store, null, () => {
+  console.log("Generating Image URLs");
+  store.dispatch(generateImageUrlsThunk());
+});

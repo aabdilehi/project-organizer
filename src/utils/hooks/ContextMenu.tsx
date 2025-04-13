@@ -38,7 +38,6 @@ const ContextMenu = ({
         e.target.parentNode != contextRef.current &&
         e.target.parentNode.parentNode != contextRef.current
       ) {
-        console.log(e);
         setOpen(false);
       }
     };

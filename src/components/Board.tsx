@@ -21,12 +21,12 @@ import {
 
 import { useDrop } from "../utils/hooks/useDrop.jsx";
 import { withRouter } from "./Modular/ComponentWithRouterProp.jsx";
-import { clearSelectNode } from "../utils/slices/selectionSlice.js";
+import { clearSelectNode } from "../utils/slices/selectionSlice.ts";
 import BoardIcon from "./BoardIcon.jsx";
 import Document from "./Document.jsx";
 import Task from "./Task.jsx";
 import DragLayer from "./DragLayer.tsx";
-import { updateOffset, updateScale } from "../utils/slices/boardSlice.js";
+import { updateOffset, updateScale } from "../utils/slices/boardSlice.ts";
 import {
   addCopyNode,
   clearCopiedNodes,
@@ -42,6 +42,8 @@ import {
 } from "../utils/slices/selectors.ts";
 import { RootState } from "../store.ts";
 import ResizeMarquee from "./Modular/ResizeMarquee.tsx";
+import Toolbar from "./Toolbar.tsx";
+import Image from "./Image.jsx";
 //#endregion
 
 const setOriginalBackground = (
@@ -144,10 +146,16 @@ const Board = ({ validBoard, router }) => {
 
   //#region Selectors
 
-  const scale = 0.75;
-  const offset = { x: 0, y: 500 };
+  const scale = useSelector((state: RootState) => state.boards[boardId].scale);
+  const offset = useSelector(
+    (state: RootState) => state.boards[boardId].offset
+  );
   const childRefs = useSelector(
     (state: RootState) => state.boards[boardId].childRefs
+  );
+
+  const parent = useSelector((state: RootState) =>
+    boardId == "root" ? undefined : state.boards[boardId].parent
   );
 
   const shouldAnimateResizeMarquee = useRef(false);
@@ -164,9 +172,11 @@ const Board = ({ validBoard, router }) => {
 
   //#region References
   const ref = useRef();
+  const [enableBoardOffsetAndScale, setBoardOffsetAndScaleEnabled] =
+    useState(false);
   const transformRef = useRef();
-  let currentPosition = offset;
-  let currentScale = scale;
+  let currentPosition = enableBoardOffsetAndScale ? offset : { x: 0, y: 0 };
+  let currentScale = enableBoardOffsetAndScale ? scale : 1;
   const currentMousePos = useRef({ x: 0, y: 0 });
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   //#endregion
@@ -205,7 +215,7 @@ const Board = ({ validBoard, router }) => {
           currentPosition.x / currentScale
         }px, ${currentPosition.y / currentScale}px)`;
 
-        setWaveBackground(ref.current, currentPosition, currentScale);
+        setOriginalBackground(ref.current, currentPosition, currentScale);
         // This should be changed as you cannot pan and scale at the same time rn
       });
     }
@@ -246,7 +256,7 @@ const Board = ({ validBoard, router }) => {
                 currentPosition.x / currentScale
               }px, ${currentPosition.y / currentScale}px)`;
 
-              setWaveBackground(ref.current, currentPosition, currentScale);
+              setOriginalBackground(ref.current, currentPosition, currentScale);
             });
           }
         };
@@ -343,6 +353,15 @@ const Board = ({ validBoard, router }) => {
         }}
         onResize={(e) => e.preventDefault()}
       >
+        <Toolbar
+          id={boardId}
+          boardRef={ref}
+          scale={currentScale}
+          offset={currentPosition}
+          parent={parent}
+          enableBoardOffsetAndScale={enableBoardOffsetAndScale}
+          setBoardOffsetAndScaleEnabled={setBoardOffsetAndScaleEnabled}
+        />
         <DragLayer
           boardId={boardId}
           boardRef={ref}
@@ -413,6 +432,16 @@ const Board = ({ validBoard, router }) => {
               case BoardObjects.DOCUMENT:
                 return (
                   <Document
+                    key={childId}
+                    id={childId}
+                    onContextMenu={handleRightClick}
+                    scale={currentScale}
+                    offset={currentPosition}
+                  />
+                );
+              case BoardObjects.IMAGE:
+                return (
+                  <Image
                     key={childId}
                     id={childId}
                     onContextMenu={handleRightClick}

@@ -10,7 +10,9 @@ import {
   setSliceData,
 } from "./nodeActions";
 import { BoardObjects } from "../enums/items";
+import { DocumentType } from "../classes/new-classes";
 
+const initialState: { [documentId: string]: DocumentType } = {};
 const docSlice = createSlice({
   name: "documents",
   initialState: {},

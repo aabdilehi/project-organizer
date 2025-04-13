@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { importDataThunk, prepareDataThunk } from "../../utils/slices/thunks";
 import React from "react";
+import { EJSON } from "bson";
 
 export const ImportButton = ({
   children,
@@ -16,7 +17,7 @@ export const ImportButton = ({
     fr.current.onload = function () {
       buttonRef.current.value = "";
       //   console.log(JSON.parse(fr.current.result));
-      dispatch(importDataThunk(JSON.parse(fr.current.result)));
+      dispatch(importDataThunk(EJSON.parse(fr.current.result)));
     };
   }
 

@@ -1,8 +1,13 @@
 import "./App.css";
 import { Box, ChakraProvider, Stack } from "@chakra-ui/react";
-import React, { useContext, useLayoutEffect, useMemo, useState } from "react";
+import React, {
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
 import Board from "./components/Board";
-import Sidebar from "./components/Sidebar";
 import theme from "./config/theme";
 import DarkModeIconButton from "./components/Modular/DarkModeIconButton";
 import HelpIconButton from "./components/Modular/HelpIconButton";
@@ -45,6 +50,18 @@ function App() {
 
   // const [open, setOpen] = useState(true);
 
+  useEffect(() => {
+    const disableCtrlZoom = (e) => e.ctrlKey && e.preventDefault();
+    const pointermoveHandler = (e) => console.log("pointerMove", e);
+
+    window.addEventListener("wheel", disableCtrlZoom, { passive: false });
+    window.addEventListener("pointermove", pointermoveHandler);
+    return () => {
+      window.removeEventListener("wheel", disableCtrlZoom);
+      window.removeEventListener("pointermove", pointermoveHandler);
+    };
+  }, []);
+
   return (
     <>
       <div
@@ -66,7 +83,6 @@ function App() {
                 style={{ display: "flex", flexDirection: "row", width: "100%" }}
                 id="container"
               >
-                <Sidebar />
                 <Board />
               </div>
             }
@@ -79,7 +95,6 @@ function App() {
                 style={{ display: "flex", flexDirection: "row", width: "100%" }}
                 id="container"
               >
-                <Sidebar />
                 <Board />
               </div>
             }

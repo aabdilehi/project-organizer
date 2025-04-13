@@ -7,6 +7,11 @@ export type BadgeType = {
   text: string;
   color: string;
 };
+export type SubTaskType = {
+  id: string;
+  text: string;
+  status: boolean;
+};
 export type NodeType = {
   id: string;
   type: BoardObjects;
@@ -26,19 +31,27 @@ export type DocumentType = NodeType & {
 export type TaskType = NodeType & {
   title: string;
   status: boolean;
+  indeterminate: boolean;
   content: string | undefined;
-  badges: BadgeType[] | [];
+  badges: { [badgeId: string]: BadgeType };
+  subTasks: { [subTaskId: string]: SubTaskType };
   deadline: Date | undefined;
+};
+export type ImageType = NodeType & {
+  imageId: string | undefined;
 };
 export type GroupType = NodeType & {
   title: string;
 };
-export type BoardType = NodeType & {
+export type RootBoardType = {
+  id: string;
   title: string;
+  type: BoardObjects;
   offset: { x: number; y: number };
   scale: number;
   childRefs: Partial<NodeType>[] | [];
 };
+export type BoardType = NodeType & RootBoardType;
 //#endregion
 
 //#region Type guards
@@ -100,9 +113,21 @@ export const defaultTask: TaskType = {
   type: BoardObjects.TASK,
   title: "New task",
   status: false,
-  badges: [],
+  indeterminate: false,
+  badges: {},
   content: "",
+  subTasks: {},
   deadline: undefined,
+};
+export const defaultImage: ImageType = {
+  ...defaultNode,
+  type: BoardObjects.IMAGE,
+  imageId: undefined,
+};
+export const defaultSubTask: SubTaskType = {
+  id: "",
+  text: "New Subtask",
+  status: false,
 };
 export const defaultGroup: GroupType = {
   ...defaultNode,
@@ -110,6 +135,15 @@ export const defaultGroup: GroupType = {
   sX: 500,
   sY: 500,
   title: "New group",
+};
+
+export const defaultRoot: RootBoardType = {
+  id: "root",
+  title: "Home",
+  type: BoardObjects.BOARD,
+  offset: { x: 0, y: 0 },
+  scale: 1,
+  childRefs: [],
 };
 export const defaultBoard: BoardType = {
   ...defaultNode,
@@ -127,7 +161,7 @@ export const NodeTypeMap: { [key in BoardObjects]: NodeType } = {
   [BoardObjects.BOARD]: defaultBoard,
   [BoardObjects.TASK]: defaultTask,
   [BoardObjects.GROUP]: defaultGroup,
-  [BoardObjects.IMAGE]: defaultNode,
+  [BoardObjects.IMAGE]: defaultImage,
   [BoardObjects.DOCUMENT]: defaultDocument,
 };
 
@@ -142,6 +176,13 @@ export const formatData = <T extends NodeType>(
   } as T;
 };
 
+export const formatRoot = (input: Partial<RootBoardType>) => {
+  return {
+    ...defaultRoot,
+    ...input,
+  } as RootBoardType;
+};
+
 const defaultBadge: Partial<BadgeType> = {
   text: "New Badge",
   color: "red",
@@ -149,6 +190,11 @@ const defaultBadge: Partial<BadgeType> = {
 export const createBadge = (badge?: Partial<BadgeType>): BadgeType => {
   return { ...defaultBadge, id: uuidv4(), ...badge } as BadgeType;
 };
+
+export const createSubTask = (subTask?: Partial<SubTaskType>): SubTaskType => {
+  return { ...defaultSubTask, id: uuidv4(), ...subTask } as SubTaskType;
+};
+
 type Size = {
   min?: {
     x?: Number;
@@ -164,7 +210,7 @@ export const SizeClassMap: { [type in BoardObjects]: Size } = {
   [BoardObjects.NOTE]: { min: { x: 75, y: 75 }, max: { x: 1000, y: 1000 } },
   [BoardObjects.NONE]: {},
   [BoardObjects.BOARD]: { min: { x: 75, y: 75 }, max: { x: 1000, y: 1000 } },
-  [BoardObjects.TASK]: { min: { x: 200 }, max: { x: 200 } },
+  [BoardObjects.TASK]: { min: { x: 250 }, max: { x: 250 } },
   [BoardObjects.GROUP]: { min: { x: 100, y: 100 } },
   [BoardObjects.IMAGE]: { min: { x: 100, y: 100 } },
   [BoardObjects.DOCUMENT]: { min: { x: 75, y: 75 }, max: { x: 1000, y: 1000 } },

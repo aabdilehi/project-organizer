@@ -1,15 +1,22 @@
-import React, { forwardRef, useEffect, useState } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from "react";
 import { useRef } from "react";
 
 export default forwardRef(function ResizeableTextArea(
   { onChange, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>,
   ref: React.ForwardedRef<HTMLTextAreaElement>
 ) {
+  const textRef = useRef();
+  useImperativeHandle(ref, () => textRef.current!, []);
   const [value, setValue] = useState(props.defaultValue ?? props.value ?? "");
   const updateSize = () => {
-    if (!ref.current) return;
-    ref.current.style.height = "1px";
-    ref.current.style.height = `${ref.current.scrollHeight}px`;
+    if (!textRef.current) return;
+    textRef.current.style.height = "1px";
+    textRef.current.style.height = `${textRef.current.scrollHeight}px`;
   };
 
   useEffect(() => {
@@ -19,6 +26,7 @@ export default forwardRef(function ResizeableTextArea(
   return (
     <textarea
       rows={1}
+      className="resizable"
       wrap="hard"
       onChange={(e) => {
         if (onChange) {
@@ -26,7 +34,7 @@ export default forwardRef(function ResizeableTextArea(
         }
         setValue(e.target.value);
       }}
-      ref={ref}
+      ref={textRef}
       style={{ wordBreak: "break-all", ...props.style }}
       {...props}
     >

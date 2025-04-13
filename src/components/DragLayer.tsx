@@ -33,6 +33,7 @@ import {
   selectTypes,
 } from "../utils/slices/selectors";
 import ResizeMarquee from "./Modular/ResizeMarquee";
+import ImagePreview from "./ImagePreview";
 
 // Composite types used for querying intentions, e.g. instead of "origin/board", ["origin/board", "action/move"]
 // I could do "board/move" but the idea is that you do if(!types.include("origin/board")) return;
@@ -229,7 +230,6 @@ const DragLayer = ({
     } else if (event.dataTransfer.types.includes("action/resize")) {
       // hide drag preview image
 
-      console.log(event.dataTransfer.types);
       const selectedNodeData = {};
       Object.values(selectedNodes).forEach((item) => {
         selectedNodeData[item.id] = nodes[item.id];
@@ -406,7 +406,7 @@ const DragLayer = ({
       />
       <SelectionMarquee
         boardId={boardId}
-        boardRef={boardRef.current}
+        boardRef={boardRef}
         scale={scale}
         offset={offset}
         active={types.includes("action/select")}
@@ -437,6 +437,15 @@ const DragLayer = ({
             return <BoardIconPreview key={id} id={id} />;
           case BoardObjects.DOCUMENT:
             return <DocumentPreview key={id} id={id} />;
+          case BoardObjects.IMAGE:
+            return (
+              <ImagePreview
+                key={id}
+                id={id}
+                resize={resize}
+                getNodeSize={getNodeSize}
+              />
+            );
           default:
             break;
         }
