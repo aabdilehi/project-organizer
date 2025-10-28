@@ -70,7 +70,7 @@ export default forwardRef(
       }
     }
 
-    const padding = Math.min(20, (endX - startX) / 8);
+    const padding = Math.min(12, (endX - startX) / 8);
     sizeX = endX - startX + padding;
     sizeY = endY - startY + padding;
 

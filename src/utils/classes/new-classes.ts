@@ -151,6 +151,8 @@ export const defaultBoard: BoardType = {
   title: "New board",
   offset: { x: 0, y: 0 },
   scale: 1,
+  sX: 65,
+  sY: 120,
   childRefs: [],
 };
 //#endregion
@@ -207,7 +209,7 @@ type Size = {
 };
 
 export const SizeClassMap: { [type in BoardObjects]: Size } = {
-  [BoardObjects.NOTE]: { min: { x: 75, y: 75 }, max: { x: 1000, y: 1000 } },
+  [BoardObjects.NOTE]: { min: { x: 75, y: 50 }, max: { x: 1200, y: 1200 } },
   [BoardObjects.NONE]: {},
   [BoardObjects.BOARD]: { min: { x: 75, y: 75 }, max: { x: 1000, y: 1000 } },
   [BoardObjects.TASK]: { min: { x: 250 }, max: { x: 250 } },

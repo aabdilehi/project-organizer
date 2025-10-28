@@ -172,11 +172,9 @@ const Board = ({ validBoard, router }) => {
 
   //#region References
   const ref = useRef();
-  const [enableBoardOffsetAndScale, setBoardOffsetAndScaleEnabled] =
-    useState(false);
   const transformRef = useRef();
-  let currentPosition = enableBoardOffsetAndScale ? offset : { x: 0, y: 0 };
-  let currentScale = enableBoardOffsetAndScale ? scale : 1;
+  let currentPosition = offset;
+  let currentScale = scale;
   const currentMousePos = useRef({ x: 0, y: 0 });
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   //#endregion
@@ -184,6 +182,10 @@ const Board = ({ validBoard, router }) => {
   //#region Dispatch actions
 
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(clearSelectNode());
+  }, [boardId]);
 
   //#endregion
 
@@ -359,8 +361,6 @@ const Board = ({ validBoard, router }) => {
           scale={currentScale}
           offset={currentPosition}
           parent={parent}
-          enableBoardOffsetAndScale={enableBoardOffsetAndScale}
-          setBoardOffsetAndScaleEnabled={setBoardOffsetAndScaleEnabled}
         />
         <DragLayer
           boardId={boardId}

@@ -54,7 +54,7 @@ const ContextMenu = ({
           style={{
             left: `${mousePosition.current.x}px`,
             top: `${mousePosition.current.y}px`,
-            transform: `translatex(50%)`, // reposition based on bounds
+            transform: `translatex(0%)`, // reposition based on bounds
           }}
           ref={contextRef}
         >

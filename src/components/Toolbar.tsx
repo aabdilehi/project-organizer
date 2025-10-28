@@ -28,16 +28,7 @@ import { v4 as uuidv4 } from "uuid";
 import { ExportButton, ImportButton } from "./Modular/ExportButton";
 import { Tooltip } from "./Modular/IconTooltip";
 
-const Toolbar = ({
-  router,
-  boardId,
-  boardRef,
-  scale,
-  offset,
-  parent,
-  enableBoardOffsetAndScale,
-  setBoardOffsetAndScaleEnabled,
-}) => {
+const Toolbar = ({ router, boardId, boardRef, scale, offset, parent }) => {
   const sideBarRef = useRef();
 
   const dispatch = useDispatch();
@@ -110,22 +101,6 @@ const Toolbar = ({
               );
             }}
             disabled={!parent}
-          >
-            <IconArrowLeft size={18} />
-          </button>
-        </TooltipWrapper>
-        <TooltipWrapper
-          name="Enable/Disable Board offset and scale"
-          placement="right"
-        >
-          <button
-            type="button"
-            className={`toolbar-button ${
-              enableBoardOffsetAndScale ? "toggled" : undefined
-            }`}
-            onClick={() => {
-              setBoardOffsetAndScaleEnabled((prev) => !prev);
-            }}
           >
             <IconArrowLeft size={18} />
           </button>

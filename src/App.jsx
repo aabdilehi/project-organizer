@@ -52,13 +52,10 @@ function App() {
 
   useEffect(() => {
     const disableCtrlZoom = (e) => e.ctrlKey && e.preventDefault();
-    const pointermoveHandler = (e) => console.log("pointerMove", e);
 
     window.addEventListener("wheel", disableCtrlZoom, { passive: false });
-    window.addEventListener("pointermove", pointermoveHandler);
     return () => {
       window.removeEventListener("wheel", disableCtrlZoom);
-      window.removeEventListener("pointermove", pointermoveHandler);
     };
   }, []);
 

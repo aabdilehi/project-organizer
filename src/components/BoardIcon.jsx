@@ -42,25 +42,10 @@ const BoardIcon = ({ id, allowDrop, drop, offset, scale, onContextMenu }) => {
   const nodeRef = useRef();
 
   const [activeDropZone, setDropZoneActive] = useState(false);
-
   const updateSizeFromElement = () =>
     requestAnimationFrame(() => {
       if (nodeRef.current != null) {
-        nodeRef.current.style.height = "unset";
-        const bounds = nodeRef.current.getBoundingClientRect();
-        if (
-          Math.abs(sY - bounds.height / scale) > 10 // Padding is 10 on each side
-        ) {
-          dispatch(
-            updateSize.action({
-              id,
-              type: BoardObjects.BOARD,
-              sX: bounds.width / scale,
-              sY: bounds.height / scale,
-            })
-          );
-        }
-        nodeRef.current.style.height = sY;
+        nodeRef.current.style.height = "fit-content";
       }
     });
 
@@ -91,58 +76,58 @@ const BoardIcon = ({ id, allowDrop, drop, offset, scale, onContextMenu }) => {
   }, []);
 
   return (
-    <>
-      <NodeWrapper
-        ref={nodeRef}
-        id={id}
-        type={BoardObjects.BOARD}
-        canPosition={true}
-        canResize={false}
-        pX={pX}
-        pY={pY}
-        sX={sX}
-        sY={sY}
-        parentId={parent.id}
-        parentType={parent.type}
-        onContextMenu={onContextMenu}
+    <NodeWrapper
+      ref={nodeRef}
+      id={id}
+      type={BoardObjects.BOARD}
+      canPosition={true}
+      canResize={false}
+      pX={pX}
+      pY={pY}
+      sX={65}
+      sY={120}
+      parentId={parent.id}
+      parentType={parent.type}
+      scale={scale}
+      offset={offset}
+      onContextMenu={onContextMenu}
+    >
+      <div
+        className={`icon-wrapper${
+          dragging ? (activeDropZone ? " dropzone over" : " dropzone") : ""
+        }`}
+        onDoubleClick={() => {
+          navigate(`/${id}`);
+        }}
+        onDrop={(event) => {
+          event.stopPropagation();
+          if (!drop) return;
+          drop(event, id);
+        }}
+        onDragOver={(event) => {
+          if (!allowDrop) return;
+          allowDrop(event);
+        }}
       >
-        <div
-          className={`icon-wrapper${
-            dragging ? (activeDropZone ? " dropzone over" : " dropzone") : ""
-          }`}
-          onDoubleClick={() => {
-            navigate(`/${id}`);
-          }}
-          onDrop={(event) => {
-            event.stopPropagation();
-            if (!drop) return;
-            drop(event, id);
-          }}
-          onDragOver={(event) => {
-            if (!allowDrop) return;
-            allowDrop(event);
-          }}
-        >
-          <StarIcon pointerEvents={"none"} w={"100%"} h={"100%"} />
-        </div>
-        <CustomEditablePreview
-          as={"p"}
-          canEdit={true}
-          text={title}
-          textStyle={previewStyle}
-          onChange={(value) =>
-            dispatch(
-              updateTitle.action({
-                id,
-                type: BoardObjects.BOARD,
-                title: value,
-              })
-            )
-          }
-          onImmediateChange={updateSizeFromElement}
-        />
-      </NodeWrapper>
-    </>
+        <StarIcon pointerEvents={"none"} w={"100%"} h={"100%"} />
+      </div>
+      <CustomEditablePreview
+        as={"p"}
+        canEdit={true}
+        text={title}
+        textStyle={previewStyle}
+        onChange={(value) =>
+          dispatch(
+            updateTitle.action({
+              id,
+              type: BoardObjects.BOARD,
+              title: value,
+            })
+          )
+        }
+        onImmediateChange={updateSizeFromElement}
+      />
+    </NodeWrapper>
   );
 };
 

@@ -132,6 +132,7 @@ const createColumnThunk = (boardId) => (dispatch, getState) => {
       // Set position using cumulator for y value and group pX for x value
       const padding = 10;
       let y = pY + padding;
+      let initialY = y;
       for (let i = 0; i < sortedNodes.length; i++) {
         const node = sortedNodes[i];
         dispatch(
@@ -145,7 +146,59 @@ const createColumnThunk = (boardId) => (dispatch, getState) => {
         y += node.sY + padding;
       }
 
-      dispatch(updateSize.action({ id, type, sX, sY: y - pY }));
+      dispatch(updateSize.action({ id, type, sX, sY: y - initialY + padding }));
+    }
+  }
+};
+
+// This works fine but gets weird when there are nested groups
+const createRowThunk = (boardId) => (dispatch, getState) => {
+  // Get nodes within bounds
+  const state = getState();
+  const selectedNodes = state.selection;
+  const groups = state.groups;
+  for (const id in selectedNodes) {
+    if (Object.prototype.hasOwnProperty.call(selectedNodes, id)) {
+      const group = groups[id];
+
+      // it should be only groups if you can see this option but check anyway
+      if (!group) return;
+
+      const { type, pX, pY, sX, sY } = group;
+      const nodes = state.boards[boardId].childRefs.map((node) => {
+        return state[`${node.childType}s`][node.childId];
+      });
+
+      const nodesInBound = nodes.filter((node) => {
+        const buffer = 30;
+        return (
+          node.id != id &&
+          node.pX > pX - buffer &&
+          node.pX + node.sX < pX + sX + buffer &&
+          node.pY > pY - buffer &&
+          node.pY + node.sY < pY + sY + buffer
+        );
+      });
+      // Sort by pX value
+      const sortedNodes = nodesInBound.sort((a, b) => a.pX - b.pX);
+      // Set position using cumulator for y value and group pX for x value
+      const padding = 10;
+      let x = pX + padding;
+      let initialX = x;
+      for (let i = 0; i < sortedNodes.length; i++) {
+        const node = sortedNodes[i];
+        dispatch(
+          updatePosition.action({
+            id: node.id,
+            type: node.type,
+            pX: x,
+            pY: pY + 10,
+          })
+        );
+        x += node.sX + padding;
+      }
+
+      dispatch(updateSize.action({ id, type, sX: x - initialX + padding, sY }));
     }
   }
 };
@@ -381,6 +434,12 @@ export const GroupContextMenu: ContextMenu = {
       label: "Move items into column?",
       onClick: (dispatch, boardId) => {
         dispatch(createColumnThunk(boardId));
+      },
+    },
+    {
+      label: "Move items into row?",
+      onClick: (dispatch, boardId) => {
+        dispatch(createRowThunk(boardId));
       },
     },
   ],

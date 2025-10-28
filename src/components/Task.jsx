@@ -51,28 +51,29 @@ const Task = ({ id, onContextMenu, scale, offset }) => {
     parent,
   } = task;
   if (!parent) return null;
-  const updateSizeFromElement = () =>
-    requestAnimationFrame(() => {
-      if (nodeRef.current != null) {
-        nodeRef.current.style.height = "unset";
-        const bounds = nodeRef.current.getBoundingClientRect();
-        if (
-          Math.abs(sY - bounds.height / scale) > 10 // Padding is 10 on each side
-        ) {
-          dispatch(
-            updateSize.action({
-              id,
-              type: BoardObjects.TASK,
-              sX: bounds.width / scale,
-              sY: bounds.height / scale,
-            })
-          );
-        }
-        nodeRef.current.style.height = sY + "px";
+  const updateSizeFromElement = () => {
+    if (nodeRef.current != null) {
+      nodeRef.current.style.height = "unset";
+      const bounds = nodeRef.current.getBoundingClientRect();
+      if (
+        Math.abs(sY - bounds.height / scale) > 10 // Padding is 10 on each side
+      ) {
+        dispatch(
+          updateSize.action({
+            id,
+            type: BoardObjects.TASK,
+            sX: bounds.width / scale,
+            sY: bounds.height / scale,
+          })
+        );
       }
-    });
+      requestAnimationFrame(() => {
+        nodeRef.current.style.height = sY + "px";
+      });
+    }
+  };
 
-  updateSizeFromElement();
+  // updateSizeFromElement();
 
   if (checkBoxRef.current) {
     checkBoxRef.current.indeterminate = indeterminate;
@@ -374,6 +375,7 @@ const Task = ({ id, onContextMenu, scale, offset }) => {
               }}
               onClick={() => {
                 if (taskTitleRef.current) {
+                  console.log(taskTitleRef.current.value);
                   dispatch(
                     updateTitle.action({
                       id,

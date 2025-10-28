@@ -151,15 +151,12 @@ const DragLayer = ({
     }
 
     if (!dragLayerRef.current) return;
-    requestAnimationFrame(() => {
-      if (!dragLayerRef.current) return;
-      dragLayerRef.current.style.transform =
-        transformRef.current.style.transform = `scale(${scale}) translate(${
-          offset.x / scale
-        }px, ${offset.y / scale}px)`;
-    });
+    let dragZIndex = "1";
+    let boardZIndex = "2";
 
     if (event.dataTransfer.types.includes("action/move")) {
+      dragZIndex = "2";
+      boardZIndex = "1";
       const selectedNodeData = { ...selectedNodes };
       const selectedNodeOffsets = {};
       Object.values(selectedNodeData).map((item) => {
@@ -259,6 +256,8 @@ const DragLayer = ({
       });
     } else if (event.dataTransfer.types.includes("action/select")) {
       dispatch(clearSelectNode());
+      dragZIndex = "2";
+      boardZIndex = "1";
 
       // hide drag preview image
       const prev = document.createElement("span");
@@ -284,6 +283,16 @@ const DragLayer = ({
         types: event.dataTransfer.types,
       });
     }
+
+    requestAnimationFrame(() => {
+      if (!dragLayerRef.current) return;
+      dragLayerRef.current.style.transform =
+        transformRef.current.style.transform = `scale(${scale}) translate(${
+          offset.x / scale
+        }px, ${offset.y / scale}px)`;
+      dragLayerRef.current.style.zIndex = dragZIndex;
+      transformRef.current.style.zIndex = boardZIndex;
+    });
   };
 
   const handleDrag = (event) => {
@@ -312,6 +321,11 @@ const DragLayer = ({
   };
 
   const handleDragEnd = (event) => {
+    requestAnimationFrame(() => {
+      if (!dragLayerRef.current) return;
+      dragLayerRef.current.style.zIndex = "1";
+      transformRef.current.style.zIndex = "2";
+    });
     if (types.includes("action/select")) {
       if (!boardRef.current) return;
       const boardBounds = boardRef.current.getBoundingClientRect();

@@ -38,6 +38,8 @@ const BoardIconPreview = ({ id }) => {
         canResize={false}
         pX={board.pX}
         pY={board.pY}
+        sX={board.sX}
+        sY={board.sY}
         preview
         parentId={board.parent.id}
         parentType={board.parent.type}
