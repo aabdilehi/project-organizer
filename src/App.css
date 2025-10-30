@@ -57,11 +57,6 @@ button.badge:active {
   transform-origin: top left;
 }
 
-.clone-container > * {
-  pointer-events: none;
-  filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.2));
-}
-
 .resize-wrapper,
 .group,
 .selection-marquee {
@@ -246,7 +241,6 @@ button.badge:active {
   display: flex;
   align-items: center;
   justify-content: center;
-  pointer-events: auto;
 }
 
 .board.selected .icon-wrapper,
@@ -274,6 +268,7 @@ button.badge:active {
   column-gap: 5px;
   padding: 10px;
   box-sizing: border-box;
+  pointer-events: unset;
 }
 
 .task.in-column {
@@ -539,4 +534,8 @@ textarea.resizable::-webkit-scrollbar {
 .modal-body.task {
   background-color: red;
   height: 200px;
+}
+.clone-container * {
+  pointer-events: none;
+  filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.2));
 }

@@ -6,7 +6,7 @@ import "../editor.scss";
 import { bindActionCreators } from "redux";
 import { connect, useDispatch, useSelector } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { TbCheck, TbEdit, TbPlus, TbX } from "react-icons/tb";
 import CustomEditablePreview from "./Modular/CustomEditablePreview.tsx";
 import {
@@ -32,11 +32,21 @@ const previewStyle = {
   borderRadius: "5px",
 };
 
-const Task = ({ id, onContextMenu, scale, offset }) => {
+const Task = ({
+  id,
+  onContextMenu,
+  scale,
+  offset,
+}: {
+  id: string;
+  onContextMenu: React.MouseEventHandler<HTMLDivElement>;
+  scale: number;
+  offset: { x: number; y: number };
+}) => {
   const dispatch = useDispatch();
-  const nodeRef = useRef(null);
-  const checkBoxRef = useRef(null); // React does not seem to support the indeterminate property so we have to set it manually
-  const task = useSelector((state) => state.tasks[id]);
+  const nodeRef = useRef<HTMLDivElement>(null);
+  const checkBoxRef = useRef<HTMLInputElement>(null); // React does not seem to support the indeterminate property so we have to set it manually
+  const task = useSelector((state: any) => state.tasks[id]);
   const {
     pX,
     pY,
@@ -73,8 +83,6 @@ const Task = ({ id, onContextMenu, scale, offset }) => {
     }
   };
 
-  // updateSizeFromElement();
-
   if (checkBoxRef.current) {
     checkBoxRef.current.indeterminate = indeterminate;
   }
@@ -85,6 +93,8 @@ const Task = ({ id, onContextMenu, scale, offset }) => {
   const [tempBadges, setTempBadges] = useState(badges);
   const [tempSubTasks, setTempSubTasks] = useState(subTasks);
 
+  const selected = useSelector((state) => Object.hasOwn(state.selection, id));
+  updateSizeFromElement();
   return (
     <>
       <NodeWrapper
@@ -121,7 +131,7 @@ const Task = ({ id, onContextMenu, scale, offset }) => {
         <CustomEditablePreview
           as={"p"}
           style={{ gridArea: "title", width: "100%" }}
-          canEdit={true}
+          canEdit={selected}
           text={title}
           textStyle={previewStyle}
           onChange={(value) => {

@@ -133,6 +133,7 @@ const createColumnThunk = (boardId) => (dispatch, getState) => {
       const padding = 10;
       let y = pY + padding;
       let initialY = y;
+      let maxX: number | null = null;
       for (let i = 0; i < sortedNodes.length; i++) {
         const node = sortedNodes[i];
         dispatch(
@@ -144,9 +145,17 @@ const createColumnThunk = (boardId) => (dispatch, getState) => {
           })
         );
         y += node.sY + padding;
+        if (maxX == null || node.sX + padding > maxX) maxX = node.sX + padding;
       }
 
-      dispatch(updateSize.action({ id, type, sX, sY: y - initialY + padding }));
+      dispatch(
+        updateSize.action({
+          id,
+          type,
+          sX: maxX == null ? sX : maxX + padding,
+          sY: y - initialY + padding,
+        })
+      );
     }
   }
 };
@@ -185,6 +194,7 @@ const createRowThunk = (boardId) => (dispatch, getState) => {
       const padding = 10;
       let x = pX + padding;
       let initialX = x;
+      let maxY: number | null = null;
       for (let i = 0; i < sortedNodes.length; i++) {
         const node = sortedNodes[i];
         dispatch(
@@ -196,9 +206,17 @@ const createRowThunk = (boardId) => (dispatch, getState) => {
           })
         );
         x += node.sX + padding;
+        if (maxY == null || node.sY + padding > maxY) maxY = node.sY + padding;
       }
 
-      dispatch(updateSize.action({ id, type, sX: x - initialX + padding, sY }));
+      dispatch(
+        updateSize.action({
+          id,
+          type,
+          sX: x - initialX + padding,
+          sY: maxY == null ? sY : maxY + padding,
+        })
+      );
     }
   }
 };

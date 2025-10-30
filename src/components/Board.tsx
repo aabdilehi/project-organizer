@@ -24,7 +24,7 @@ import { withRouter } from "./Modular/ComponentWithRouterProp.jsx";
 import { clearSelectNode } from "../utils/slices/selectionSlice.ts";
 import BoardIcon from "./BoardIcon.jsx";
 import Document from "./Document.jsx";
-import Task from "./Task.jsx";
+import Task from "./Task";
 import DragLayer from "./DragLayer.tsx";
 import { updateOffset, updateScale } from "../utils/slices/boardSlice.ts";
 import {
@@ -190,26 +190,55 @@ const Board = ({ validBoard, router }) => {
   //#endregion
 
   let wheelEventEndTimeout;
-  const handleWheel = (event) => {
-    if (
-      event.target === ref.current ||
-      event.target.parentNode === ref.current
-    ) {
-      if (wheelEventEndTimeout == undefined) {
-        currentScale = scale;
-      }
-      clearTimeout(wheelEventEndTimeout);
-      wheelEventEndTimeout = setTimeout(() => {
-        dispatch(
-          updateScale({
-            id: boardId,
-            scale: currentScale,
-          })
-        );
-        wheelEventEndTimeout = undefined;
-      }, 250);
 
-      const newScale = Math.max(0.05, currentScale + event.deltaY * -0.0025);
+  let twoFingerPanTimeout: NodeJS.Timeout | null;
+
+  const handleTwoFingerPan = (event: WheelEvent) => {
+    if (twoFingerPanTimeout == null) {
+      shouldAnimateResizeMarquee.current = true;
+    } else clearTimeout(twoFingerPanTimeout);
+
+    if (transformRef.current != null && currentPosition != null) {
+      currentPosition = {
+        x: currentPosition.x - event.deltaX * 0.4,
+        y: currentPosition.y - event.deltaY * 0.4,
+      };
+
+      requestAnimationFrame(() => {
+        transformRef.current.style.transform = `scale(${currentScale}) translate(${
+          currentPosition.x / currentScale
+        }px, ${currentPosition.y / currentScale}px)`;
+
+        setOriginalBackground(ref.current, currentPosition, currentScale);
+      });
+    }
+
+    twoFingerPanTimeout = setTimeout(() => {
+      dispatch(
+        updateOffset({
+          id: boardId,
+          x: currentPosition.x,
+          y: currentPosition.y,
+        })
+      );
+      twoFingerPanTimeout = null;
+      shouldAnimateResizeMarquee.current = false;
+    }, 250);
+  };
+
+  let twoFingerZoomTimeout: NodeJS.Timeout | null;
+
+  const handleTwoFingerZoom = (event: WheelEvent) => {
+    if (twoFingerZoomTimeout == null) {
+      currentScale = scale;
+      shouldAnimateResizeMarquee.current = true;
+    } else clearTimeout(twoFingerZoomTimeout);
+    console.log(event.deltaY);
+    if (transformRef.current != null && currentPosition != null) {
+      const newScale = Math.max(
+        0.05,
+        currentScale + Math.min(10, Math.max(-10, event.deltaY)) * -0.0125
+      );
       currentScale += (newScale - currentScale) * 0.2;
 
       requestAnimationFrame(() => {
@@ -221,6 +250,26 @@ const Board = ({ validBoard, router }) => {
         // This should be changed as you cannot pan and scale at the same time rn
       });
     }
+
+    twoFingerZoomTimeout = setTimeout(() => {
+      dispatch(
+        updateScale({
+          id: boardId,
+          scale: currentScale,
+        })
+      );
+      twoFingerZoomTimeout = null;
+    }, 250);
+  };
+
+  const handleWheel = (event: WheelEvent) => {
+    // if (
+    //   event.target === ref.current ||
+    //   event.target.parentNode === ref.current
+    // ) {
+    if (event.ctrlKey) handleTwoFingerZoom(event);
+    else handleTwoFingerPan(event);
+    // }
   };
 
   const handleRightClick = (event) => {

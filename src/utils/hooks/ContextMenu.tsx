@@ -41,9 +41,9 @@ const ContextMenu = ({
         setOpen(false);
       }
     };
-    window.addEventListener("mouseup", handleClick);
+    window.addEventListener("mousedown", handleClick);
     return () => {
-      window.removeEventListener("mouseup", handleClick);
+      window.removeEventListener("mousedown", handleClick);
     };
   }, []);
 

@@ -35,6 +35,7 @@ const BoardIcon = ({ id, allowDrop, drop, offset, scale, onContextMenu }) => {
   const { pX, pY, sX, sY, title, parent } = useSelector(
     (state) => state.boards[id]
   );
+  const selected = useSelector((state) => Object.hasOwn(state.selection, id));
 
   const draggedNodes = useSelector(selectDraggedNodes);
   const dragging = !isEmpty(draggedNodes) && !Object.hasOwn(draggedNodes, id);
@@ -113,7 +114,7 @@ const BoardIcon = ({ id, allowDrop, drop, offset, scale, onContextMenu }) => {
       </div>
       <CustomEditablePreview
         as={"p"}
-        canEdit={true}
+        canEdit={selected}
         text={title}
         textStyle={previewStyle}
         onChange={(value) =>
