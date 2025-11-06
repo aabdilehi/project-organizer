@@ -25,8 +25,13 @@ import {
   NoteType,
 } from "./classes/new-classes";
 import sanitizeHtml from "sanitize-html";
-import { createNodeThunk, removeNodeThunk } from "./slices/thunks";
+import {
+  createNodeThunk,
+  newNodeContextMenu,
+  removeNodeThunk,
+} from "./slices/thunks";
 import { AnyAction, Dispatch } from "redux";
+import { updateOffset, updateScale } from "./slices/boardSlice";
 
 const convertNoteToDocument = (note) => (dispatch, getState) => {
   if (!note) return;
@@ -221,6 +226,11 @@ const createRowThunk = (boardId) => (dispatch, getState) => {
   }
 };
 
+export const recenterBoard = (boardId) => (dispatch, getState) => {
+  dispatch(updateOffset({ id: boardId, x: 0, y: 0 }));
+  dispatch(updateScale({ id: boardId, scale: 1 }));
+};
+
 // hinges on there being multiple selected nodes
 export const groupItemsThunk = (boardId) => (dispatch, getState) => {
   const state = getState();
@@ -286,89 +296,67 @@ export const NullContextMenu: ContextMenu = {
   canDelete: false,
   items: [
     {
+      label: "Recenter",
+      onClick: (
+        dispatch: Dispatch<AnyAction>,
+        boardId: string,
+        pX?: number,
+        pY?: number
+      ) => dispatch(recenterBoard(boardId)),
+    },
+    {
       label: "New Note",
       onClick: (
         dispatch: Dispatch<AnyAction>,
         boardId: string,
         pX?: number,
         pY?: number
-      ) =>
-        dispatch(
-          createNodeThunk({
-            type: BoardObjects.NOTE,
-            parent: { id: boardId, type: BoardObjects.BOARD },
-            pX,
-            pY,
-          })
-        ),
+      ) => dispatch(newNodeContextMenu(boardId, pX, pY, BoardObjects.NOTE)),
     },
     {
       label: "New Board",
       onClick: (
         dispatch: Dispatch<AnyAction>,
-        id: string,
+        boardId: string,
         pX?: number,
         pY?: number
-      ) =>
-        dispatch(
-          createNodeThunk({
-            type: BoardObjects.BOARD,
-            parent: { id, type: BoardObjects.BOARD },
-            pX,
-            pY,
-          })
-        ),
+      ) => dispatch(newNodeContextMenu(boardId, pX, pY, BoardObjects.BOARD)),
     },
     {
       label: "New Group",
       onClick: (
         dispatch: Dispatch<AnyAction>,
-        id: string,
+        boardId: string,
         pX?: number,
         pY?: number
-      ) =>
-        dispatch(
-          createNodeThunk({
-            type: BoardObjects.GROUP,
-            parent: { id, type: BoardObjects.BOARD },
-            pX,
-            pY,
-          })
-        ),
+      ) => dispatch(newNodeContextMenu(boardId, pX, pY, BoardObjects.GROUP)),
     },
     {
       label: "New Task",
       onClick: (
         dispatch: Dispatch<AnyAction>,
-        id: string,
+        boardId: string,
         pX?: number,
         pY?: number
-      ) =>
-        dispatch(
-          createNodeThunk({
-            type: BoardObjects.TASK,
-            parent: { id, type: BoardObjects.BOARD },
-            pX,
-            pY,
-          })
-        ),
+      ) => dispatch(newNodeContextMenu(boardId, pX, pY, BoardObjects.TASK)),
     },
     {
       label: "New Document",
       onClick: (
         dispatch: Dispatch<AnyAction>,
-        id: string,
+        boardId: string,
         pX?: number,
         pY?: number
-      ) =>
-        dispatch(
-          createNodeThunk({
-            type: BoardObjects.DOCUMENT,
-            parent: { id, type: BoardObjects.BOARD },
-            pX,
-            pY,
-          })
-        ),
+      ) => dispatch(newNodeContextMenu(boardId, pX, pY, BoardObjects.DOCUMENT)),
+    },
+    {
+      label: "New Image",
+      onClick: (
+        dispatch: Dispatch<AnyAction>,
+        boardId: string,
+        pX?: number,
+        pY?: number
+      ) => dispatch(newNodeContextMenu(boardId, pX, pY, BoardObjects.IMAGE)),
     },
   ],
 };

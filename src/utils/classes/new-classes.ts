@@ -121,6 +121,8 @@ export const defaultTask: TaskType = {
 };
 export const defaultImage: ImageType = {
   ...defaultNode,
+  sX: 200,
+  sY: 200,
   type: BoardObjects.IMAGE,
   imageId: undefined,
 };

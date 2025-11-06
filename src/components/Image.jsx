@@ -64,7 +64,7 @@ const Image = ({ id, onContextMenu, offset, scale }) => {
         canResize={true}
         pX={pX}
         pY={pY}
-        sX={sX ?? 200}
+        sX={sX}
         sY={sY}
         parentId={parent.id}
         parentType={parent.type}

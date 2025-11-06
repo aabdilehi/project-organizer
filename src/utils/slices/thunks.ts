@@ -142,6 +142,31 @@ function copyNodeThunk(id: string, type: BoardObjects) {
   };
 }
 
+export function newNodeContextMenu(
+  boardId: string,
+  x: number = 0,
+  y: number = 0,
+  type: BoardObjects
+) {
+  return (dispatch, getState) => {
+    const state = getState();
+
+    // Get position relative to board
+    const { offset, scale } = state.boards[boardId];
+    const newX = (x - offset.x) / scale;
+    const newY = (y - offset.y) / scale;
+
+    const node = {
+      type,
+      parent: { id: boardId, type: BoardObjects.BOARD },
+      pX: newX,
+      pY: newY,
+    };
+
+    dispatch(createNodeThunk(node, true));
+  };
+}
+
 export function pasteCopiedNodes(
   boardId: string,
   x: number = 0,
@@ -200,8 +225,10 @@ export function createNodeThunk(
 ) {
   return (dispatch, getState) => {
     if (!Object.hasOwn(node, "type")) return;
+
     // Complete partial node data
     const newNode = formatData(node, NodeTypeMap[node.type!]);
+
     // console.log(newNode);
     // Create node and add to parent
     dispatch(addNode.action(newNode));

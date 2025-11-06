@@ -9,31 +9,13 @@ import { useEffect, useRef, useState } from "react";
 import IconButton from "./Modular/IconButton.tsx";
 import { TbEdit } from "react-icons/tb";
 
-const ImagePreview = ({ id, resize, getNodeSize }) => {
+const ImagePreview = ({ id }) => {
   const nodeRef = useRef();
   const { pX, pY, sX, sY, imageId, parent } = useSelector(
     (state) => state.images[id] ?? state.drag.nodes[id]
   );
   const image = useSelector((state) => state.imageMap[imageId] ?? "");
 
-  const sizeRef = useRef({ x: sX, y: sY });
-  const animateResize = (e) => {
-    requestAnimationFrame(() => {
-      if (!nodeRef.current) return;
-      sizeRef.current = getNodeSize(e.clientX, e.clientY, sX, sY);
-      nodeRef.current.style.width = `${sizeRef.current.x}px`;
-      nodeRef.current.style.height = `${sizeRef.current.y}px`;
-    });
-  };
-
-  useEffect(() => {
-    if (resize) {
-      window.addEventListener("drag", animateResize);
-    }
-    return () => {
-      window.removeEventListener("drag", animateResize);
-    };
-  }, [resize]);
   return (
     <>
       <NodeWrapper
@@ -45,8 +27,8 @@ const ImagePreview = ({ id, resize, getNodeSize }) => {
         canResize={true}
         pX={pX}
         pY={pY}
-        sX={sizeRef.current.x}
-        sY={sizeRef.current.y}
+        sX={sX}
+        sY={sY}
         parentId={parent.id}
         parentType={parent.type}
       >
