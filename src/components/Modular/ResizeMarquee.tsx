@@ -13,18 +13,24 @@ import {
 } from "../../utils/slices/selectionSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { updatePosition, updateSize } from "../../utils/slices/nodeActions";
-import { BoardObjects } from "../../utils/enums/items";
+import {
+  BoardObjects,
+  DragAction,
+  DragSignature,
+  ResizeDirection,
+} from "../../utils/enums/items";
 import { debounce } from "lodash";
 import { createSelector } from "@reduxjs/toolkit";
+import { PlainRootState } from "../../utils/slices/types";
 
 const selectMappedSelection = createSelector(
-  [(state) => state.selection, (state) => state],
+  [(state: PlainRootState) => state.selection, (state) => state],
   (selection, state) =>
     Object.values(selection).map((node) => state[`${node.type}s`][node.id])
 );
 
 const selectMappedDragged = createSelector(
-  [(state) => state.drag.nodes, (state) => state],
+  [(state: PlainRootState) => state.drag.nodes, (state) => state],
   (nodes, state) =>
     Object.values(nodes).map((node) => {
       return state[`${node.type}s`][node.id] ?? node;
@@ -32,7 +38,7 @@ const selectMappedDragged = createSelector(
 );
 
 const selectDragging = createSelector(
-  [(state) => state.drag.nodes],
+  [(state: PlainRootState) => state.drag.nodes],
   (nodes) => Object.keys(nodes).length > 0
 );
 
@@ -74,7 +80,7 @@ export default forwardRef(
     sizeX = endX - startX + padding;
     sizeY = endY - startY + padding;
 
-    const animateResize = (e) => {
+    const animateResize = (e: DragEvent) => {
       requestAnimationFrame(() => {
         if (!nodeRef.current) return;
         const { x, y } = getNodeSize(e.clientX, e.clientY, sizeX, sizeY);
@@ -114,8 +120,9 @@ export default forwardRef(
           style={{ pointerEvents: preview ? "none" : "auto" }}
           draggable={!preview}
           onDragStart={(e) => {
-            e.dataTransfer.setData("action/resize", "");
-            e.dataTransfer.setData(`direction/top`, "");
+            e.dataTransfer.setData(DragSignature, "");
+            e.dataTransfer.setData(DragAction.RESIZE, "");
+            e.dataTransfer.setData(ResizeDirection.TOP, "");
           }}
         />
         <div
@@ -124,8 +131,9 @@ export default forwardRef(
           style={{ pointerEvents: preview ? "none" : "auto" }}
           draggable={!preview}
           onDragStart={(e) => {
-            e.dataTransfer.setData("action/resize", "");
-            e.dataTransfer.setData(`direction/left`, "");
+            e.dataTransfer.setData(DragSignature, "");
+            e.dataTransfer.setData(DragAction.RESIZE, "");
+            e.dataTransfer.setData(ResizeDirection.LEFT, "");
           }}
         />
         <div
@@ -134,8 +142,9 @@ export default forwardRef(
           style={{ pointerEvents: preview ? "none" : "auto" }}
           draggable={!preview}
           onDragStart={(e) => {
-            e.dataTransfer.setData("action/resize", "");
-            e.dataTransfer.setData(`direction/bottom`, "");
+            e.dataTransfer.setData(DragSignature, "");
+            e.dataTransfer.setData(DragAction.RESIZE, "");
+            e.dataTransfer.setData(ResizeDirection.BOTTOM, "");
           }}
         />
         <div
@@ -144,8 +153,9 @@ export default forwardRef(
           style={{ pointerEvents: preview ? "none" : "auto" }}
           draggable={!preview}
           onDragStart={(e) => {
-            e.dataTransfer.setData("action/resize", "");
-            e.dataTransfer.setData(`direction/right`, "");
+            e.dataTransfer.setData(DragSignature, "");
+            e.dataTransfer.setData(DragAction.RESIZE, "");
+            e.dataTransfer.setData(ResizeDirection.RIGHT, "");
           }}
         />
         <div
@@ -154,8 +164,9 @@ export default forwardRef(
           style={{ pointerEvents: preview ? "none" : "auto" }}
           draggable={!preview}
           onDragStart={(e) => {
-            e.dataTransfer.setData("action/resize", "");
-            e.dataTransfer.setData(`direction/top-left`, "");
+            e.dataTransfer.setData(DragSignature, "");
+            e.dataTransfer.setData(DragAction.RESIZE, "");
+            e.dataTransfer.setData(ResizeDirection.TOPLEFT, "");
           }}
         />
         <div
@@ -164,8 +175,9 @@ export default forwardRef(
           style={{ pointerEvents: preview ? "none" : "auto" }}
           draggable={!preview}
           onDragStart={(e) => {
-            e.dataTransfer.setData("action/resize", "");
-            e.dataTransfer.setData(`direction/top-right`, "");
+            e.dataTransfer.setData(DragSignature, "");
+            e.dataTransfer.setData(DragAction.RESIZE, "");
+            e.dataTransfer.setData(ResizeDirection.TOPRIGHT, "");
           }}
         />
         <div
@@ -174,8 +186,9 @@ export default forwardRef(
           style={{ pointerEvents: preview ? "none" : "auto" }}
           draggable={!preview}
           onDragStart={(e) => {
-            e.dataTransfer.setData("action/resize", "");
-            e.dataTransfer.setData(`direction/bottom-left`, "");
+            e.dataTransfer.setData(DragSignature, "");
+            e.dataTransfer.setData(DragAction.RESIZE, "");
+            e.dataTransfer.setData(ResizeDirection.BOTTOMLEFT, "");
           }}
         />
         <div
@@ -184,8 +197,9 @@ export default forwardRef(
           style={{ pointerEvents: preview ? "none" : "auto" }}
           draggable={!preview}
           onDragStart={(e) => {
-            e.dataTransfer.setData("action/resize", "");
-            e.dataTransfer.setData(`direction/bottom-right`, "");
+            e.dataTransfer.setData(DragSignature, "");
+            e.dataTransfer.setData(DragAction.RESIZE, "");
+            e.dataTransfer.setData(ResizeDirection.BOTTOMRIGHT, "");
           }}
         />
       </div>

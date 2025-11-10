@@ -1,6 +1,6 @@
-import { createAction } from "@reduxjs/toolkit";
+import { CaseReducer, createAction } from "@reduxjs/toolkit";
 import {
-  defaultRoot,
+  BoardType,
   formatData,
   formatRoot,
   NodeType,
@@ -8,212 +8,260 @@ import {
   SizeClassMap,
 } from "../classes/new-classes";
 import { BoardObjects } from "../enums/items";
+import { NodeSliceKeys, PlainRootState, SliceNodeMap } from "./types";
 
 // Actions
 
-const setSliceDataAction = createAction<{ nodes: NodeType[]; merge: boolean }>(
-  "setSliceData"
-);
-const addNodeAction = createAction<{}>("addNode");
-const removeNodeAction = createAction<{ id: string; type: string }>(
+const setSliceDataAction = createAction<{
+  nodes: { [id: string]: NodeType };
+  merge: boolean;
+}>("setSliceData");
+const addNodeAction = createAction<NodeType>("addNode");
+const removeNodeAction = createAction<{ id: string; type: BoardObjects }>(
   "removeNode"
 );
 const addChildAction = createAction<{
   id: string;
-  type: string;
+  type: BoardObjects;
   cId: string;
-  cType: string;
+  cType: BoardObjects;
 }>("addChild");
 const removeChildAction = createAction<{
   id: string;
-  type: string;
+  type: BoardObjects;
   cId: string;
 }>("removeChild");
 const updateTitleAction = createAction<{
   id: string;
-  type: string;
+  type: BoardObjects;
   title: string;
 }>("updateTitle");
 const updateContentAction = createAction<{
   id: string;
-  type: string;
+  type: BoardObjects;
   content: string;
 }>("updateContent");
 const updatePositionAction = createAction<{
   id: string;
-  type: string;
+  type: BoardObjects;
   pX: number;
   pY: number;
 }>("updatePosition");
 const offsetPositionAction = createAction<{
   id: string;
-  type: string;
+  type: BoardObjects;
   offsetX: number;
   offsetY: number;
 }>("offsetPosition");
 const updateSizeAction = createAction<{
   id: string;
-  type: string;
+  type: BoardObjects;
   sX: number;
   sY: number;
 }>("updateSize");
 const updateParentAction = createAction<{
   id: string;
-  type: string;
+  type: BoardObjects;
   parent: object;
 }>("updateParent");
 
 // Reducers (Function wrapped in function so I can have extra params)
-const setSliceDataReducer = (nodeType: BoardObjects) => (state, action) => {
-  // Ensure payload has been properly set
-  if (!Object.hasOwn(action.payload, "merge")) return;
-  if (!Object.hasOwn(action.payload, "nodes")) return;
+function setSliceDataReducer<T extends NodeSliceKeys>(
+  nodeType: T
+): CaseReducer<PlainRootState[T], ReturnType<typeof setSliceDataAction>> {
+  return (state, action) => {
+    // Ensure payload has been properly set
+    if (!Object.hasOwn(action.payload, "merge")) return;
+    if (!Object.hasOwn(action.payload, "nodes")) return;
 
-  const {
-    nodes,
-    merge,
-  }: { nodes: { [id: string]: NodeType }; merge: boolean } = action.payload;
+    const { nodes, merge } = action.payload;
+    if (!nodes) return;
 
-  // Second check for redundancy (don't care if this does nothing, it's here)
-  // If nodes not provided, return
-  if (!nodes) return;
+    const keys = Object.keys(nodes);
+    if (keys.length <= 0) return;
 
-  const keys = Object.keys(nodes);
+    // Filter keys for empty or incorrect values
+    const newKeys = keys.filter(
+      (key) => key.length > 0 && nodes[key].id == key
+    );
 
-  // If empty object provided, return
-  if (keys.length <= 0) return;
+    // Construct new object containing only appropriate values
+    const newNodes: typeof nodes = {};
+    newKeys.forEach((key) => {
+      if (!Object.hasOwn(nodes, key)) return; // Ensure it exists
 
-  // Filter keys for empty or incorrect values
-  const newKeys = keys.filter((key) => key.length > 0 && nodes[key].id == key);
-  // Construct new object containing only appropriate values
-  const newNodes = {};
-  newKeys.forEach((key) => {
-    if (!Object.hasOwn(nodes, key)) return; // Ensure it exists
-    if (key == "root" && nodeType == BoardObjects.BOARD) {
-      newNodes[key] = formatRoot(nodes[key]);
-      return;
+      const newNode = nodes[key];
+      if (!newNode) return;
+
+      if (newNode.type !== SliceNodeMap[nodeType]) return;
+
+      if (key == "root") {
+        Object.defineProperty(newNodes, key, formatRoot(newNode));
+        return;
+      }
+
+      Object.defineProperty(
+        newNodes,
+        key,
+        formatData(newNode, NodeTypeMap[newNode.type])
+      );
+    });
+
+    // Might be redundant but I want to make sure things are proper before potentially breaking the state
+    if (!newNodes) return;
+    if (Object.keys(newNodes).length <= 0) return;
+
+    if (merge) {
+      return { ...state, ...newNodes };
     }
-    if (nodes[key].type != nodeType) return;
-    const newNode = nodes[key];
-    if (!newNode) return;
-    newNodes[key] = formatData(nodes[key], NodeTypeMap[nodes[key].type]);
-  });
-
-  // Might be redundant but I want to make sure things are proper before potentially breaking the state
-  if (!newNodes) return;
-  if (Object.keys(newNodes).length <= 0) return;
-
-  if (merge) {
-    return { ...state, ...newNodes };
-  }
-  return { ...newNodes };
-};
-const addNodeReducer = (nodeType) => (state, action) => {
-  const node = action.payload;
-  if (!node || node.type !== nodeType) return;
-  return {
-    ...state,
-    [node.id]: node,
+    return { ...newNodes } as any;
   };
-};
-const removeNodeReducer = (nodeType) => (state, action) => {
-  const { id, type } = action.payload;
-  if (!id || type !== nodeType) return;
-  delete state[id];
-};
-const addChildReducer = (nodeType) => (state, action) => {
-  const { id, type, cId, cType } = action.payload;
-  if (!id || !cId || !cType || type !== nodeType) return;
-  const node = state[id];
-  const index = node.childRefs.findIndex((item) => {
-    return item.childId === cId;
-  });
-  if (index !== -1) return;
-  return {
-    ...state,
-    [id]: {
-      ...node,
-      childRefs: [...node.childRefs, { childId: cId, childType: cType }],
-    },
+}
+function addNodeReducer<T extends NodeSliceKeys>(
+  nodeType: T
+): CaseReducer<PlainRootState[T], ReturnType<typeof addNodeAction>> {
+  return (state, action) => {
+    const node = action.payload;
+    if (!node || node.type !== SliceNodeMap[nodeType]) return;
+    return {
+      ...state,
+      [node.id]: node,
+    };
   };
-};
-const removeChildReducer = (nodeType) => (state, action) => {
-  const { id, type, cId } = action.payload;
-  // console.log(`Board Id: ${id}\nBoard type: ${type}\nChild Id: ${cId}`);
-  if (!id || !cId || type !== nodeType) return;
-  const node = state[id];
-  const index = node.childRefs.findIndex((item) => {
-    return item.childId === cId;
-  });
-  if (index === -1) return;
-  return {
-    ...state,
-    [id]: {
-      ...node,
-      childRefs: [
-        ...node.childRefs.slice(0, index),
-        ...node.childRefs.slice(index + 1),
-      ],
-    },
+}
+function removeNodeReducer<T extends NodeSliceKeys>(
+  nodeType: T
+): CaseReducer<PlainRootState[T], ReturnType<typeof removeNodeAction>> {
+  return (state, action) => {
+    const { id, type } = action.payload;
+    if (!id || type !== SliceNodeMap[nodeType]) return;
+    delete state[id];
   };
-};
-const updateTitleReducer = (nodeType) => (state, action) => {
-  const { id, type, title } = action.payload;
-  if (!id || !title || type !== nodeType) return;
-  const node = state[id];
-  return {
-    ...state,
-    [id]: {
-      ...node,
-      title,
-    },
+}
+function addChildReducer<T extends Extract<NodeSliceKeys, "boards">>(
+  nodeType: T
+): CaseReducer<PlainRootState[T], ReturnType<typeof addChildAction>> {
+  return (state, action) => {
+    const { id, type, cId, cType } = action.payload;
+    if (!id || !cId || !cType || type !== SliceNodeMap[nodeType]) return;
+    const node = state[id];
+    const index = node.childRefs.findIndex((item) => {
+      return item.id === cId;
+    });
+    if (index !== -1) return;
+    return {
+      ...state,
+      [id]: {
+        ...node,
+        childRefs: [...node.childRefs, { id: cId, type: cType }],
+      },
+    };
   };
-};
-const updateContentReducer = (nodeType) => (state, action) => {
-  const { id, type, content } = action.payload;
-  if (!id || !content || type !== nodeType) return;
-  const node = state[id];
-  return {
-    ...state,
-    [id]: {
-      ...node,
-      content,
-    },
+}
+function removeChildReducer<T extends Extract<NodeSliceKeys, "boards">>(
+  nodeType: T
+): CaseReducer<PlainRootState[T], ReturnType<typeof removeChildAction>> {
+  return (state, action) => {
+    const { id, type, cId } = action.payload;
+    if (!id || !cId || type !== SliceNodeMap[nodeType]) return;
+    const node = state[id];
+    const index = node.childRefs.findIndex((item) => {
+      return item.id === cId;
+    });
+    if (index === -1) return;
+    return {
+      ...state,
+      [id]: {
+        ...node,
+        childRefs: [
+          ...node.childRefs.slice(0, index),
+          ...node.childRefs.slice(index + 1),
+        ],
+      },
+    };
   };
-};
-const updatePositionReducer = (nodeType) => (state, action) => {
-  const { id, type, pX, pY } = action.payload;
+}
 
-  if (!id || type !== nodeType || !pX || !pY) return;
-  const node = state[id];
-  if (!node) return;
-
-  return {
-    ...state,
-    [id]: {
-      ...node,
-      pX,
-      pY,
-    },
+function updateTitleReducer<T extends NodeSliceKeys>(
+  nodeType: T
+): CaseReducer<PlainRootState[T], ReturnType<typeof updateTitleAction>> {
+  return (state, action) => {
+    const { id, type, title } = action.payload;
+    if (!id || !title || type !== SliceNodeMap[nodeType]) return;
+    const node = state[id];
+    return {
+      ...state,
+      [id]: {
+        ...node,
+        title,
+      },
+    };
   };
-};
-const offsetPositionReducer = (nodeType) => (state, action) => {
-  const { id, type, offsetX, offsetY } = action.payload;
-
-  if (!id || type !== nodeType || !offsetX || !offsetY) return;
-  const node = state[id];
-
-  return {
-    ...state,
-    [id]: {
-      ...node,
-      pX: state[id].pX + offsetX,
-      pY: state[id].pY + offsetY,
-    },
+}
+function updateContentReducer<T extends NodeSliceKeys>(
+  nodeType: T
+): CaseReducer<PlainRootState[T], ReturnType<typeof updateContentAction>> {
+  return (state, action) => {
+    const { id, type, content } = action.payload;
+    if (!id || !content || type !== SliceNodeMap[nodeType]) return;
+    const node = state[id];
+    return {
+      ...state,
+      [id]: {
+        ...node,
+        content,
+      },
+    };
   };
-};
+}
+function updatePositionReducer<T extends NodeSliceKeys>(
+  nodeType: T
+): CaseReducer<PlainRootState[T], ReturnType<typeof updatePositionAction>> {
+  return (state, action) => {
+    const { id, type, pX, pY } = action.payload;
 
-function clampIfDefined(value, min, max) {
+    if (!id || type !== SliceNodeMap[nodeType] || !pX || !pY) return;
+    const node = state[id];
+    if (!node) return;
+
+    return {
+      ...state,
+      [id]: {
+        ...node,
+        pX,
+        pY,
+      },
+    };
+  };
+}
+function offsetPositionReducer<T extends NodeSliceKeys>(
+  nodeType: T
+): CaseReducer<PlainRootState[T], ReturnType<typeof offsetPositionAction>> {
+  return (state, action) => {
+    const { id, type, offsetX, offsetY } = action.payload;
+
+    if (
+      !id ||
+      id == "root" ||
+      type !== SliceNodeMap[nodeType] ||
+      !offsetX ||
+      !offsetY
+    )
+      return;
+    const node = state[id] as BoardType;
+
+    return {
+      ...state,
+      [id]: {
+        ...node,
+        pX: node.pX + offsetX,
+        pY: node.pY + offsetY,
+      },
+    };
+  };
+}
+
+function clampIfDefined(value?: number, min?: number, max?: number) {
   if (!value) return;
   let temp = value;
   if (min) {
@@ -225,47 +273,55 @@ function clampIfDefined(value, min, max) {
   return temp;
 }
 
-const updateSizeReducer = (nodeType) => (state, action) => {
-  const { id, type, sX, sY } = action.payload;
-  if (!id || type !== nodeType) return;
-  const node = state[id];
-  // I need to limit this to the nodes min and max size;
-  if (
-    (Object.hasOwn(node, "sX") && !sX) ||
-    (Object.hasOwn(node, "sY") && !sY)
-  ) {
-    return;
-  }
+function updateSizeReducer<T extends NodeSliceKeys>(
+  nodeType: T
+): CaseReducer<PlainRootState[T], ReturnType<typeof updateSizeAction>> {
+  return (state, action) => {
+    const { id, type, sX, sY } = action.payload;
+    if (!id || type !== SliceNodeMap[nodeType]) return;
+    const node = state[id];
+    // I need to limit this to the nodes min and max size;
+    if (
+      (Object.hasOwn(node, "sX") && !sX) ||
+      (Object.hasOwn(node, "sY") && !sY)
+    ) {
+      return;
+    }
 
-  return {
-    ...state,
-    [id]: {
-      ...node,
-      sX: clampIfDefined(
-        sX,
-        SizeClassMap[type]?.min?.x ?? null,
-        SizeClassMap[type]?.max?.x ?? null
-      ),
-      sY: clampIfDefined(
-        sY,
-        SizeClassMap[type]?.min?.y ?? null,
-        SizeClassMap[type]?.max?.y ?? null
-      ),
-    },
+    return {
+      ...state,
+      [id]: {
+        ...node,
+        sX: clampIfDefined(
+          sX,
+          SizeClassMap[type]?.min?.x,
+          SizeClassMap[type]?.max?.x
+        ),
+        sY: clampIfDefined(
+          sY,
+          SizeClassMap[type]?.min?.y,
+          SizeClassMap[type]?.max?.y
+        ),
+      },
+    };
   };
-};
-const updateParentReducer = (nodeType) => (state, action) => {
-  const { id, type, parent } = action.payload;
-  if (!id || type !== nodeType || !parent) return;
-  const node = state[id];
-  return {
-    ...state,
-    [id]: {
-      ...node,
-      parent,
-    },
+}
+function updateParentReducer<T extends NodeSliceKeys>(
+  nodeType: T
+): CaseReducer<PlainRootState[T], ReturnType<typeof updateParentAction>> {
+  return (state, action) => {
+    const { id, type, parent } = action.payload;
+    if (!id || type !== SliceNodeMap[nodeType] || !parent) return;
+    const node = state[id];
+    return {
+      ...state,
+      [id]: {
+        ...node,
+        parent,
+      },
+    };
   };
-};
+}
 
 // Exports
 export const setSliceData = {

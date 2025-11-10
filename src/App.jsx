@@ -1,24 +1,11 @@
 import "./App.css";
-import { Box, ChakraProvider, Stack } from "@chakra-ui/react";
-import React, {
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, { useEffect, useState } from "react";
 import Board from "./components/Board";
-import theme from "./config/theme";
-import DarkModeIconButton from "./components/Modular/DarkModeIconButton";
-import HelpIconButton from "./components/Modular/HelpIconButton";
 import { Route, Routes } from "react-router-dom";
-import { createContext } from "react";
-import { useCallback } from "react";
 import {
   TbMoonFilled as MoonIcon,
   TbSunFilled as SunIcon,
 } from "react-icons/tb";
-import { Modal } from "./components/Modular/Modal";
 
 function App() {
   // const [currentBoard, setCurrentBoard] = useState(null);

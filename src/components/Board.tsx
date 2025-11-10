@@ -1,15 +1,13 @@
 //#region Imports
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { v4 as uuidv4 } from "uuid";
-import { connect, useDispatch, useSelector } from "react-redux";
+import React, { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 
-import { BoardObjects } from "../utils/enums/items.tsx";
+import {
+  BoardObjects,
+  DragAction,
+  DragOrigin,
+  DragSignature,
+} from "../utils/enums/items.tsx";
 import Note from "./Note.jsx";
 
 import {
@@ -20,12 +18,12 @@ import {
 } from "../utils/slices/nodeActions.ts";
 
 import { useDrop } from "../utils/hooks/useDrop.jsx";
-import { withRouter } from "./Modular/ComponentWithRouterProp.jsx";
+import { Router, withRouter } from "./Modular/ComponentWithRouterProp.jsx";
 import { clearSelectNode } from "../utils/slices/selectionSlice.ts";
 import BoardIcon from "./BoardIcon.jsx";
 import Document from "./Document.jsx";
 import Task from "./Task";
-import DragLayer from "./DragLayer.tsx";
+import DragLayer from "./DragLayer";
 import { updateOffset, updateScale } from "../utils/slices/boardSlice.ts";
 import {
   addCopyNode,
@@ -43,7 +41,8 @@ import {
 import { RootState } from "../store.ts";
 import ResizeMarquee from "./Modular/ResizeMarquee.tsx";
 import Toolbar from "./Toolbar.tsx";
-import Image from "./Image.jsx";
+import Image from "./Image.js";
+import { BoardType } from "../utils/classes/new-classes.ts";
 //#endregion
 
 const setOriginalBackground = (
@@ -64,10 +63,13 @@ const originalBackground = `radial-gradient(
     var(--secondary-background-color) 1px,
     var(--primary-background-color) 2px
   )`;
-const originalBackgroundSize = (scale) => {
+const originalBackgroundSize = (scale: number) => {
   return `${50 * scale}px ${50 * scale}px`;
 };
-const originalBackgroundPosition = (position, scale) => {
+const originalBackgroundPosition = (
+  position: { x: number; y: number },
+  scale: number
+) => {
   return `${position.x}px ${position.y}px`;
 };
 
@@ -87,7 +89,10 @@ const crossBackground = `radial-gradient(circle, transparent 20%, slategray 20%,
     slategray 80%, transparent 80%, transparent) 50px 50px,
   linear-gradient(#A8B1BB 8px, transparent 8px) 0 -4px,
   linear-gradient(90deg, #A8B1BB 8px, transparent 8px) -4px 0`;
-const crossBackgroundPosition = (position, scale) => {
+const crossBackgroundPosition = (
+  position: { x: number; y: number },
+  scale: number
+) => {
   return `${position.x}px ${position.y}px,${position.x + 50 * scale}px ${
     position.y + 50 * scale
   }px,${position.x}px ${position.y - 4 * scale}px,${position.x - 4 * scale}px ${
@@ -95,7 +100,7 @@ const crossBackgroundPosition = (position, scale) => {
   }px`;
 };
 
-const crossBackgroundSize = (scale) => {
+const crossBackgroundSize = (scale: number) => {
   const size1 = 100 * scale;
   const size2 = 50 * scale;
   return `${size1}px ${size1}px, ${size1}px ${size1}px, ${size2}px ${size2}px, ${size2}px ${size2}px`;
@@ -129,17 +134,26 @@ const waveBackground = `radial-gradient(
       )
       `;
 
-const waveBackgroundSize = (scale) => {
+const waveBackgroundSize = (scale: number) => {
   return `${75 * scale}px ${100 * scale}px`;
 };
 
-const waveBackgroundPosition = (position, scale) => {
+const waveBackgroundPosition = (
+  position: { x: number; y: number },
+  scale: number
+) => {
   return `${position.x}px ${position.y}px, ${position.x}px ${
     position.y - 50 * scale
   }px`;
 };
 
-const Board = ({ validBoard, router }) => {
+const Board = ({
+  validBoard,
+  router,
+}: {
+  validBoard: boolean;
+  router: Router;
+}) => {
   //#region Handle initial page setup
   const { id } = router.params;
   const boardId = id ? id : "root";
@@ -155,7 +169,7 @@ const Board = ({ validBoard, router }) => {
   );
 
   const parent = useSelector((state: RootState) =>
-    boardId == "root" ? undefined : state.boards[boardId].parent
+    boardId == "root" ? undefined : (state.boards[boardId] as BoardType).parent
   );
 
   const shouldAnimateResizeMarquee = useRef(false);
@@ -171,12 +185,12 @@ const Board = ({ validBoard, router }) => {
   //#endregion
 
   //#region References
-  const ref = useRef();
-  const transformRef = useRef();
+  const ref = useRef<HTMLDivElement>(null);
+  const transformRef = useRef<HTMLDivElement>(null);
   let currentPosition = offset;
   let currentScale = scale;
-  const currentMousePos = useRef({ x: 0, y: 0 });
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const currentMousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [contextMenuOpen, setContextMenuOpen] = useState<boolean>(false);
   //#endregion
 
   //#region Dispatch actions
@@ -193,7 +207,7 @@ const Board = ({ validBoard, router }) => {
 
   let twoFingerPanTimeout: NodeJS.Timeout | null;
 
-  const handleTwoFingerPan = (event: WheelEvent) => {
+  const handleTwoFingerPan = (event: React.WheelEvent<HTMLDivElement>) => {
     if (twoFingerPanTimeout == null) {
       shouldAnimateResizeMarquee.current = true;
     } else clearTimeout(twoFingerPanTimeout);
@@ -205,11 +219,11 @@ const Board = ({ validBoard, router }) => {
       };
 
       requestAnimationFrame(() => {
-        transformRef.current.style.transform = `scale(${currentScale}) translate(${
+        transformRef.current!.style.transform = `scale(${currentScale}) translate(${
           currentPosition.x / currentScale
         }px, ${currentPosition.y / currentScale}px)`;
 
-        setOriginalBackground(ref.current, currentPosition, currentScale);
+        setOriginalBackground(ref.current!, currentPosition, currentScale);
       });
     }
 
@@ -228,7 +242,7 @@ const Board = ({ validBoard, router }) => {
 
   let twoFingerZoomTimeout: NodeJS.Timeout | null;
 
-  const handleTwoFingerZoom = (event: WheelEvent) => {
+  const handleTwoFingerZoom = (event: React.WheelEvent<HTMLDivElement>) => {
     if (twoFingerZoomTimeout == null) {
       currentScale = scale;
       shouldAnimateResizeMarquee.current = true;
@@ -242,11 +256,11 @@ const Board = ({ validBoard, router }) => {
       currentScale += (newScale - currentScale) * 0.2;
 
       requestAnimationFrame(() => {
-        transformRef.current.style.transform = `scale(${currentScale}) translate(${
+        transformRef.current!.style.transform = `scale(${currentScale}) translate(${
           currentPosition.x / currentScale
         }px, ${currentPosition.y / currentScale}px)`;
 
-        setOriginalBackground(ref.current, currentPosition, currentScale);
+        setOriginalBackground(ref.current!, currentPosition, currentScale);
         // This should be changed as you cannot pan and scale at the same time rn
       });
     }
@@ -262,7 +276,7 @@ const Board = ({ validBoard, router }) => {
     }, 250);
   };
 
-  const handleWheel = (event: WheelEvent) => {
+  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     // if (
     //   event.target === ref.current ||
     //   event.target.parentNode === ref.current
@@ -272,8 +286,11 @@ const Board = ({ validBoard, router }) => {
     // }
   };
 
-  const handleRightClick = (event) => {
+  const handleRightClick = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>
+  ) => {
     event.preventDefault();
+    if (!ref.current) return;
     const boundingRect = ref.current.getBoundingClientRect();
     const x = event.clientX - boundingRect.left;
     const y = event.clientY - boundingRect.top;
@@ -283,7 +300,9 @@ const Board = ({ validBoard, router }) => {
     setContextMenuOpen(true);
   };
 
-  const handleMouseDown = (event) => {
+  const handleMouseDown = (
+    event: React.MouseEvent<HTMLDivElement, MouseEvent>
+  ) => {
     if (event.type == "mousedown") {
       if (event.target !== ref.current && event.target !== transformRef.current)
         return;
@@ -294,7 +313,7 @@ const Board = ({ validBoard, router }) => {
         const startX = event.pageX - offset.x;
         const startY = event.pageY - offset.y;
         shouldAnimateResizeMarquee.current = true;
-        const handleMouseMove = (event) => {
+        const handleMouseMove = (event: MouseEvent) => {
           event.preventDefault();
           if (transformRef.current !== null && currentPosition !== null) {
             currentPosition = {
@@ -303,16 +322,20 @@ const Board = ({ validBoard, router }) => {
             };
 
             requestAnimationFrame(() => {
-              transformRef.current.style.transform = `scale(${currentScale}) translate(${
+              transformRef.current!.style.transform = `scale(${currentScale}) translate(${
                 currentPosition.x / currentScale
               }px, ${currentPosition.y / currentScale}px)`;
 
-              setOriginalBackground(ref.current, currentPosition, currentScale);
+              setOriginalBackground(
+                ref.current!,
+                currentPosition,
+                currentScale
+              );
             });
           }
         };
 
-        const handleMouseUp = (event) => {
+        const handleMouseUp = (event: MouseEvent) => {
           // Clear selection if user left clicks on board
           shouldAnimateResizeMarquee.current = false;
           // if (event.button === 0) {
@@ -336,7 +359,8 @@ const Board = ({ validBoard, router }) => {
     }
   };
 
-  const calculateRelativePosition = (x, y) => {
+  const calculateRelativePosition = (x: number, y: number) => {
+    if (!ref.current) return;
     const boundingRect = ref.current.getBoundingClientRect();
     const xCoord = (x - boundingRect.left - offset.x) / scale;
     const yCoord = (y - boundingRect.top - offset.y) / scale;
@@ -390,10 +414,11 @@ const Board = ({ validBoard, router }) => {
           }
           handleRightClick(e);
         }}
-        onDragStart={(event) => {
-          if (event.dataTransfer.types.length > 0) return;
-          event.dataTransfer.setData("origin/board", "");
-          event.dataTransfer.setData("action/select", "");
+        onDragStart={(event: any) => {
+          if (event.dataTransfer.types.includes(DragSignature)) return;
+          event.dataTransfer.setData(DragSignature, "");
+          event.dataTransfer.setData(DragOrigin.BOARD, "");
+          event.dataTransfer.setData(DragAction.SELECT, "");
         }}
         onDrop={(event) => {
           event.stopPropagation();
@@ -402,7 +427,6 @@ const Board = ({ validBoard, router }) => {
         onDragOver={(event) => {
           allowDropOnBoard(event);
         }}
-        onResize={(e) => e.preventDefault()}
       >
         <Toolbar
           id={boardId}
@@ -436,13 +460,13 @@ const Board = ({ validBoard, router }) => {
           }}
         >
           <ResizeMarquee scale={currentScale} offset={currentPosition} />
-          {childRefs.map(({ childId, childType }) => {
-            switch (childType) {
+          {childRefs.map(({ id, type }) => {
+            switch (type) {
               case BoardObjects.NOTE:
                 return (
                   <Note
-                    key={childId}
-                    id={childId}
+                    key={id}
+                    id={id}
                     onContextMenu={handleRightClick}
                     scale={currentScale}
                     offset={currentPosition}
@@ -451,8 +475,8 @@ const Board = ({ validBoard, router }) => {
               case BoardObjects.TASK:
                 return (
                   <Task
-                    key={childId}
-                    id={childId}
+                    key={id}
+                    id={id}
                     onContextMenu={handleRightClick}
                     scale={currentScale}
                     offset={currentPosition}
@@ -461,8 +485,8 @@ const Board = ({ validBoard, router }) => {
               case BoardObjects.GROUP:
                 return (
                   <Group
-                    key={childId}
-                    id={childId}
+                    key={id}
+                    id={id}
                     onContextMenu={handleRightClick}
                     scale={currentScale}
                     offset={currentPosition}
@@ -471,8 +495,8 @@ const Board = ({ validBoard, router }) => {
               case BoardObjects.BOARD:
                 return (
                   <BoardIcon
-                    key={childId}
-                    id={childId}
+                    key={id}
+                    id={id}
                     drop={dropOnBoard}
                     allowDrop={allowDropOnBoard}
                     onContextMenu={handleRightClick}
@@ -481,8 +505,8 @@ const Board = ({ validBoard, router }) => {
               case BoardObjects.DOCUMENT:
                 return (
                   <Document
-                    key={childId}
-                    id={childId}
+                    key={id}
+                    id={id}
                     onContextMenu={handleRightClick}
                     scale={currentScale}
                     offset={currentPosition}
@@ -490,13 +514,7 @@ const Board = ({ validBoard, router }) => {
                 );
               case BoardObjects.IMAGE:
                 return (
-                  <Image
-                    key={childId}
-                    id={childId}
-                    onContextMenu={handleRightClick}
-                    scale={currentScale}
-                    offset={currentPosition}
-                  />
+                  <Image key={id} id={id} onContextMenu={handleRightClick} />
                 );
               default:
                 break;

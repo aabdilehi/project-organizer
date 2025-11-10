@@ -1,29 +1,34 @@
 import { createSlice } from "@reduxjs/toolkit";
-import {
-  addNode,
-  addChild,
-  removeChild,
-  updatePosition,
-  updateParent,
-  removeNode,
-  updateTitle,
-  updateSize,
-  setSliceData,
-} from "./nodeActions";
 import { BoardObjects } from "../enums/items";
 import { BoardType, RootBoardType } from "../classes/new-classes";
+import {
+  setSliceData,
+  addNode,
+  removeNode,
+  addChild,
+  removeChild,
+  updateTitle,
+  updatePosition,
+  updateSize,
+  updateParent,
+} from "./nodeActions";
+import { BoardState } from "./types";
 
-const initialState: { [boardId: string]: BoardType | RootBoardType } = {
+export const initialState: BoardState = {
   root: {
     id: "root",
     title: "Home",
+    type: BoardObjects.BOARD,
     offset: { x: 0, y: 0 },
     scale: 1,
     childRefs: [],
   },
 };
+
+const name = "boards";
+
 const boardSlice = createSlice({
-  name: "boards",
+  name,
   initialState,
   reducers: {
     // Can probably merge board and board version of this function
@@ -54,30 +59,15 @@ const boardSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(
-      setSliceData.action,
-      setSliceData.reducer(BoardObjects.BOARD)
-    );
-    builder.addCase(addNode.action, addNode.reducer(BoardObjects.BOARD));
-    builder.addCase(removeNode.action, removeNode.reducer(BoardObjects.BOARD));
-    builder.addCase(addChild.action, addChild.reducer(BoardObjects.BOARD));
-    builder.addCase(
-      removeChild.action,
-      removeChild.reducer(BoardObjects.BOARD)
-    );
-    builder.addCase(
-      updateTitle.action,
-      updateTitle.reducer(BoardObjects.BOARD)
-    );
-    builder.addCase(
-      updatePosition.action,
-      updatePosition.reducer(BoardObjects.BOARD)
-    );
-    builder.addCase(updateSize.action, updateSize.reducer(BoardObjects.BOARD)); // Used for data purposes, not rendering
-    builder.addCase(
-      updateParent.action,
-      updateParent.reducer(BoardObjects.BOARD)
-    );
+    builder.addCase(setSliceData.action, setSliceData.reducer("boards"));
+    builder.addCase(addNode.action, addNode.reducer("boards"));
+    builder.addCase(removeNode.action, removeNode.reducer("boards"));
+    builder.addCase(addChild.action, addChild.reducer("boards"));
+    builder.addCase(removeChild.action, removeChild.reducer("boards"));
+    builder.addCase(updateTitle.action, updateTitle.reducer("boards"));
+    builder.addCase(updatePosition.action, updatePosition.reducer("boards"));
+    builder.addCase(updateSize.action, updateSize.reducer("boards")); // Used for data purposes, not rendering
+    builder.addCase(updateParent.action, updateParent.reducer("boards"));
   },
 });
 

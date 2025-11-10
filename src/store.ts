@@ -1,9 +1,8 @@
 import { configureStore } from "@reduxjs/toolkit";
-import { combineReducers } from "redux";
+import { $CombinedState, combineReducers } from "redux";
 import { persistStore, persistReducer } from "redux-persist";
 import storageDB from "redux-persist-indexeddb-storage";
 // import storage from "redux-persist/lib/storage";
-import { createStateSyncMiddleware } from "redux-state-sync";
 
 import boardReducer from "./utils/slices/boardSlice";
 import noteReducer from "./utils/slices/noteSlice";
@@ -16,28 +15,8 @@ import copiedReducer from "./utils/slices/copiedSlice";
 import dragReducer from "./utils/slices/dragSlice";
 import imageMapReducer from "./utils/slices/imageMapSlice";
 import imageDataReducer from "./utils/slices/imageDataSlice";
-import { defaultRoot } from "./utils/classes/new-classes";
-import { generateImageUrlsThunk } from "./utils/slices/thunks";
 
-const initialState = {
-  boards: { root: defaultRoot },
-  notes: {},
-  documents: {},
-  images: {},
-  tasks: {},
-  selection: {},
-  copied: {
-    position: { x: 0, y: 0 },
-    nodes: [],
-  },
-  drag: {
-    initialPosition: { x: 0, y: 0 },
-    nodes: {},
-    types: [],
-  },
-  imageMap: {},
-  imageData: {},
-};
+import { generateImageUrlsThunk } from "./utils/slices/thunks";
 
 const storage = storageDB("myDB");
 
@@ -98,16 +77,6 @@ persistConfig = {
 };
 const persistedDocReducer = persistReducer(persistConfig, docReducer);
 
-const stateSyncConfig = {
-  blacklist: [
-    "persist/PERSIST",
-    "persist/REHYDRATE",
-    "selection",
-    "copied",
-    "drag",
-  ],
-};
-
 const rootReducer = combineReducers({
   boards: persistedBoardReducer,
   notes: persistedNoteReducer,
@@ -124,10 +93,11 @@ const rootReducer = combineReducers({
 
 export const store = configureStore({
   reducer: rootReducer,
-  initialState,
+  // initialState,
 });
 
 export type RootState = ReturnType<typeof rootReducer>;
+
 export const persistor = persistStore(store, null, () => {
   console.log("Generating Image URLs");
   store.dispatch(generateImageUrlsThunk());

@@ -1,275 +1,315 @@
 import { BoardObjects } from "./enums/items";
 
-import { store } from "../store";
-import { DocumentC } from "./classes/classes";
-import { v4 as uuidv4 } from "uuid";
+import { PlainRootState } from "./slices/types";
+import { NodeSliceMap, SliceNodeMap } from "./slices/types";
+import { updatePosition, updateSize } from "./slices/nodeActions";
 import {
-  addChild,
-  addNode,
-  removeChild,
-  removeNode,
-  updatePosition,
-  updateSize,
-} from "./slices/nodeActions";
-import {
-  formatData,
-  defaultNote,
-  defaultDocument,
-  defaultBoard,
-  defaultTask,
-  defaultGroup,
-  NodeType,
-  defaultNode,
-  NodeTypeMap,
   DocumentType,
+  GroupType,
+  isRoot,
   NoteType,
 } from "./classes/new-classes";
 import sanitizeHtml from "sanitize-html";
 import {
   createNodeThunk,
-  newNodeContextMenu,
+  newNodeContextMenuThunk,
   removeNodeThunk,
 } from "./slices/thunks";
-import { AnyAction, Dispatch } from "redux";
+import { Dispatch } from "redux";
 import { updateOffset, updateScale } from "./slices/boardSlice";
+import { nanoid, ThunkAction } from "@reduxjs/toolkit";
 
-const convertNoteToDocument = (note) => (dispatch, getState) => {
-  if (!note) return;
+function convertNoteToDocument(
+  note: NoteType
+): ThunkAction<void, PlainRootState, unknown, any> {
+  return (dispatch: Dispatch<any>, getState) => {
+    if (!note) return;
 
-  const sanitizedContent = sanitizeHtml(note.content, { allowedTags: [] });
+    const sanitizedContent = sanitizeHtml(note.content, { allowedTags: [] });
 
-  const newDocument: Partial<DocumentType> = {
-    id: note.id,
-    pX: note.pX,
-    pY: note.pY,
-    type: BoardObjects.DOCUMENT,
-    title:
-      sanitizedContent.length > 10
-        ? `${sanitizedContent.slice(0, 10)}...`
-        : sanitizedContent,
-    content: note.content,
-    parent: note.parent,
+    const newDocument: Partial<DocumentType> = {
+      id: note.id,
+      pX: note.pX,
+      pY: note.pY,
+      type: BoardObjects.DOCUMENT,
+      title:
+        sanitizedContent.length > 10
+          ? `${sanitizedContent.slice(0, 10)}...`
+          : sanitizedContent,
+      content: note.content,
+      parent: note.parent,
+    };
+    dispatch(removeNodeThunk(note.id, BoardObjects.NOTE));
+    dispatch(createNodeThunk(newDocument));
   };
-  dispatch(removeNodeThunk(note.id, BoardObjects.NOTE));
-  dispatch(createNodeThunk(newDocument));
-};
+}
 
-const convertSelectedNodesToDocuments = () => (dispatch, getState) => {
-  // I do not like accessing the state like this outside of components but to work around this would be such a huge pain
-  const state = getState();
-  const selectedNodes = state.selection;
-  const notes = state.notes;
+function convertSelectedNodesToDocuments(): ThunkAction<
+  void,
+  PlainRootState,
+  unknown,
+  any
+> {
+  return (dispatch, getState) => {
+    // I do not like accessing the state like this outside of components but to work around this would be such a huge pain
+    const state = getState();
+    const selectedNodes = state.selection;
+    const notes = state.notes;
 
-  for (const id in selectedNodes) {
-    if (Object.prototype.hasOwnProperty.call(selectedNodes, id)) {
-      const note = notes[id];
+    for (const id in selectedNodes) {
+      if (Object.prototype.hasOwnProperty.call(selectedNodes, id)) {
+        const note = notes[id];
 
-      // it should be notes but does not hurt to check
-      if (!note) return;
+        // it should be notes but does not hurt to check
+        if (!note) return;
 
-      dispatch(convertNoteToDocument(note));
+        dispatch(convertNoteToDocument(note));
+      }
     }
-  }
-};
-
-const convertDocumentToNote = (document) => (dispatch, getState) => {
-  if (!document) return;
-  const newNote: Partial<NoteType> = {
-    id: document.id,
-    pX: document.pX,
-    pY: document.pY,
-    type: BoardObjects.NOTE,
-    content: document.content,
-    parent: document.parent,
   };
+}
 
-  dispatch(removeNodeThunk(document.id, BoardObjects.DOCUMENT));
-  dispatch(createNodeThunk(newNote));
-};
+function convertDocumentToNote(
+  document: DocumentType
+): ThunkAction<void, PlainRootState, unknown, any> {
+  return (dispatch, getState) => {
+    if (!document) return;
+    const newNote: Partial<NoteType> = {
+      id: document.id,
+      pX: document.pX,
+      pY: document.pY,
+      type: BoardObjects.NOTE,
+      content: document.content,
+      parent: document.parent,
+    };
 
-const convertSelectedNodesToNotes = () => (dispatch, getState) => {
-  // I do not like accessing the state like this outside of components but to work around this would be such a huge pain
-  const state = getState();
-  const selectedNodes = state.selection;
-  const documents = state.documents;
+    dispatch(removeNodeThunk(document.id, BoardObjects.DOCUMENT));
+    dispatch(createNodeThunk(newNote));
+  };
+}
 
-  for (const id in selectedNodes) {
-    if (Object.prototype.hasOwnProperty.call(selectedNodes, id)) {
-      const document = documents[id];
+function convertSelectedNodesToNotesThunk(): ThunkAction<
+  void,
+  PlainRootState,
+  unknown,
+  any
+> {
+  return (dispatch, getState) => {
+    // I do not like accessing the state like this outside of components but to work around this would be such a huge pain
+    const state = getState();
+    const selectedNodes = state.selection;
+    const documents = state.documents;
 
-      // it should be documents but does not hurt to check
-      if (!document) return;
+    for (const id in selectedNodes) {
+      if (Object.prototype.hasOwnProperty.call(selectedNodes, id)) {
+        const document = documents[id];
 
-      dispatch(convertDocumentToNote(document));
+        // it should be documents but does not hurt to check
+        if (!document) return;
+
+        dispatch(convertDocumentToNote(document));
+      }
     }
-  }
-};
+  };
+}
 
 // This works fine but gets weird when there are nested groups
-const createColumnThunk = (boardId) => (dispatch, getState) => {
-  // Get nodes within bounds
-  const state = getState();
-  const selectedNodes = state.selection;
-  const groups = state.groups;
-  for (const id in selectedNodes) {
-    if (Object.prototype.hasOwnProperty.call(selectedNodes, id)) {
-      const group = groups[id];
+function createColumnThunk(
+  boardId: string
+): ThunkAction<void, PlainRootState, unknown, any> {
+  return (dispatch, getState) => {
+    // Get nodes within bounds
+    const state = getState();
+    const selectedNodes = state.selection;
+    const groups = state.groups;
+    for (const id in selectedNodes) {
+      if (Object.prototype.hasOwnProperty.call(selectedNodes, id)) {
+        const group = groups[id];
 
-      // it should be only groups if you can see this option but check anyway
-      if (!group) return;
+        // it should be only groups if you can see this option but check anyway
+        if (!group) return;
 
-      const { type, pX, pY, sX, sY } = group;
-      const nodes = state.boards[boardId].childRefs.map((node) => {
-        return state[`${node.childType}s`][node.childId];
-      });
-      const nodesInBound = nodes.filter((node) => {
-        const buffer = 30;
-        return (
-          node.id != id &&
-          node.pX > pX - buffer &&
-          node.pX + node.sX < pX + sX + buffer &&
-          node.pY > pY - buffer &&
-          node.pY + node.sY < pY + sY + buffer
-        );
-      });
-      // Sort by pY value
-      const sortedNodes = nodesInBound.sort((a, b) => a.pY - b.pY);
-      // Set position using cumulator for y value and group pX for x value
-      const padding = 10;
-      let y = pY + padding;
-      let initialY = y;
-      let maxX: number | null = null;
-      for (let i = 0; i < sortedNodes.length; i++) {
-        const node = sortedNodes[i];
+        const { type, pX, pY, sX, sY } = group;
+
+        const nodes = state.boards[boardId].childRefs
+          .map((partial) => {
+            const slice = NodeSliceMap[partial.type];
+            const node = state[slice][partial.id];
+            if (!isRoot(node)) return node;
+          })
+          .filter((node) => node != null);
+
+        const nodesInBound = nodes.filter((node) => {
+          const buffer = 30;
+          return (
+            node.id != id &&
+            node.pX > pX - buffer &&
+            node.pX + node.sX < pX + sX + buffer &&
+            node.pY > pY - buffer &&
+            node.pY + node.sY < pY + sY + buffer
+          );
+        });
+        // Sort by pY value
+        const sortedNodes = nodesInBound.sort((a, b) => a.pY - b.pY);
+
+        // Set position using cumulator for y value and group pX for x value
+        const padding = 10;
+        let y = pY + padding;
+        let initialY = y;
+        let maxX: number | null = null;
+        for (let i = 0; i < sortedNodes.length; i++) {
+          const node = sortedNodes[i];
+          dispatch(
+            updatePosition.action({
+              id: node.id,
+              type: node.type,
+              pX: pX + 10,
+              pY: y,
+            })
+          );
+          y += node.sY + padding;
+          if (maxX == null || node.sX + padding > maxX)
+            maxX = node.sX + padding;
+        }
+
         dispatch(
-          updatePosition.action({
-            id: node.id,
-            type: node.type,
-            pX: pX + 10,
-            pY: y,
+          updateSize.action({
+            id,
+            type,
+            sX: maxX == null ? sX : maxX + padding,
+            sY: y - initialY + padding,
           })
         );
-        y += node.sY + padding;
-        if (maxX == null || node.sX + padding > maxX) maxX = node.sX + padding;
       }
-
-      dispatch(
-        updateSize.action({
-          id,
-          type,
-          sX: maxX == null ? sX : maxX + padding,
-          sY: y - initialY + padding,
-        })
-      );
     }
-  }
-};
+  };
+}
 
 // This works fine but gets weird when there are nested groups
-const createRowThunk = (boardId) => (dispatch, getState) => {
-  // Get nodes within bounds
-  const state = getState();
-  const selectedNodes = state.selection;
-  const groups = state.groups;
-  for (const id in selectedNodes) {
-    if (Object.prototype.hasOwnProperty.call(selectedNodes, id)) {
-      const group = groups[id];
+function createRowThunk(
+  boardId: string
+): ThunkAction<void, PlainRootState, unknown, any> {
+  return (dispatch, getState) => {
+    // Get nodes within bounds
+    const state = getState();
+    const selectedNodes = state.selection;
+    const groups = state.groups;
+    for (const id in selectedNodes) {
+      if (Object.prototype.hasOwnProperty.call(selectedNodes, id)) {
+        const group = groups[id];
 
-      // it should be only groups if you can see this option but check anyway
-      if (!group) return;
+        // it should be only groups if you can see this option but check anyway
+        if (!group) return;
 
-      const { type, pX, pY, sX, sY } = group;
-      const nodes = state.boards[boardId].childRefs.map((node) => {
-        return state[`${node.childType}s`][node.childId];
-      });
+        const { type, pX, pY, sX, sY } = group;
 
-      const nodesInBound = nodes.filter((node) => {
-        const buffer = 30;
-        return (
-          node.id != id &&
-          node.pX > pX - buffer &&
-          node.pX + node.sX < pX + sX + buffer &&
-          node.pY > pY - buffer &&
-          node.pY + node.sY < pY + sY + buffer
-        );
-      });
-      // Sort by pX value
-      const sortedNodes = nodesInBound.sort((a, b) => a.pX - b.pX);
-      // Set position using cumulator for y value and group pX for x value
-      const padding = 10;
-      let x = pX + padding;
-      let initialX = x;
-      let maxY: number | null = null;
-      for (let i = 0; i < sortedNodes.length; i++) {
-        const node = sortedNodes[i];
+        const nodes = state.boards[boardId].childRefs
+          .map((partial) => {
+            const slice = NodeSliceMap[partial.type];
+            const node = state[slice][partial.id];
+            if (!isRoot(node)) return node;
+          })
+          .filter((node) => node != null);
+
+        const nodesInBound = nodes.filter((node) => {
+          const buffer = 30;
+          return (
+            node.id != id &&
+            node.pX > pX - buffer &&
+            node.pX + node.sX < pX + sX + buffer &&
+            node.pY > pY - buffer &&
+            node.pY + node.sY < pY + sY + buffer
+          );
+        });
+        // Sort by pX value
+        const sortedNodes = nodesInBound.sort((a, b) => a.pX - b.pX);
+        // Set position using cumulator for y value and group pX for x value
+        const padding = 10;
+        let x = pX + padding;
+        let initialX = x;
+        let maxY: number | null = null;
+        for (let i = 0; i < sortedNodes.length; i++) {
+          const node = sortedNodes[i];
+          dispatch(
+            updatePosition.action({
+              id: node.id,
+              type: node.type,
+              pX: x,
+              pY: pY + 10,
+            })
+          );
+          x += node.sX + padding;
+          if (maxY == null || node.sY + padding > maxY)
+            maxY = node.sY + padding;
+        }
+
         dispatch(
-          updatePosition.action({
-            id: node.id,
-            type: node.type,
-            pX: x,
-            pY: pY + 10,
+          updateSize.action({
+            id,
+            type,
+            sX: x - initialX + padding,
+            sY: maxY == null ? sY : maxY + padding,
           })
         );
-        x += node.sX + padding;
-        if (maxY == null || node.sY + padding > maxY) maxY = node.sY + padding;
       }
-
-      dispatch(
-        updateSize.action({
-          id,
-          type,
-          sX: x - initialX + padding,
-          sY: maxY == null ? sY : maxY + padding,
-        })
-      );
     }
-  }
-};
+  };
+}
 
-export const recenterBoard = (boardId) => (dispatch, getState) => {
-  dispatch(updateOffset({ id: boardId, x: 0, y: 0 }));
-  dispatch(updateScale({ id: boardId, scale: 1 }));
-};
+export function recenterBoardThunk(
+  boardId: string
+): ThunkAction<void, PlainRootState, unknown, any> {
+  return (dispatch, getState) => {
+    dispatch(updateOffset({ id: boardId, x: 0, y: 0 }));
+    dispatch(updateScale({ id: boardId, scale: 1 }));
+  };
+}
 
 // hinges on there being multiple selected nodes
-export const groupItemsThunk = (boardId) => (dispatch, getState) => {
-  const state = getState();
-  const selectedNodes = state.selection;
+export function groupItemsThunk(
+  boardId: string
+): ThunkAction<void, PlainRootState, unknown, any> {
+  return (dispatch, getState) => {
+    const state = getState();
+    const selectedNodes = state.selection;
 
-  let startX, startY, endX, endY;
-  for (const sId in selectedNodes) {
-    const { id, type } = selectedNodes[sId];
-    const node = state[`${type}s`][id];
-    if (node) {
-      const { pX, pY, sX, sY } = node;
-      startX = !startX || pX < startX ? pX : startX;
-      startY = !startY || pY < startY ? pY : startY;
-      endX = !endX || pX + sX > endX ? pX + sX : endX;
-      endY = !endY || pY + sY > endY ? pY + sY : endY;
+    let startX, startY, endX, endY;
+    for (const sId in selectedNodes) {
+      const { id, type } = selectedNodes[sId];
+      const sliceName = NodeSliceMap[type];
+      const slice = state[sliceName];
+      const node = slice[id];
+      if (node && !isRoot(node)) {
+        const { pX, pY, sX, sY } = node;
+        startX = !startX || pX < startX ? pX : startX;
+        startY = !startY || pY < startY ? pY : startY;
+        endX = !endX || pX + sX > endX ? pX + sX : endX;
+        endY = !endY || pY + sY > endY ? pY + sY : endY;
+      }
     }
-  }
 
-  if (!startX || !startY || !endX || !endY) return;
-  const padding = 10;
-  const newGroup = {
-    id: uuidv4(),
-    type: BoardObjects.GROUP,
-    pX: startX - padding,
-    pY: startY - padding,
-    parent: {
-      id: boardId,
-      type: BoardObjects.BOARD,
-    },
-    sX: endX - startX + padding * 2,
-    sY: endY - startY + padding * 2,
+    if (!startX || !startY || !endX || !endY) return;
+    const padding = 10;
+    const newGroup: Partial<GroupType> = {
+      id: nanoid(),
+      type: BoardObjects.GROUP,
+      pX: startX - padding,
+      pY: startY - padding,
+      parent: {
+        id: boardId,
+        type: BoardObjects.BOARD,
+      },
+      sX: endX - startX + padding * 2,
+      sY: endY - startY + padding * 2,
+    };
+    dispatch(createNodeThunk(newGroup));
   };
-  dispatch(createNodeThunk(newGroup));
-};
+}
 
 export type ContextMenuItem = {
   label: string;
   onClick?: (
-    dispatch: Dispatch<AnyAction>,
+    dispatch: Dispatch<any>,
     boardId: string,
     x?: number,
     y?: number
@@ -298,65 +338,73 @@ export const NullContextMenu: ContextMenu = {
     {
       label: "Recenter",
       onClick: (
-        dispatch: Dispatch<AnyAction>,
+        dispatch: Dispatch<any>,
         boardId: string,
         pX?: number,
         pY?: number
-      ) => dispatch(recenterBoard(boardId)),
+      ) => dispatch(recenterBoardThunk(boardId)),
     },
     {
       label: "New Note",
       onClick: (
-        dispatch: Dispatch<AnyAction>,
+        dispatch: Dispatch<any>,
         boardId: string,
         pX?: number,
         pY?: number
-      ) => dispatch(newNodeContextMenu(boardId, pX, pY, BoardObjects.NOTE)),
+      ) =>
+        dispatch(newNodeContextMenuThunk(boardId, pX, pY, BoardObjects.NOTE)),
     },
     {
       label: "New Board",
       onClick: (
-        dispatch: Dispatch<AnyAction>,
+        dispatch: Dispatch<any>,
         boardId: string,
         pX?: number,
         pY?: number
-      ) => dispatch(newNodeContextMenu(boardId, pX, pY, BoardObjects.BOARD)),
+      ) =>
+        dispatch(newNodeContextMenuThunk(boardId, pX, pY, BoardObjects.BOARD)),
     },
     {
       label: "New Group",
       onClick: (
-        dispatch: Dispatch<AnyAction>,
+        dispatch: Dispatch<any>,
         boardId: string,
         pX?: number,
         pY?: number
-      ) => dispatch(newNodeContextMenu(boardId, pX, pY, BoardObjects.GROUP)),
+      ) =>
+        dispatch(newNodeContextMenuThunk(boardId, pX, pY, BoardObjects.GROUP)),
     },
     {
       label: "New Task",
       onClick: (
-        dispatch: Dispatch<AnyAction>,
+        dispatch: Dispatch<any>,
         boardId: string,
         pX?: number,
         pY?: number
-      ) => dispatch(newNodeContextMenu(boardId, pX, pY, BoardObjects.TASK)),
+      ) =>
+        dispatch(newNodeContextMenuThunk(boardId, pX, pY, BoardObjects.TASK)),
     },
     {
       label: "New Document",
       onClick: (
-        dispatch: Dispatch<AnyAction>,
+        dispatch: Dispatch<any>,
         boardId: string,
         pX?: number,
         pY?: number
-      ) => dispatch(newNodeContextMenu(boardId, pX, pY, BoardObjects.DOCUMENT)),
+      ) =>
+        dispatch(
+          newNodeContextMenuThunk(boardId, pX, pY, BoardObjects.DOCUMENT)
+        ),
     },
     {
       label: "New Image",
       onClick: (
-        dispatch: Dispatch<AnyAction>,
+        dispatch: Dispatch<any>,
         boardId: string,
         pX?: number,
         pY?: number
-      ) => dispatch(newNodeContextMenu(boardId, pX, pY, BoardObjects.IMAGE)),
+      ) =>
+        dispatch(newNodeContextMenuThunk(boardId, pX, pY, BoardObjects.IMAGE)),
     },
   ],
 };
@@ -370,7 +418,7 @@ export const NoteContextMenu: ContextMenu = {
     {
       label: "Convert to Document",
       onClick: (
-        dispatch: Dispatch<AnyAction>,
+        dispatch: Dispatch<any>,
         id: string,
         pX?: number,
         pY?: number
@@ -388,11 +436,11 @@ export const DocumentContextMenu: ContextMenu = {
     {
       label: "Convert to Note",
       onClick: (
-        dispatch: Dispatch<AnyAction>,
+        dispatch: Dispatch<any>,
         id: string,
         pX?: number,
         pY?: number
-      ) => dispatch(convertSelectedNodesToNotes()),
+      ) => dispatch(convertSelectedNodesToNotesThunk()),
     },
   ],
 };

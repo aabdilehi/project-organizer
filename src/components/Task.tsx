@@ -38,7 +38,7 @@ const Task = ({
   scale,
   offset,
 }: {
-  id: string;
+  id?: string;
   onContextMenu: React.MouseEventHandler<HTMLDivElement>;
   scale: number;
   offset: { x: number; y: number };

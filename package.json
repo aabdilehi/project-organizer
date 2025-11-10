@@ -9,8 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@cloudinary/react": "^1.11.2",
-    "@cloudinary/url-gen": "^1.9.2",
+    "@emotion/react": "^11.14.0",
     "@reduxjs/toolkit": "^1.9.3",
     "@tiptap/extension-color": "^2.0.2",
     "@tiptap/extension-highlight": "^2.0.3",
@@ -22,10 +21,9 @@
     "@tiptap/pm": "^2.0.2",
     "@tiptap/react": "^2.0.2",
     "@tiptap/starter-kit": "^2.0.2",
-    "@uselessdev/datepicker": "^2.7.0",
     "bson": "^6.10.3",
     "date-fns": "^2.29.3",
-    "framer-motion": "^6.5.1",
+    "framer-motion": "^12.23.24",
     "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-datepicker": "^4.25.0",

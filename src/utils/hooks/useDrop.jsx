@@ -1,4 +1,4 @@
-import { BoardObjects } from "../enums/items";
+import { BoardObjects, DragAction, ResizeDirection } from "../enums/items";
 
 import {
   addNode,
@@ -57,8 +57,8 @@ export function useDrop({ boardRef, scale, offset }) {
     // return;
 
     //#region Drop from board/column
-    if (event.dataTransfer.types.includes("action/move")) {
-      let data = event.dataTransfer.getData("action/move");
+    if (event.dataTransfer.types.includes(DragAction.MOVE)) {
+      let data = event.dataTransfer.getData(DragAction.MOVE);
       data = JSON.parse(data);
       if (!data.hasOwnProperty("selectedNodes")) return;
       Object.values(data.selectedNodes).forEach((item) => {
@@ -84,10 +84,10 @@ export function useDrop({ boardRef, scale, offset }) {
     //#endregion
 
     //#region Drop from board/column
-    if (event.dataTransfer.types.includes("action/resize")) {
-      let data = JSON.parse(event.dataTransfer.getData("action/resize"));
+    if (event.dataTransfer.types.includes(DragAction.RESIZE)) {
+      let data = JSON.parse(event.dataTransfer.getData(DragAction.RESIZE));
       let direction = event.dataTransfer.types.find((value) =>
-        value.includes("direction/")
+        Object.values(ResizeDirection).includes(value)
       );
       if (!data.hasOwnProperty("selectedNodes")) return;
       Object.values(data.selectedNodes).forEach((item) => {
@@ -192,51 +192,51 @@ export function useDrop({ boardRef, scale, offset }) {
     let pX, pY, sX, sY;
 
     switch (direction) {
-      case "direction/left":
+      case ResizeDirection.LEFT:
         pX = data.pX + (event.clientX - initial.x) / scale;
         pY = data.pY;
         sX = data.sX - (event.clientX - initial.x) / scale;
         sY = data.sY;
         break;
-      case "direction/right":
+      case ResizeDirection.RIGHT:
         pX = data.pX;
         pY = data.pY;
         sX = data.sX + (event.clientX - initial.x) / scale;
         sY = data.sY;
         break;
-      case "direction/top":
+      case ResizeDirection.TOP:
         pX = data.pX;
         pY = data.pY + (event.clientY - initial.y) / scale;
         sX = data.sX;
         sY = data.sY - (event.clientY - initial.y) / scale;
         break;
 
-      case "direction/top-left":
+      case ResizeDirection.TOPLEFT:
         pX = data.pX + (event.clientX - initial.x) / scale;
         pY = data.pY + (event.clientY - initial.y) / scale;
         sX = data.sX - (event.clientX - initial.x) / scale;
         sY = data.sY - (event.clientY - initial.y) / scale;
         break;
 
-      case "direction/top-right":
+      case ResizeDirection.TOPRIGHT:
         pX = data.pX;
         pY = data.pY + (event.clientY - initial.y) / scale;
         sX = data.sX + (event.clientX - initial.x) / scale;
         sY = data.sY - (event.clientY - initial.y) / scale;
         break;
-      case "direction/bottom":
+      case ResizeDirection.BOTTOM:
         pX = data.pX;
         pY = data.pY;
         sX = data.sX;
         sY = data.sY + (event.clientY - initial.y) / scale;
         break;
-      case "direction/bottom-left":
+      case ResizeDirection.BOTTOMLEFT:
         pX = data.pX + (event.clientX - initial.x) / scale;
         pY = data.pY;
         sX = data.sX - (event.clientX - initial.x) / scale;
         sY = data.sY + (event.clientY - initial.y) / scale;
         break;
-      case "direction/bottom-right":
+      case ResizeDirection.BOTTOMRIGHT:
         pX = data.pX;
         pY = data.pY;
         sX = data.sX + (event.clientX - initial.x) / scale;

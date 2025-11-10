@@ -4,7 +4,6 @@ import { useRef } from "react";
 
 import { BoardObjects } from "../utils/enums/items";
 import "../editor.scss";
-import { ListItem } from "@chakra-ui/react";
 import { connect, useDispatch, useSelector } from "react-redux";
 import { EditorContent, useEditor } from "@tiptap/react";
 import Color from "@tiptap/extension-color";
@@ -18,6 +17,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import { updateContent } from "../utils/slices/nodeActions";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { debounce } from "lodash";
+import { listItem } from "@tiptap/pm/schema-list";
 
 const updateNoteContent = (dispatch, id, editor) => {
   dispatch(
@@ -45,7 +45,7 @@ const Note = ({ id, onContextMenu, offset, scale, ...props }) => {
 
   const editor = useEditor({
     extensions: [
-      Color.configure({ types: [TextStyle.name, ListItem.name] }),
+      Color.configure({ types: [TextStyle.name, listItem.name] }),
       TextStyle,
       Superscript,
       Subscript,

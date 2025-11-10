@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 
-import { BoardObjects } from "../utils/enums/items";
+import { BoardObjects, DragSignature } from "../utils/enums/items";
 import React from "react";
 import {
   TbArrowLeft as IconArrowLeft,
@@ -24,9 +24,9 @@ import { withRouter } from "./Modular/ComponentWithRouterProp";
 import { useDispatch, useSelector } from "react-redux";
 import { clearDragData, setDragData } from "../utils/slices/dragSlice";
 import { formatData, NodeTypeMap } from "../utils/classes/new-classes";
-import { v4 as uuidv4 } from "uuid";
 import { ExportButton, ImportButton } from "./Modular/ExportButton";
 import { Tooltip } from "./Modular/IconTooltip";
+import { nanoid } from "@reduxjs/toolkit";
 
 const Toolbar = ({ router, boardId, boardRef, scale, offset, parent }) => {
   const sideBarRef = useRef();
@@ -39,7 +39,7 @@ const Toolbar = ({ router, boardId, boardRef, scale, offset, parent }) => {
     dispatch(clearDragData());
     const node = formatData(
       {
-        id: uuidv4(),
+        id: nanoid(),
         pX: (event.clientX - boundingRect.left - offset.x) / scale,
         pY: (event.clientY - boundingRect.top - offset.y) / scale,
         parent: {
@@ -190,6 +190,7 @@ const ToolbarObject = ({ name, type, icon: Icon, onDragStart }) => {
     prev.style.display = "none";
     event.dataTransfer.dropEffect = "move";
     event.dataTransfer.setDragImage(prev, 0, 0);
+    event.dataTransfer.setData(DragSignature, "");
     event.dataTransfer.setData("origin/toolbar", JSON.stringify({ type }));
     onDragStart(event, type);
   };

@@ -1,7 +1,12 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { BoardObjects } from "../enums/items";
+import { SelectionState } from "./types";
+
+export const initialState: SelectionState = {};
+
 const selectionSlice = createSlice({
   name: "selection",
-  initialState: {},
+  initialState,
   reducers: {
     selectNode: (state, action) => {
       const { id, type, parent } = action.payload;

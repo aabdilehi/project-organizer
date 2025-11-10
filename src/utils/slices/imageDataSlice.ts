@@ -1,7 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { Binary } from "bson";
+import { ImageDataState } from "./types";
 
-const initialState: { [id: string]: Binary } = {};
+export const initialState: ImageDataState = {};
+
 const imageDataSlice = createSlice({
   name: "imageData",
   initialState,

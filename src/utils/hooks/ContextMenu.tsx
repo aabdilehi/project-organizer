@@ -9,8 +9,8 @@ import React from "react";
 import ReactDOM from "react-dom";
 import {
   deleteSelection,
-  copySelection,
-  pasteCopiedNodes,
+  copySelectionThunk,
+  pasteCopiedNodesThunk,
 } from "../slices/thunks";
 import { selectSelection } from "../slices/selectors";
 import { createSelector } from "@reduxjs/toolkit";
@@ -72,7 +72,7 @@ const ContextMenu = ({
                   className="context-menu-item"
                   onClick={(event) => {
                     dispatch(
-                      copySelection(boardId, event.clientX, event.clientY)
+                      copySelectionThunk(boardId, event.clientX, event.clientY)
                     );
                     setOpen(false);
                   }}
@@ -97,7 +97,11 @@ const ContextMenu = ({
                   className="context-menu-item"
                   onClick={(event) => {
                     dispatch(
-                      pasteCopiedNodes(boardId, event.clientX, event.clientY)
+                      pasteCopiedNodesThunk(
+                        boardId,
+                        event.clientX,
+                        event.clientY
+                      )
                     );
                     setOpen(false);
                   }}

@@ -1,37 +1,57 @@
-/** @jsxImportSource @emotion/react */
 import "../App.css";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import NodeWrapper from "./Modular/NodeWrapper.tsx";
-import { BoardObjects } from "../utils/enums/items.tsx";
-import IconButton from "./Modular/IconButton.tsx";
+import NodeWrapper from "./Modular/NodeWrapper";
+import { BoardObjects } from "../utils/enums/items";
+import IconButton from "./Modular/IconButton";
 import { TbCheck, TbEdit, TbX } from "react-icons/tb";
-import { Modal } from "./Modular/Modal.tsx";
-import { updateImage } from "../utils/slices/imageSlice.ts";
-import { Binary, EJSON } from "bson";
-import { addImageThunk } from "../utils/slices/thunks.ts";
+import { Modal } from "./Modular/Modal";
+import { Binary } from "bson";
+import { addImageThunk } from "../utils/slices/thunks";
+import React from "react";
+import { RootState } from "../store";
+import { PlainRootState } from "../utils/slices/types";
 
-const Image = ({ id, onContextMenu, offset, scale }) => {
+type ImageData = {
+  name: string;
+  type: string;
+  size: number;
+  data?: ArrayBuffer | string | null;
+};
+
+const Image = ({
+  id,
+  onContextMenu,
+}: {
+  id: string;
+  onContextMenu: (event: any) => void;
+}) => {
   const nodeRef = useRef();
-  const fileUploadRef = useRef();
-  const dispatch = useDispatch();
+  const fileUploadRef = useRef<HTMLInputElement>(null);
+  const dispatch = useDispatch<any>();
   const [open, setOpen] = useState(false);
 
   const { pX, pY, sX, sY, imageId, parent } = useSelector(
-    (state) => state.images[id]
+    (state: PlainRootState) => state.images[id]
+  );
+  const image = useSelector((state: PlainRootState) =>
+    imageId ? state.imageMap[imageId] : ""
   );
 
-  const image = useSelector((state) => state.imageMap[imageId] ?? "");
-
-  const [tempImage, setTempImage] = useState(image);
+  const [tempImage, setTempImage] = useState<string | ArrayBuffer>(image);
   const [tempImageUrl, setTempImageUrl] = useState("");
 
-  const getFileFromInput = () => {
+  const getFileFromInput: () => Promise<ImageData> = () => {
     return new Promise((resolve, reject) => {
       if (!fileUploadRef.current) {
         reject("File input ref not assigned.");
         return;
       }
+      if (
+        !fileUploadRef.current.files ||
+        fileUploadRef.current.files?.length <= 0
+      )
+        return;
       const file = fileUploadRef.current.files[0];
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -41,7 +61,7 @@ const Image = ({ id, onContextMenu, offset, scale }) => {
         }
         fileUploadRef.current.value = "";
         resolve({
-          ["fileName"]: file.name,
+          name: file.name,
           type: file.type,
           size: file.size,
           data: event.target?.result,
@@ -68,8 +88,6 @@ const Image = ({ id, onContextMenu, offset, scale }) => {
         sY={sY}
         parentId={parent.id}
         parentType={parent.type}
-        scale={scale}
-        offset={offset}
         onContextMenu={onContextMenu}
       >
         <img
@@ -112,8 +130,8 @@ const Image = ({ id, onContextMenu, offset, scale }) => {
             URL.revokeObjectURL(tempImageUrl);
 
             // Set new image
-            const blob = new Blob([file.data]);
-            setTempImage(file.data);
+            const blob = new Blob([file.data!]);
+            setTempImage(file.data!);
             setTempImageUrl(URL.createObjectURL(blob));
           }}
         />
@@ -134,6 +152,7 @@ const Image = ({ id, onContextMenu, offset, scale }) => {
             onClick={() => {
               if (tempImage) {
                 // Convert temp image to binary
+                if (typeof tempImage == "string") return;
                 const uint8Array = new Uint8Array(tempImage);
 
                 // Clean up temp image

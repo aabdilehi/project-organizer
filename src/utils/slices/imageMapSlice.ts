@@ -1,6 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { ImageMapState } from "./types";
 
-const initialState: { [id: string]: string } = {};
+export const initialState: ImageMapState = {};
+
 const imageMapSlice = createSlice({
   name: "imageMap",
   initialState,

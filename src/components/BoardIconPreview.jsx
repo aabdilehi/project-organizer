@@ -3,12 +3,10 @@ import "../App.css";
 
 import { BoardObjects } from "../utils/enums/items.tsx";
 import "../editor.scss";
-import { bindActionCreators } from "redux";
-import { connect, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 import { TbStar as StarIcon } from "react-icons/tb";
-import { selectTypes } from "../utils/slices/selectors.ts";
 const previewStyle = {
   fontWeight: "800",
   width: "100%",

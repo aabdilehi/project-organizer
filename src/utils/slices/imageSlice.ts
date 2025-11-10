@@ -8,12 +8,12 @@ import {
   offsetPosition,
   setSliceData,
 } from "./nodeActions";
-import { BoardObjects } from "../enums/items";
-import { Binary } from "bson";
+import { ImageState } from "./types";
 
+export const initialState: ImageState = {};
 const imageSlice = createSlice({
   name: "images",
-  initialState: {},
+  initialState,
   reducers: {
     updateLabel: (state, action) => {
       const { id, label } = action.payload;
@@ -50,25 +50,13 @@ const imageSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(
-      setSliceData.action,
-      setSliceData.reducer(BoardObjects.IMAGE)
-    );
-    builder.addCase(addNode.action, addNode.reducer(BoardObjects.IMAGE));
-    builder.addCase(removeNode.action, removeNode.reducer(BoardObjects.IMAGE));
-    builder.addCase(
-      updatePosition.action,
-      updatePosition.reducer(BoardObjects.IMAGE)
-    );
-    builder.addCase(
-      offsetPosition.action,
-      offsetPosition.reducer(BoardObjects.IMAGE)
-    );
-    builder.addCase(updateSize.action, updateSize.reducer(BoardObjects.IMAGE));
-    builder.addCase(
-      updateParent.action,
-      updateParent.reducer(BoardObjects.IMAGE)
-    );
+    builder.addCase(setSliceData.action, setSliceData.reducer("images"));
+    builder.addCase(addNode.action, addNode.reducer("images"));
+    builder.addCase(removeNode.action, removeNode.reducer("images"));
+    builder.addCase(updatePosition.action, updatePosition.reducer("images"));
+    builder.addCase(offsetPosition.action, offsetPosition.reducer("images"));
+    builder.addCase(updateSize.action, updateSize.reducer("images"));
+    builder.addCase(updateParent.action, updateParent.reducer("images"));
   },
 });
 

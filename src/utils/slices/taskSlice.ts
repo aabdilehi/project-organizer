@@ -10,10 +10,10 @@ import {
   updateSize,
   setSliceData,
 } from "./nodeActions";
-import { BoardObjects } from "../enums/items";
-import { SubTaskType, TaskType } from "../classes/new-classes";
+import { SubTaskType } from "../classes/new-classes";
+import { TaskState } from "./types";
 
-const initialState: { [taskId: string]: TaskType } = {};
+export const initialState: TaskState = {};
 
 const taskSlice = createSlice({
   name: "tasks",
@@ -102,30 +102,15 @@ const taskSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(
-      setSliceData.action,
-      setSliceData.reducer(BoardObjects.TASK)
-    );
-    builder.addCase(addNode.action, addNode.reducer(BoardObjects.TASK));
-    builder.addCase(removeNode.action, removeNode.reducer(BoardObjects.TASK));
-    builder.addCase(updateTitle.action, updateTitle.reducer(BoardObjects.TASK));
-    builder.addCase(
-      updateContent.action,
-      updateContent.reducer(BoardObjects.TASK)
-    );
-    builder.addCase(
-      updatePosition.action,
-      updatePosition.reducer(BoardObjects.TASK)
-    );
-    builder.addCase(
-      offsetPosition.action,
-      offsetPosition.reducer(BoardObjects.TASK)
-    );
-    builder.addCase(updateSize.action, updateSize.reducer(BoardObjects.TASK)); // Used for data purposes, not rendering
-    builder.addCase(
-      updateParent.action,
-      updateParent.reducer(BoardObjects.TASK)
-    );
+    builder.addCase(setSliceData.action, setSliceData.reducer("tasks"));
+    builder.addCase(addNode.action, addNode.reducer("tasks"));
+    builder.addCase(removeNode.action, removeNode.reducer("tasks"));
+    builder.addCase(updateTitle.action, updateTitle.reducer("tasks"));
+    builder.addCase(updateContent.action, updateContent.reducer("tasks"));
+    builder.addCase(updatePosition.action, updatePosition.reducer("tasks"));
+    builder.addCase(offsetPosition.action, offsetPosition.reducer("tasks"));
+    builder.addCase(updateSize.action, updateSize.reducer("tasks")); // Used for data purposes, not rendering
+    builder.addCase(updateParent.action, updateParent.reducer("tasks"));
   },
 });
 

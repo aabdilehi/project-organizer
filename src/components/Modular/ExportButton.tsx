@@ -1,5 +1,4 @@
-import { createSelector } from "@reduxjs/toolkit";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { useDispatch } from "react-redux";
 import { importDataThunk, prepareDataThunk } from "../../utils/slices/thunks";
 import React from "react";
@@ -8,16 +7,16 @@ import { EJSON } from "bson";
 export const ImportButton = ({
   children,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement>) => {
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const fr = useRef(new FileReader());
-  const buttonRef = useRef();
-  const dispatch = useDispatch();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const dispatch = useDispatch<any>();
 
   if (fr.current) {
     fr.current.onload = function () {
-      buttonRef.current.value = "";
-      //   console.log(JSON.parse(fr.current.result));
-      dispatch(importDataThunk(EJSON.parse(fr.current.result)));
+      if (this.result == null || typeof this.result != "string") return;
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      dispatch(importDataThunk(EJSON.parse(this.result)));
     };
   }
 
@@ -25,8 +24,8 @@ export const ImportButton = ({
     <button
       {...props}
       onClick={() => {
-        if (buttonRef.current) {
-          buttonRef.current.click();
+        if (fileInputRef.current) {
+          fileInputRef.current.click();
         }
       }}
     >
@@ -35,8 +34,9 @@ export const ImportButton = ({
           display: "none",
         }}
         type="file"
-        ref={buttonRef}
+        ref={fileInputRef}
         onChange={(e) => {
+          if (!e.target.files || e.target.files.length <= 0) return;
           fr.current.readAsText(e.target.files[0]);
         }}
       />
@@ -49,27 +49,28 @@ export const ExportButton = ({
   children,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) => {
-  const buttonRef = useRef();
-  const objectURL = useRef();
-  const dispatch = useDispatch();
+  const anchorRef = useRef<HTMLAnchorElement>(null);
+  const objectURL = useRef<string>();
+  const dispatch = useDispatch<any>();
 
   return (
     <button
       {...props}
       onClick={() => {
-        if (!buttonRef.current) return;
+        if (!anchorRef.current) return;
         const dataBlob = dispatch(prepareDataThunk());
         if (dataBlob) {
-          URL.revokeObjectURL(objectURL.current);
+          if (objectURL.current) URL.revokeObjectURL(objectURL.current);
           objectURL.current = URL.createObjectURL(dataBlob);
+
+          anchorRef.current.href = objectURL.current;
+          anchorRef.current.click();
         }
-        buttonRef.current.href = objectURL.current;
-        buttonRef.current.click();
       }}
     >
       <a
         style={{ display: "none" }}
-        ref={buttonRef}
+        ref={anchorRef}
         href={objectURL.current}
         download={"state.json"}
       />

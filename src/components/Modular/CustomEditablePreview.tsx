@@ -1,13 +1,12 @@
 "use strict";
 import React, {
+  ChangeEvent,
   ReactElement,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
 } from "react";
-
-import { v4 as uuidv4 } from "uuid";
 
 // function CustomEditablePreview({canEdit = true, as: As = 'p', text = "Default", textStyle, onChange, ...props} : {canEdit?: boolean, as?: React.ElementType, text?: string, textStyle?: React.CSSProperties, onChange?: (value: string) => void}) {
 //    const [editing, setEditing] = useState(false);
@@ -62,9 +61,10 @@ import { v4 as uuidv4 } from "uuid";
 
 //#region Trying for a more 'proper' solution
 import ResizeableTextArea from "./AutoResizeTextArea";
+import { nanoid } from "@reduxjs/toolkit";
 
-const textParentKey = uuidv4();
-const textAreaKey = uuidv4();
+const textParentKey = nanoid();
+const textAreaKey = nanoid();
 
 function CustomEditablePreview({
   canEdit = true,
@@ -91,9 +91,9 @@ function CustomEditablePreview({
 }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(text || "");
-  const textAreaRef = useRef<HTMLTextAreaElement>();
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const textAreaWidth = useRef<number>();
-  const previewRef = useRef<typeof As>();
+  const previewRef = useRef<typeof As>(null);
 
   const submitChanges = () => {
     if (value !== text) {
@@ -121,7 +121,7 @@ function CustomEditablePreview({
     if (editing) {
       // wanted to put this in the edit function but needed to ensure that this runs AFTER dom is loaded post state change
       updateTextAreaSize();
-      textAreaRef.current.focus();
+      textAreaRef.current?.focus();
     } else {
       textAreaWidth;
       submitChanges();
@@ -141,12 +141,13 @@ function CustomEditablePreview({
     textAreaRef.current.style.height = "1px";
     textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
 
+    if (!textAreaRef.current.parentElement) return;
     // Set parent to same size as there is weird extra spacing otherwise
-    textAreaRef.current.parentNode.style.height =
+    textAreaRef.current.parentElement.style.height =
       textAreaRef.current.style.height;
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setValue(e.target.value);
     if (!!onChange && !changeOnSubmit) {
       onChange(value);
@@ -161,7 +162,7 @@ function CustomEditablePreview({
     <div className="editable" style={{ width, ...style }}>
       <As
         onClick={edit}
-        ref={previewRef}
+        ref={previewRef as any}
         style={{
           display: editing ? "none" : undefined,
           width: "100%",
@@ -200,12 +201,12 @@ function CustomEditablePreview({
           key={textAreaKey}
           ref={textAreaRef}
           rows={1}
-          cols={String(
-            adjustSelf
+          cols={
+            adjustSelf && textAreaRef.current
               ? Math.max(
                   10,
                   Math.ceil(
-                    textAreaRef?.current?.value.length +
+                    textAreaRef.current.value.length +
                       2 +
                       Math.ceil(
                         (textAreaRef?.current?.value.match(/[mw]/g) || [])
@@ -214,7 +215,7 @@ function CustomEditablePreview({
                   )
                 )
               : undefined
-          )}
+          }
           value={value}
           wrap="hard"
           disabled={!editing}

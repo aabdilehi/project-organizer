@@ -29,7 +29,7 @@ function isEmpty(obj) {
   return true;
 }
 
-const BoardIcon = ({ id, allowDrop, drop, offset, scale, onContextMenu }) => {
+const BoardIcon = ({ id, allowDrop, drop, onContextMenu }) => {
   const dispatch = useDispatch();
 
   const { pX, pY, sX, sY, title, parent } = useSelector(
@@ -85,12 +85,10 @@ const BoardIcon = ({ id, allowDrop, drop, offset, scale, onContextMenu }) => {
       canResize={false}
       pX={pX}
       pY={pY}
-      sX={65}
-      sY={120}
+      sX={sX}
+      sY={sY}
       parentId={parent.id}
       parentType={parent.type}
-      scale={scale}
-      offset={offset}
       onContextMenu={onContextMenu}
     >
       <div

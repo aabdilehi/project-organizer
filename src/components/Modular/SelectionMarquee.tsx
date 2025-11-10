@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect } from "react";
 import { useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setSelectedNodes } from "../../utils/slices/selectionSlice";
+import { DragAction } from "../../utils/enums/items";
 
 const SelectionMarquee = ({
   boardId,
@@ -11,21 +12,21 @@ const SelectionMarquee = ({
   active,
 }: {
   boardId: string;
-  boardRef?: React.LegacyRef<HTMLDivElement>;
-  scale?: number;
-  offset?: { x: number; y: number };
+  boardRef: React.RefObject<HTMLDivElement>;
+  scale: number;
+  offset: { x: number; y: number };
   active: boolean;
 } & React.HTMLAttributes<HTMLDivElement>) => {
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement>(null);
 
-  let initX, initY;
-  let nodeElements; // node elements shouldnt change during this time anyway
-  let nodeElementBounds = {}; // do not want to recalculate bounds every frame
-  let boardBounds;
-  const init = (e) => {
+  let initX: number, initY: number;
+  let nodeElements: NodeListOf<Element>; // node elements shouldnt change during this time anyway
+  let nodeElementBounds: { [id: string]: DOMRect } = {}; // do not want to recalculate bounds every frame
+  let boardBounds: DOMRect;
+  const init = (e: DragEvent) => {
     if (!boardRef.current) return;
     boardBounds = boardRef.current.getBoundingClientRect();
-    if (!e.dataTransfer.types.includes("action/select")) return;
+    if (!e.dataTransfer!.types.includes(DragAction.SELECT)) return;
     initX = e.clientX;
     initY = e.clientY;
 
@@ -39,8 +40,8 @@ const SelectionMarquee = ({
       element.classList.remove("selected");
     });
   };
-  const animate = (e) => {
-    if (!e.dataTransfer.types.includes("action/select")) return;
+  const animate = (e: DragEvent) => {
+    if (!e.dataTransfer!.types.includes(DragAction.SELECT)) return;
     if (!boardBounds && boardRef.current) {
       boardBounds = boardRef.current.getBoundingClientRect();
     }

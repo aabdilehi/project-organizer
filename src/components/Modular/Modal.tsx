@@ -9,13 +9,13 @@ export const Modal = ({
   ...props
 }: {
   open: boolean;
-  setOpen: (boolean) => void;
+  setOpen: (open: boolean) => void;
   children: ReactElement[];
   bodyStyle?: React.CSSProperties;
   modalStyle?: React.CSSProperties;
 }) => {
-  const outerRef = useRef<HTMLDivElement>();
-  const innerRef = useRef<HTMLSpanElement>();
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLSpanElement>(null);
   const mouseDownRef = useRef<EventTarget>(); // really not sure why but cannot just use click and use stoppropagation on inner components
   return open
     ? ReactDOM.createPortal(
@@ -49,7 +49,7 @@ export const Modal = ({
             {props.children}
           </span>
         </div>,
-        document.querySelector("#root")
+        document.querySelector("#root")!
       )
     : undefined;
 };

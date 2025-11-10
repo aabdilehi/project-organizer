@@ -9,13 +9,13 @@ import {
   updateTitle,
   setSliceData,
 } from "./nodeActions";
-import { BoardObjects } from "../enums/items";
-import { DocumentType } from "../classes/new-classes";
+import { DocumentState } from "./types";
 
-const initialState: { [documentId: string]: DocumentType } = {};
+export const initialState: DocumentState = {};
+
 const docSlice = createSlice({
   name: "documents",
-  initialState: {},
+  initialState,
   reducers: {
     toggleExpanded: (state, action) => {
       const { documentId, expanded } = action.payload;
@@ -30,35 +30,14 @@ const docSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(
-      setSliceData.action,
-      setSliceData.reducer(BoardObjects.DOCUMENT)
-    );
-    builder.addCase(addNode.action, addNode.reducer(BoardObjects.DOCUMENT));
-    builder.addCase(
-      removeNode.action,
-      removeNode.reducer(BoardObjects.DOCUMENT)
-    );
-    builder.addCase(
-      updateTitle.action,
-      updateTitle.reducer(BoardObjects.DOCUMENT)
-    );
-    builder.addCase(
-      updateContent.action,
-      updateContent.reducer(BoardObjects.DOCUMENT)
-    );
-    builder.addCase(
-      updatePosition.action,
-      updatePosition.reducer(BoardObjects.DOCUMENT)
-    );
-    builder.addCase(
-      updateSize.action,
-      updateSize.reducer(BoardObjects.DOCUMENT)
-    ); // Used for data purposes, not rendering
-    builder.addCase(
-      updateParent.action,
-      updateParent.reducer(BoardObjects.DOCUMENT)
-    );
+    builder.addCase(setSliceData.action, setSliceData.reducer("documents"));
+    builder.addCase(addNode.action, addNode.reducer("documents"));
+    builder.addCase(removeNode.action, removeNode.reducer("documents"));
+    builder.addCase(updateTitle.action, updateTitle.reducer("documents"));
+    builder.addCase(updateContent.action, updateContent.reducer("documents"));
+    builder.addCase(updatePosition.action, updatePosition.reducer("documents"));
+    builder.addCase(updateSize.action, updateSize.reducer("documents")); // Used for data purposes, not rendering
+    builder.addCase(updateParent.action, updateParent.reducer("documents"));
   },
 });
 

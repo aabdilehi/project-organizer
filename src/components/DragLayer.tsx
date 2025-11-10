@@ -1,12 +1,11 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { connect, useDispatch, useSelector } from "react-redux";
-import { BoardObjects } from "../utils/enums/items";
+import React, { useEffect, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  BoardObjects,
+  DragAction,
+  DragSignature,
+  ResizeDirection,
+} from "../utils/enums/items";
 import NotePreview from "./NotePreview";
 import {
   clearDragData as clearDragDataAction,
@@ -15,12 +14,9 @@ import {
 import TaskPreview from "./TaskPreview";
 import BoardIconPreview from "./BoardIconPreview";
 import DocumentPreview from "./DocumentPreview";
-import { RootState } from "../store";
 import GroupPreview from "./GroupPreview";
 import SelectionMarquee from "./Modular/SelectionMarquee";
-import { createSelector } from "@reduxjs/toolkit";
 import {
-  addSelectedNodes,
   clearSelectNode,
   setSelectedNodes,
 } from "../utils/slices/selectionSlice";
@@ -34,12 +30,9 @@ import {
 } from "../utils/slices/selectors";
 import ResizeMarquee from "./Modular/ResizeMarquee";
 import ImagePreview from "./ImagePreview";
+import { GroupType, isRoot, NodeType } from "../utils/classes/new-classes";
+import { DefinedBoardObjects, PlainRootState } from "../utils/slices/types";
 
-// Composite types used for querying intentions, e.g. instead of "origin/board", ["origin/board", "action/move"]
-// I could do "board/move" but the idea is that you do if(!types.include("origin/board")) return;
-// You do a preliminary check to see if you should even do anything at all and this makes that easy
-
-// The origin is just a tag, the action contains all of the actual relevant data
 const DragLayer = ({
   boardId,
   boardRef,
@@ -49,71 +42,75 @@ const DragLayer = ({
   ...props
 }: {
   boardId: string;
-  boardRef: React.MutableRefObject<HTMLDivElement>;
-  transformRef: React.MutableRefObject<HTMLDivElement>;
+  boardRef: React.RefObject<HTMLDivElement>;
+  transformRef: React.RefObject<HTMLDivElement>;
   offset: any;
   scale: any;
 }) => {
-  const dragLayerRef = useRef<HTMLDivElement>();
+  const dragLayerRef = useRef<HTMLDivElement>(null);
   //#region State props
   const nodes = useSelector(selectNodes);
   const selectedNodes = useSelector(selectSelection);
 
-  const boardChildren = useSelector((state) =>
+  const boardChildren = useSelector((state: PlainRootState) =>
     selectBoardChildren(state, boardId)
   );
 
   //#region Select drag data
   const draggedNodes = useSelector(selectDraggedNodes);
   const initialPosition = useSelector(selectInitialPosition);
-  const types = useSelector(selectTypes);
-  const resize = types.includes("action/resize");
-  const direction = types.find((value) => value.includes("direction"));
+  const types: string[] = useSelector(selectTypes);
+  const resize = types.includes(DragAction.RESIZE);
+  const direction = types.find((value: any) =>
+    Object.values(ResizeDirection).includes(value)
+  );
+  console.log(types);
   //#endregion
   //#endregion
 
   //#region Dispatch props
   const dispatch = useDispatch();
 
-  const clearDragData = (event) => {
-    if (event.dataTransfer.types.includes("action/select")) return;
+  const clearDragData = (event: any) => {
+    if (event.dataTransfer.types.includes(DragAction.SELECT)) return;
     dispatch(clearDragDataAction());
   };
-  const setDragData = (data) => dispatch(setDragDataAction(data));
-  const getNodeSize = (x, y, sX, sY) => {
+
+  const setDragData = (data: any) => dispatch(setDragDataAction(data));
+  const getNodeSize = (x: number, y: number, sX: number, sY: number) => {
     let newSX, newSY;
     switch (direction) {
-      case "direction/left":
+      case ResizeDirection.LEFT:
         newSX = sX - (x - initialPosition.x) / scale;
         newSY = sY;
         break;
-      case "direction/right":
+      case ResizeDirection.RIGHT:
         newSX = sX + (x - initialPosition.x) / scale;
         newSY = sY;
         break;
-      case "direction/top":
+      case ResizeDirection.TOP:
         newSX = sX;
         newSY = sY - (y - initialPosition.y) / scale;
         break;
 
-      case "direction/top-left":
+      case ResizeDirection.TOPLEFT:
         newSX = sX - (x - initialPosition.x) / scale;
         newSY = sY - (y - initialPosition.y) / scale;
         break;
 
-      case "direction/top-right":
+      case ResizeDirection.TOPRIGHT:
         newSX = sX + (x - initialPosition.x) / scale;
         newSY = sY - (y - initialPosition.y) / scale;
         break;
-      case "direction/bottom":
+      case ResizeDirection.BOTTOM:
         newSX = sX;
         newSY = sY + (y - initialPosition.y) / scale;
         break;
-      case "direction/bottom-left":
+      case ResizeDirection.BOTTOMLEFT:
         newSX = sX - (x - initialPosition.x) / scale;
         newSY = sY + (y - initialPosition.y) / scale;
         break;
-      case "direction/bottom-right":
+      case ResizeDirection.BOTTOMRIGHT:
         newSX = sX + (x - initialPosition.x) / scale;
         newSY = sY + (y - initialPosition.y) / scale;
         break;
@@ -128,7 +125,7 @@ const DragLayer = ({
   let shiftKey = false;
   let ctrlKey = false;
 
-  const setkbdModifiers = (e) => {
+  const setkbdModifiers = (e: KeyboardEvent) => {
     shiftKey = e.shiftKey;
     ctrlKey = e.ctrlKey;
   };
@@ -141,9 +138,8 @@ const DragLayer = ({
     };
   }, []);
 
-  const handleDragStart = (event) => {
-    if (event.dataTransfer.types.length < 0) return;
-
+  const handleDragStart = (event: any) => {
+    if (!event.dataTransfer.types.includes(DragSignature)) return;
     event.stopPropagation();
 
     if (!boardRef.current || !transformRef.current) {
@@ -154,18 +150,29 @@ const DragLayer = ({
     let dragZIndex = "1";
     let boardZIndex = "2";
 
-    if (event.dataTransfer.types.includes("action/move")) {
+    if (event.dataTransfer.types.includes(DragAction.MOVE)) {
       dragZIndex = "2";
       boardZIndex = "1";
       const selectedNodeData = { ...selectedNodes };
-      const selectedNodeOffsets = {};
+      const selectedNodeOffsets: {
+        [id: string]: {
+          id: string;
+          type: DefinedBoardObjects;
+          parent: { id: string; type: DefinedBoardObjects };
+          offset: { x: number; y: number };
+        };
+      } = {};
       Object.values(selectedNodeData).map((item) => {
         if (!item) return;
 
+        const node = nodes[item.id];
+        if (isRoot(node)) return;
+
         if (item.type == BoardObjects.GROUP) {
-          const group = nodes[item.id];
+          const group = node as GroupType;
           const filteredNodes = Object.values(nodes).filter((item2) => {
             return (
+              !isRoot(item2) &&
               Object.hasOwn(item2, "parent") &&
               item2.parent.id == boardId &&
               item2.id !== group.id &&
@@ -176,6 +183,7 @@ const DragLayer = ({
             );
           });
           filteredNodes.forEach((item2) => {
+            if (isRoot(item2)) return;
             selectedNodeData[item2.id] = {
               id: item2.id,
               type: item2.type,
@@ -189,8 +197,8 @@ const DragLayer = ({
             };
           });
         }
-        const x = nodes[item.id].pX;
-        const y = nodes[item.id].pY;
+        const x = node.pX;
+        const y = node.pY;
         selectedNodeOffsets[item.id] = {
           ...selectedNodeData[item.id],
           offset: {
@@ -206,7 +214,7 @@ const DragLayer = ({
       event.dataTransfer.dropEffect = "move";
       event.dataTransfer.setDragImage(prev, 10000, 10000);
       event.dataTransfer.setData(
-        "action/move",
+        DragAction.MOVE,
         JSON.stringify({
           initial: {
             x: event.clientX,
@@ -224,19 +232,27 @@ const DragLayer = ({
         nodes: selectedNodeData,
         types: event.dataTransfer.types,
       });
-    } else if (event.dataTransfer.types.includes("action/resize")) {
+    } else if (event.dataTransfer.types.includes(DragAction.RESIZE)) {
       // hide drag preview image
 
-      const selectedNodeData = {};
+      const selectedNodeData: { [id: string]: NodeType } = {};
       Object.values(selectedNodes).forEach((item) => {
-        selectedNodeData[item.id] = nodes[item.id];
+        const node = nodes[item.id];
+        if (isRoot(node)) return;
+        selectedNodeData[item.id] = node;
       });
       const prev = document.createElement("span");
       prev.style.display = "none";
       event.dataTransfer.dropEffect = "move";
       event.dataTransfer.setDragImage(prev, 10000, 10000);
+
+      const direction = event.dataTransfer.types.find((type: string) =>
+        Object.values(ResizeDirection).includes(type as ResizeDirection)
+      );
+
+      console.log(direction);
       event.dataTransfer.setData(
-        "action/resize",
+        DragAction.RESIZE,
         JSON.stringify({
           initial: {
             x: event.clientX,
@@ -246,6 +262,7 @@ const DragLayer = ({
           selectedNodes: selectedNodeData,
         })
       );
+
       setDragData({
         initialPosition: {
           x: event.clientX,
@@ -254,7 +271,7 @@ const DragLayer = ({
         nodes: selectedNodeData,
         types: event.dataTransfer.types,
       });
-    } else if (event.dataTransfer.types.includes("action/select")) {
+    } else if (event.dataTransfer.types.includes(DragAction.SELECT)) {
       dispatch(clearSelectNode());
       dragZIndex = "2";
       boardZIndex = "1";
@@ -265,7 +282,7 @@ const DragLayer = ({
       event.dataTransfer.dropEffect = "move";
       event.dataTransfer.setDragImage(prev, 10000, 10000);
       event.dataTransfer.setData(
-        "action/select",
+        DragAction.SELECT,
         JSON.stringify({
           initial: {
             x: event.clientX,
@@ -285,7 +302,7 @@ const DragLayer = ({
     }
 
     requestAnimationFrame(() => {
-      if (!dragLayerRef.current) return;
+      if (!dragLayerRef.current || !transformRef.current) return;
       dragLayerRef.current.style.transform =
         transformRef.current.style.transform = `scale(${scale}) translate(${
           offset.x / scale
@@ -295,38 +312,38 @@ const DragLayer = ({
     });
   };
 
-  const handleDrag = (event) => {
+  const handleDrag = (event: any) => {
     requestAnimationFrame(() => {
       if (!dragLayerRef.current) return;
       dragLayerRef.current.style.transform = `scale(${scale}) translate(${
-        direction == "direction/top" ||
-        direction == "direction/top-right" ||
-        direction == "direction/right" ||
-        direction == "direction/bottom" ||
-        direction == "direction/bottom-right" ||
-        event.dataTransfer.types.includes("action/select")
+        direction == ResizeDirection.TOP ||
+        direction == ResizeDirection.TOPRIGHT ||
+        direction == ResizeDirection.RIGHT ||
+        direction == ResizeDirection.BOTTOM ||
+        direction == ResizeDirection.BOTTOMRIGHT ||
+        event.dataTransfer.types.includes(DragAction.SELECT)
           ? offset.x / scale
           : (event.clientX - initialPosition.x + offset.x) / scale
       }px, ${
-        direction == "direction/left" ||
-        direction == "direction/right" ||
-        direction == "direction/bottom" ||
-        direction == "direction/bottom-left" ||
-        direction == "direction/bottom-right" ||
-        event.dataTransfer.types.includes("action/select")
+        direction == ResizeDirection.LEFT ||
+        direction == ResizeDirection.RIGHT ||
+        direction == ResizeDirection.BOTTOM ||
+        direction == ResizeDirection.BOTTOMLEFT ||
+        direction == ResizeDirection.BOTTOMRIGHT ||
+        event.dataTransfer.types.includes(DragAction.SELECT)
           ? offset.y / scale
           : (event.clientY - initialPosition.y + offset.y) / scale
       }px)`;
     });
   };
 
-  const handleDragEnd = (event) => {
+  const handleDragEnd = (event: DragEvent) => {
     requestAnimationFrame(() => {
-      if (!dragLayerRef.current) return;
+      if (!dragLayerRef.current || !transformRef.current) return;
       dragLayerRef.current.style.zIndex = "1";
       transformRef.current.style.zIndex = "2";
     });
-    if (types.includes("action/select")) {
+    if (types.includes(DragAction.SELECT)) {
       if (!boardRef.current) return;
       const boardBounds = boardRef.current.getBoundingClientRect();
       const startX =
@@ -350,10 +367,10 @@ const DragLayer = ({
           offset.y) /
         scale;
 
-      const nodesInBounds = {};
+      const nodesInBounds: { [id: string]: NodeType } = {};
       boardChildren.forEach((child) => {
-        const node = nodes[child.childId];
-        if (!node) return;
+        const node = nodes[child.id];
+        if (!node || isRoot(node)) return;
         const bounds = {
           width: node.sX,
           height: node.sY,
@@ -387,13 +404,14 @@ const DragLayer = ({
   //#endregion
 
   useEffect(() => {
-    if (!window || !boardRef) return;
+    if (!window || !boardRef.current) return;
     window.addEventListener("dragstart", handleDragStart);
     window.addEventListener("drag", handleDrag);
     window.addEventListener("dragend", handleDragEnd);
     boardRef.current.addEventListener("drop", clearDragData);
 
     return () => {
+      if (!window || !boardRef.current) return;
       window.removeEventListener("dragstart", handleDragStart);
       window.removeEventListener("drag", handleDrag);
       window.removeEventListener("dragend", handleDragEnd);
@@ -423,7 +441,7 @@ const DragLayer = ({
         boardRef={boardRef}
         scale={scale}
         offset={offset}
-        active={types.includes("action/select")}
+        active={types.includes(DragAction.SELECT)}
       />
       {Object.values(draggedNodes).map(({ id, type }) => {
         switch (type) {
@@ -452,14 +470,7 @@ const DragLayer = ({
           case BoardObjects.DOCUMENT:
             return <DocumentPreview key={id} id={id} />;
           case BoardObjects.IMAGE:
-            return (
-              <ImagePreview
-                key={id}
-                id={id}
-                resize={resize}
-                getNodeSize={getNodeSize}
-              />
-            );
+            return <ImagePreview key={id} id={id} />;
           default:
             break;
         }

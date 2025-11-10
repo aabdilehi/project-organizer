@@ -5,7 +5,7 @@
 
 // Not sure what to call this but it is basically an icon that you can hover on and get more info in a tooltip
 
-import React from "react";
+import React, { ForwardedRef } from "react";
 import { forwardRef, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { IconType } from "react-icons";
@@ -22,7 +22,7 @@ export const Tooltip = forwardRef(
       placement?: "top" | "bottom";
       visible?: boolean;
     },
-    ref
+    ref: ForwardedRef<HTMLDivElement>
   ) => {
     return (
       <div
@@ -61,7 +61,7 @@ export const EditorButton = ({
   iconColor?: string;
 }) => {
   const [tooltipVisible, setTooltipVisible] = useState(false);
-  const tooltipRef = useRef();
+  const tooltipRef = useRef<HTMLDivElement>(null);
   return (
     <>
       <IconButton

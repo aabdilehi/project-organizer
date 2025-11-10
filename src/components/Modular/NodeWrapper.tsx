@@ -13,7 +13,13 @@ import {
 } from "../../utils/slices/selectionSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { updatePosition, updateSize } from "../../utils/slices/nodeActions";
-import { BoardObjects } from "../../utils/enums/items";
+import {
+  BoardObjects,
+  DragAction,
+  DragOrigin,
+  DragSignature,
+  ResizeDirection,
+} from "../../utils/enums/items";
 import { debounce } from "lodash";
 
 export default forwardRef(
@@ -37,7 +43,7 @@ export default forwardRef(
       ...props
     }: {
       id: string;
-      type: string;
+      type: BoardObjects;
       className?: string;
       canPosition: boolean;
       canResize: boolean;
@@ -48,7 +54,7 @@ export default forwardRef(
       scale?: any;
       offset?: any;
       parentId: string;
-      parentType: string;
+      parentType: BoardObjects;
       clickCallback?: (params?: any[]) => void;
       menuProps?: { [menuProp: string]: boolean };
       menuItems?: Element[];
@@ -67,7 +73,10 @@ export default forwardRef(
     const dragging = useSelector((state: RootState) =>
       state.drag.nodes.hasOwnProperty(id)
     );
-    const handleSelect = (event, force = false) => {
+    const handleSelect = (
+      event: React.MouseEvent<HTMLDivElement, MouseEvent>,
+      force = false
+    ) => {
       if (event.shiftKey && force == false) {
         dispatch(
           addSelectNode({
@@ -143,25 +152,8 @@ export default forwardRef(
         }
       }
     }
-    //#region Click outside
-    // useLayoutEffect(() => {
-    //   if(!nodeRef.current) return;
-    //   const checkClickInside = (e) => !!nodeRef.current && nodeRef.current.contains(e.target);
-
-    //   const clickOutside = (e) => {
-    //     if(checkClickInside(e)) return;
-    //     dispatch(clearSelectNode)
-    //   }
-    //   window.addEventListener("click", )
-    // }, [])
-    //#endregion
-
-    //#region Select node
-
     // update info if out of date i guess
     updateSelectData();
-
-    //#endregion
 
     return (
       <div
@@ -193,16 +185,13 @@ export default forwardRef(
           onContextMenu(e);
         }}
         onDragStart={(e) => {
-          // HOLY SHIT THIS SOLVES MY ISSUE
-          // ADDING A PLACEHOLDER DATATRANSFER DATA THAT CONTAINS THE TYPE OF DRAG AND THE ID OF THE NODE
-          // IF THE DATA IS SET THEN NODES IGNORE
-
           if (!selected) {
             handleSelect(e);
           }
-          if (e.dataTransfer.types.length <= 0) {
-            e.dataTransfer.setData("origin/board", "Placeholder");
-            e.dataTransfer.setData("action/move", "");
+          if (!e.dataTransfer.types.includes(DragSignature)) {
+            e.dataTransfer.setData(DragSignature, "");
+            e.dataTransfer.setData(DragOrigin.BOARD, "");
+            e.dataTransfer.setData(DragAction.MOVE, "");
           }
         }}
         {...props}
@@ -216,8 +205,9 @@ export default forwardRef(
               style={{ pointerEvents: "auto" }}
               draggable={!preview}
               onDragStart={(e) => {
-                e.dataTransfer.setData("action/resize", "");
-                e.dataTransfer.setData(`direction/top`, "");
+                e.dataTransfer.setData(DragSignature, "");
+                e.dataTransfer.setData(DragAction.RESIZE, "");
+                e.dataTransfer.setData(ResizeDirection.TOP, "");
               }}
             />
             <div
@@ -226,8 +216,9 @@ export default forwardRef(
               style={{ pointerEvents: "auto" }}
               draggable={!preview}
               onDragStart={(e) => {
-                e.dataTransfer.setData("action/resize", "");
-                e.dataTransfer.setData(`direction/left`, "");
+                e.dataTransfer.setData(DragSignature, "");
+                e.dataTransfer.setData(DragAction.RESIZE, "");
+                e.dataTransfer.setData(ResizeDirection.LEFT, "");
               }}
             />
             <div
@@ -236,8 +227,9 @@ export default forwardRef(
               style={{ pointerEvents: "auto" }}
               draggable={!preview}
               onDragStart={(e) => {
-                e.dataTransfer.setData("action/resize", "");
-                e.dataTransfer.setData(`direction/bottom`, "");
+                e.dataTransfer.setData(DragSignature, "");
+                e.dataTransfer.setData(DragAction.RESIZE, "");
+                e.dataTransfer.setData(ResizeDirection.BOTTOM, "");
               }}
             />
             <div
@@ -246,8 +238,9 @@ export default forwardRef(
               style={{ pointerEvents: "auto" }}
               draggable={!preview}
               onDragStart={(e) => {
-                e.dataTransfer.setData("action/resize", "");
-                e.dataTransfer.setData(`direction/right`, "");
+                e.dataTransfer.setData(DragSignature, "");
+                e.dataTransfer.setData(DragAction.RESIZE, "");
+                e.dataTransfer.setData(ResizeDirection.RIGHT, "");
               }}
             />
             <div
@@ -256,8 +249,9 @@ export default forwardRef(
               style={{ pointerEvents: "auto" }}
               draggable={!preview}
               onDragStart={(e) => {
-                e.dataTransfer.setData("action/resize", "");
-                e.dataTransfer.setData(`direction/top-left`, "");
+                e.dataTransfer.setData(DragSignature, "");
+                e.dataTransfer.setData(DragAction.RESIZE, "");
+                e.dataTransfer.setData(ResizeDirection.TOPLEFT, "");
               }}
             />
             <div
@@ -266,8 +260,9 @@ export default forwardRef(
               style={{ pointerEvents: "auto" }}
               draggable={!preview}
               onDragStart={(e) => {
-                e.dataTransfer.setData("action/resize", "");
-                e.dataTransfer.setData(`direction/top-right`, "");
+                e.dataTransfer.setData(DragSignature, "");
+                e.dataTransfer.setData(DragAction.RESIZE, "");
+                e.dataTransfer.setData(ResizeDirection.TOPRIGHT, "");
               }}
             />
             <div
@@ -276,8 +271,9 @@ export default forwardRef(
               style={{ pointerEvents: "auto" }}
               draggable={!preview}
               onDragStart={(e) => {
-                e.dataTransfer.setData("action/resize", "");
-                e.dataTransfer.setData(`direction/bottom-left`, "");
+                e.dataTransfer.setData(DragSignature, "");
+                e.dataTransfer.setData(DragAction.RESIZE, "");
+                e.dataTransfer.setData(ResizeDirection.BOTTOMLEFT, "");
               }}
             />
             <div
@@ -286,8 +282,9 @@ export default forwardRef(
               style={{ pointerEvents: "auto" }}
               draggable={!preview}
               onDragStart={(e) => {
-                e.dataTransfer.setData("action/resize", "");
-                e.dataTransfer.setData(`direction/bottom-right`, "");
+                e.dataTransfer.setData(DragSignature, "");
+                e.dataTransfer.setData(DragAction.RESIZE, "");
+                e.dataTransfer.setData(ResizeDirection.BOTTOMRIGHT, "");
               }}
             />
           </>

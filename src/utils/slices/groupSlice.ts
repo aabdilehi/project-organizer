@@ -8,34 +8,22 @@ import {
   updateSize,
   updateTitle,
 } from "./nodeActions";
-import { BoardObjects } from "../enums/items";
-import { GroupType } from "../classes/new-classes";
+import { GroupState } from "./types";
 
-const initialState: { [groupId: string]: GroupType } = {};
+export const initialState: GroupState = {};
+
 const groupSlice = createSlice({
   name: "groups",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
-    builder.addCase(
-      setSliceData.action,
-      setSliceData.reducer(BoardObjects.GROUP)
-    );
-    builder.addCase(addNode.action, addNode.reducer(BoardObjects.GROUP));
-    builder.addCase(
-      updateTitle.action,
-      updateTitle.reducer(BoardObjects.GROUP)
-    );
-    builder.addCase(
-      updatePosition.action,
-      updatePosition.reducer(BoardObjects.GROUP)
-    );
-    builder.addCase(updateSize.action, updateSize.reducer(BoardObjects.GROUP));
-    builder.addCase(
-      updateParent.action,
-      updateParent.reducer(BoardObjects.GROUP)
-    );
-    builder.addCase(removeNode.action, removeNode.reducer(BoardObjects.GROUP));
+    builder.addCase(setSliceData.action, setSliceData.reducer("groups"));
+    builder.addCase(addNode.action, addNode.reducer("groups"));
+    builder.addCase(updateTitle.action, updateTitle.reducer("groups"));
+    builder.addCase(updatePosition.action, updatePosition.reducer("groups"));
+    builder.addCase(updateSize.action, updateSize.reducer("groups"));
+    builder.addCase(updateParent.action, updateParent.reducer("groups"));
+    builder.addCase(removeNode.action, removeNode.reducer("groups"));
   },
 });
 

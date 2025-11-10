@@ -1,11 +1,15 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { DragState } from "./types";
+
+export const initialState: DragState = {
+  initialPosition: { x: 0, y: 0 },
+  nodes: {},
+  types: [],
+};
+
 const dragSlice = createSlice({
   name: "drag",
-  initialState: {
-    initialPosition: { x: 0, y: 0 },
-    nodes: {},
-    types: [],
-  },
+  initialState,
   reducers: {
     setDragData: (state, action) => {
       const { initialPosition, nodes, types } = action.payload;

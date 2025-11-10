@@ -1,12 +1,14 @@
-import { createSelector } from "@reduxjs/toolkit";
-import { RootState } from "../../store";
+import { createSelector, Selector } from "@reduxjs/toolkit";
+import { BoardType, NodeType } from "../classes/new-classes";
+import { DefinedBoardObjects, PlainRootState, SelectionState } from "./types";
+import { ResizeDirection, DragAction, DragOrigin } from "../enums/items";
 
-const selectBoards = (state: RootState) => state.boards;
-const selectNotes = (state: RootState) => state.notes;
-const selectImages = (state: RootState) => state.images;
-const selectTasks = (state: RootState) => state.tasks;
-const selectDocuments = (state: RootState) => state.documents;
-const selectGroups = (state: RootState) => state.groups;
+const selectBoards = (state: PlainRootState) => state.boards;
+const selectNotes = (state: PlainRootState) => state.notes;
+const selectImages = (state: PlainRootState) => state.images;
+const selectTasks = (state: PlainRootState) => state.tasks;
+const selectDocuments = (state: PlainRootState) => state.documents;
+const selectGroups = (state: PlainRootState) => state.groups;
 
 // This is such an ugly selector but it is annoyingly necessary
 export const selectNodes = createSelector(
@@ -32,32 +34,55 @@ export const selectNodes = createSelector(
 
 //#endregion
 
-export const selectBoardPosition = (state, id) => state.boards[id].position;
-export const selectBoardOffset = (state, id) => state.boards[id].offset;
-export const selectBoardParent = (state, id) => state.boards[id].parent;
-export const selectBoardChildren = (state, id) => state.boards[id].childRefs;
+export const selectBoardOffset: Selector<
+  PlainRootState,
+  {
+    x: number;
+    y: number;
+  }
+> = (state, id: string) => state.boards[id].offset;
+export const selectBoardParent: Selector<
+  PlainRootState,
+  {
+    id: string;
+    type: DefinedBoardObjects;
+  }
+> = (state, id: string) => (state.boards[id] as BoardType).parent;
+export const selectBoardChildren: Selector<
+  PlainRootState,
+  {
+    id: string;
+    type: DefinedBoardObjects;
+  }[]
+> = (state, id: string) => state.boards[id].childRefs;
 
 //#region Drag properties
-export const selectDraggedNodes = (state: RootState) => state.drag.nodes;
-export const selectInitialPosition = (state: RootState) =>
-  state.drag.initialPosition;
-export const selectTypes = (state: RootState) => state.drag.types;
+export const selectDraggedNodes: Selector<
+  PlainRootState,
+  {
+    [noteId: string]: NodeType;
+  }
+> = (state) => state.drag.nodes;
 
-export const selectDragRelatedNodes = (state: RootState) => {
-  const nodes = {};
-  Object.values(state.drag.nodes).forEach((node) => {
-    // drag specific replacement to nodes selector
-    const retrievedNode = state[`${node.type}s`][node.id];
-    if (!retrievedNode) return;
-    nodes[retrievedNode.id] = retrievedNode;
-  });
-  return nodes;
-};
+export const selectInitialPosition: Selector<
+  PlainRootState,
+  {
+    x: number;
+    y: number;
+  }
+> = (state) => state.drag.initialPosition;
+export const selectTypes: Selector<
+  PlainRootState,
+  (ResizeDirection | DragAction | DragOrigin)[]
+> = (state) => state.drag.types;
 //#endregion
 
 //#region Copy properties
-export const selectCopiedNodes = (state: RootState) => state.copied.nodes;
-export const selectCopiedPosition = (state: RootState) => state.copied.position;
+export const selectCopiedNodes = (state: PlainRootState) => state.copied.nodes;
+export const selectCopiedPosition = (state: PlainRootState) =>
+  state.copied.position;
 //#endregion
 
-export const selectSelection = (state) => state.selection;
+export const selectSelection: Selector<PlainRootState, SelectionState> = (
+  state
+) => state.selection;

@@ -9,38 +9,22 @@ import {
   updatePosition,
   updateSize,
 } from "./nodeActions";
-import { BoardObjects } from "../enums/items";
-import { NoteType } from "../classes/new-classes";
+import { NoteState } from "./types";
 
-const initialState: { [noteId: string]: NoteType } = {};
+export const initialState: NoteState = {};
 const noteSlice = createSlice({
   name: "notes",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
-    builder.addCase(
-      setSliceData.action,
-      setSliceData.reducer(BoardObjects.NOTE)
-    );
-    builder.addCase(addNode.action, addNode.reducer(BoardObjects.NOTE));
-    builder.addCase(
-      updateContent.action,
-      updateContent.reducer(BoardObjects.NOTE)
-    );
-    builder.addCase(
-      updatePosition.action,
-      updatePosition.reducer(BoardObjects.NOTE)
-    );
-    builder.addCase(
-      offsetPosition.action,
-      offsetPosition.reducer(BoardObjects.NOTE)
-    );
-    builder.addCase(updateSize.action, updateSize.reducer(BoardObjects.NOTE));
-    builder.addCase(
-      updateParent.action,
-      updateParent.reducer(BoardObjects.NOTE)
-    );
-    builder.addCase(removeNode.action, removeNode.reducer(BoardObjects.NOTE));
+    builder.addCase(setSliceData.action, setSliceData.reducer("notes"));
+    builder.addCase(addNode.action, addNode.reducer("notes"));
+    builder.addCase(updateContent.action, updateContent.reducer("notes"));
+    builder.addCase(updatePosition.action, updatePosition.reducer("notes"));
+    builder.addCase(offsetPosition.action, offsetPosition.reducer("notes"));
+    builder.addCase(updateSize.action, updateSize.reducer("notes"));
+    builder.addCase(updateParent.action, updateParent.reducer("notes"));
+    builder.addCase(removeNode.action, removeNode.reducer("notes"));
   },
 });
 

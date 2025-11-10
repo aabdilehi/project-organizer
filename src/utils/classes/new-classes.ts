@@ -1,5 +1,6 @@
+import { nanoid } from "@reduxjs/toolkit";
 import { BoardObjects } from "../enums/items";
-import { v4 as uuidv4 } from "uuid";
+import { DefinedBoardObjects } from "../slices/types";
 
 //#region Node type definitions
 export type BadgeType = {
@@ -14,12 +15,12 @@ export type SubTaskType = {
 };
 export type NodeType = {
   id: string;
-  type: BoardObjects;
+  type: DefinedBoardObjects;
   pX: number;
   pY: number;
   sX: number;
   sY: number;
-  parent: { id: string; type: BoardObjects };
+  parent: { id: string; type: DefinedBoardObjects };
 };
 export type NoteType = NodeType & {
   content: string;
@@ -46,12 +47,23 @@ export type GroupType = NodeType & {
 export type RootBoardType = {
   id: string;
   title: string;
-  type: BoardObjects;
+  type: DefinedBoardObjects;
   offset: { x: number; y: number };
   scale: number;
-  childRefs: Partial<NodeType>[] | [];
+  childRefs:
+    | {
+        id: string;
+        type: DefinedBoardObjects;
+      }[];
 };
+
 export type BoardType = NodeType & RootBoardType;
+
+export function isRoot(node: Partial<NodeType>): node is RootBoardType {
+  if (!Object.hasOwn(node, "id") || !Object.hasOwn(node, "type")) return false;
+  return node.id == "root" && node.type == BoardObjects.BOARD;
+}
+
 //#endregion
 
 //#region Type guards
@@ -85,7 +97,7 @@ function isBoard(
 //#region Default values for node types
 export const defaultNode: NodeType = {
   id: "",
-  type: BoardObjects.NONE,
+  type: BoardObjects.NOTE,
   pX: 0,
   pY: 0,
   sX: 0,
@@ -159,8 +171,7 @@ export const defaultBoard: BoardType = {
 };
 //#endregion
 
-export const NodeTypeMap: { [key in BoardObjects]: NodeType } = {
-  [BoardObjects.NONE]: defaultNode,
+export const NodeTypeMap: { [key in DefinedBoardObjects]: NodeType } = {
   [BoardObjects.NOTE]: defaultNote,
   [BoardObjects.BOARD]: defaultBoard,
   [BoardObjects.TASK]: defaultTask,
@@ -176,7 +187,7 @@ export const formatData = <T extends NodeType>(
   return {
     ...defaults,
     ...input,
-    id: input.id ?? uuidv4(),
+    id: input.id ?? nanoid(),
   } as T;
 };
 
@@ -192,27 +203,26 @@ const defaultBadge: Partial<BadgeType> = {
   color: "red",
 };
 export const createBadge = (badge?: Partial<BadgeType>): BadgeType => {
-  return { ...defaultBadge, id: uuidv4(), ...badge } as BadgeType;
+  return { ...defaultBadge, id: nanoid(), ...badge } as BadgeType;
 };
 
 export const createSubTask = (subTask?: Partial<SubTaskType>): SubTaskType => {
-  return { ...defaultSubTask, id: uuidv4(), ...subTask } as SubTaskType;
+  return { ...defaultSubTask, id: nanoid(), ...subTask } as SubTaskType;
 };
 
 type Size = {
   min?: {
-    x?: Number;
-    y?: Number;
+    x?: number;
+    y?: number;
   };
   max?: {
-    x?: Number;
-    y?: Number;
+    x?: number;
+    y?: number;
   };
 };
 
-export const SizeClassMap: { [type in BoardObjects]: Size } = {
+export const SizeClassMap: { [type in DefinedBoardObjects]: Size } = {
   [BoardObjects.NOTE]: { min: { x: 75, y: 50 }, max: { x: 1200, y: 1200 } },
-  [BoardObjects.NONE]: {},
   [BoardObjects.BOARD]: { min: { x: 75, y: 75 }, max: { x: 1000, y: 1000 } },
   [BoardObjects.TASK]: { min: { x: 250 }, max: { x: 250 } },
   [BoardObjects.GROUP]: { min: { x: 100, y: 100 } },

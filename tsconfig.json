@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "jsx":"react",
+    "strict": true,
+    "paths": {
+      "react": [ "./node_modules/@types/react" ]
+    },
+    "lib": ["ES2022", "DOM"],
+    "allowJs": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  }
+}

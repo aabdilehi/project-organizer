@@ -1,11 +1,14 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { CopiedState } from "./types";
+
+export const initialState: CopiedState = {
+  position: { x: 0, y: 0 },
+  nodes: [],
+};
 
 const copiedSlice = createSlice({
   name: "copied",
-  initialState: {
-    position: { x: 0, y: 0 },
-    nodes: [],
-  },
+  initialState,
   reducers: {
     copyNodeData: (state, action) => {
       const nodes = action.payload;

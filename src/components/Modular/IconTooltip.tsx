@@ -1,14 +1,7 @@
 // Not sure what to call this but it is basically an icon that you can hover on and get more info in a tooltip
 
-import React from "react";
-import {
-  Ref,
-  forwardRef,
-  useCallback,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { ForwardedRef } from "react";
+import { forwardRef, useLayoutEffect, useRef, useState } from "react";
 import { IconType } from "react-icons";
 
 export const Tooltip = forwardRef(
@@ -22,7 +15,7 @@ export const Tooltip = forwardRef(
       placement?: "top" | "bottom" | "right" | "custom";
       position?: string;
     },
-    ref
+    ref: ForwardedRef<HTMLDivElement>
   ) => {
     return (
       <div ref={ref} className={`tooltip ${placement}`} role="menu">
@@ -42,7 +35,7 @@ export default ({
   tooltipPlacement?: "top" | "bottom";
 }) => {
   const [tooltipVisible, setTooltipVisible] = useState(false);
-  const iconRef = useRef();
+  const iconRef = useRef<HTMLDivElement>(null);
 
   const showToolTip = (visible: boolean) => {
     setTooltipVisible(visible);
