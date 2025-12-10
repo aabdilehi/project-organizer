@@ -36,7 +36,7 @@ const boardSlice = createSlice({
     updateOffset: (state, action) => {
       const { id, x, y } = action.payload;
       const board = state[id];
-      if (!board || !x || !y) return;
+      if (!board || x == null || y == null) return;
       return {
         ...state,
         [id]: {

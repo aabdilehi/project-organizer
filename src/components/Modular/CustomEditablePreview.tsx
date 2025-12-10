@@ -8,63 +8,10 @@ import React, {
   useState,
 } from "react";
 
-// function CustomEditablePreview({canEdit = true, as: As = 'p', text = "Default", textStyle, onChange, ...props} : {canEdit?: boolean, as?: React.ElementType, text?: string, textStyle?: React.CSSProperties, onChange?: (value: string) => void}) {
-//    const [editing, setEditing] = useState(false);
-//    const [value, setValue] = useState(text);
-//    const textRef = useRef();
-
-//    if(editing) {
-//     console.log("AAAA");
-
-//     const checkTarget = (e) => {
-//         if(textRef.current && (textRef.current !== e.target || !textRef.current.contains(e.target)) && editing) {
-//             setEditing(false);
-//         }
-//     }
-//     window.addEventListener("click", checkTarget);
-//    }
-
-//    if(!canEdit) {
-//     setEditing(false);
-//    }
-
-//    const edit = () => {
-//     if(canEdit && !editing) {
-//         setEditing(true);
-//     }
-//    }
-
-//    if(textRef.current) {
-//     const caretPos = textRef.current.selectionStart;
-//     const sel = document.getSelection();
-//     const currentRange = sel?.getRangeAt(0);
-
-//    textRef.current.textContent = "value";
-
-//    if(currentRange) {
-//     sel?.removeAllRanges();
-//     sel?.addRange(currentRange);}
-
-//  }
-
-//    const handleChange = (e) => {
-//     if(value !== e.target.textContent) {setValue(e.target.textContent);}
-//     if(!!onChange) {
-//         onChange(value);
-//     }
-//    }
-
-//    return (<span ref={textRef} onInput={handleChange} onPaste={handleChange} onClick={edit} contentEditable={editing} style={{gridArea: "1 / 1 / 2 / 2", color: "red", width: "100%", whiteSpace: "pre-wrap", ...textStyle }}>{value}</span>);
-// }
-
-// export default CustomEditablePreview;
-
-//#region Trying for a more 'proper' solution
-import ResizeableTextArea from "./AutoResizeTextArea";
 import { nanoid } from "@reduxjs/toolkit";
-
-const textParentKey = nanoid();
-const textAreaKey = nanoid();
+import { DragSignature } from "../../utils/enums/items";
+const previewKey = nanoid();
+const editKey = nanoid();
 
 function CustomEditablePreview({
   canEdit = true,
@@ -91,9 +38,87 @@ function CustomEditablePreview({
 }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(text || "");
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
-  const textAreaWidth = useRef<number>();
-  const previewRef = useRef<typeof As>(null);
+
+  const editRef = useRef<HTMLElement>(null);
+  const previewRef = useRef<HTMLElement>(null);
+
+  // Handling caret position
+  const caretRange = useRef<{ start: number; end: number }>({
+    start: 0,
+    end: 0,
+  });
+
+  const saveCaretPosition = () => {
+    if (!editRef.current) return;
+
+    const selection = window.getSelection();
+    const range = selection?.getRangeAt(0);
+
+    if (!range) return;
+    const rangeStart = range.cloneRange();
+    rangeStart.selectNodeContents(editRef.current);
+    rangeStart.setEnd(range.startContainer, range.startOffset);
+    const start = rangeStart.toString().length;
+
+    caretRange.current = {
+      start,
+      end: start + range.toString().length,
+    };
+    return;
+  };
+  const restoreCaretPosition = () => {
+    if (!editRef.current) return;
+    const range = document.createRange();
+    const selection = window.getSelection();
+
+    const textNode = editRef.current.firstChild;
+    if (!textNode) range.setStart(editRef.current, 0);
+    else {
+      range.setStart(textNode, caretRange.current.start);
+      range.setEnd(textNode, caretRange.current.end);
+    }
+
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  };
+  const setCaretPositionFromMouse = (event: PointerEvent) => {
+    if(!editRef.current) return;
+
+    let sel = window.getSelection();
+      let range: Range;
+      let textNode;
+      let offset;
+
+      if (document.caretPositionFromPoint) { // Modern browsers
+        range = document.createRange();
+        let position = document.caretPositionFromPoint(event.clientX, event.clientY);
+
+
+        if(!position) range.setStart(editRef.current, 0);
+        else {
+          textNode = position.offsetNode;
+          offset = position.offset;
+          range.setStart(textNode, offset);
+        }
+        range.collapse(true);
+      } 
+      else if (document.caretRangeFromPoint) { // Fallback for older browsers
+        range = document.caretRangeFromPoint(event.clientX, event.clientY)!;
+        textNode = range?.startContainer;
+        offset = range?.startOffset;
+      }
+      else { // Neither works, just return;
+        return;
+      }
+
+      caretRange.current = {
+        start: range.toString().length,
+        end: range.toString().length,
+      }
+
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+  }
 
   const submitChanges = () => {
     if (value !== text) {
@@ -110,20 +135,19 @@ function CustomEditablePreview({
     setEditing(false);
   }
 
-  const edit = () => {
+  const edit = (event: PointerEvent) => {
     if (canEdit && !editing) {
+      setCaretPositionFromMouse(event);
       setEditing(true);
     }
   };
 
   // UPDATE SIZE ON LOAD -> COPY HEIGHT OF PREVIEW TEXT
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (editing) {
-      // wanted to put this in the edit function but needed to ensure that this runs AFTER dom is loaded post state change
-      updateTextAreaSize();
-      textAreaRef.current?.focus();
+      restoreCaretPosition();
+      editRef.current?.focus();
     } else {
-      textAreaWidth;
       submitChanges();
     }
   }, [editing, text]);
@@ -132,36 +156,27 @@ function CustomEditablePreview({
     setValue(text);
   }, [text]);
 
-  // UPDATE SIZE ON CHANGE -> USE TEXT AREA SCROLL HEIGHT
-  // UPDATE SIZE ON RESIZE -> MANUAL UPDATE FUNCTION PASSED UP TO PARENT
-  const updateTextAreaSize = () => {
-    if (!textAreaRef.current || !previewRef.current) return;
-    // "Reset" text area height then fit to content
-
-    textAreaRef.current.style.height = "1px";
-    textAreaRef.current.style.height = `${textAreaRef.current.scrollHeight}px`;
-
-    if (!textAreaRef.current.parentElement) return;
-    // Set parent to same size as there is weird extra spacing otherwise
-    textAreaRef.current.parentElement.style.height =
-      textAreaRef.current.style.height;
-  };
-
-  const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setValue(e.target.value);
+  useEffect(() => {
+    restoreCaretPosition();
+  }, [value]);
+  const handleInput = (e: InputEvent) => {
+    if (!e.target) return;
+    saveCaretPosition();
+    setValue((e.target as HTMLElement).textContent);
     if (!!onChange && !changeOnSubmit) {
       onChange(value);
     }
     if (onImmediateChange) {
       onImmediateChange();
     }
-    updateTextAreaSize();
   };
 
   return (
-    <div className="editable" style={{ width, ...style }}>
+    <div className="editable" style={{ width, ...style }} >
       <As
         onClick={edit}
+        id={previewKey}
+        key={previewKey}
         ref={previewRef as any}
         style={{
           display: editing ? "none" : undefined,
@@ -180,82 +195,45 @@ function CustomEditablePreview({
         {value}
       </As>
       <As
-        id={textParentKey}
-        key={textParentKey}
+        id={editKey}
+        key={editKey}
+        ref={editRef as any}
+        rows={1}
+        value={value}
+        disabled={!editing}
+        // onClick={setCaretPositionFromMouse}
+        onInput={handleInput}
+        onBlur={submitChanges}
+        onKeyDown={(e) => {
+          switch (e.key) {
+            case "Enter":
+              e.preventDefault();
+              submitChanges();
+              return;
+            case "Escape":
+              setValue(text);
+              setEditing(false);
+              return;
+            default:
+              return;
+          }
+        }}
         style={{
           display: editing ? undefined : "none",
           width: "100%",
-          overflow: "hidden",
           margin: "0",
-          padding: "0",
+          outline: "2px solid transparent",
           border: "none",
-          outline: "2px solid blue",
+          wordWrap: "break-word",
           whiteSpace: "pre-wrap",
-          pointerEvents: editing ? "all" : "none",
+          overflow: "auto",
+          overflowWrap: "anywhere",
           boxSizing: "border-box",
           ...textStyle,
         }}
+        contentEditable={editing}
       >
-        <textarea
-          id={textAreaKey}
-          key={textAreaKey}
-          ref={textAreaRef}
-          rows={1}
-          cols={
-            adjustSelf && textAreaRef.current
-              ? Math.max(
-                  10,
-                  Math.ceil(
-                    textAreaRef.current.value.length +
-                      2 +
-                      Math.ceil(
-                        (textAreaRef?.current?.value.match(/[mw]/g) || [])
-                          .length / 3
-                      )
-                  )
-                )
-              : undefined
-          }
-          value={value}
-          wrap="hard"
-          disabled={!editing}
-          onChange={handleChange}
-          onMouseUp={(e) => e.preventDefault}
-          onBlur={submitChanges}
-          onKeyDown={(e) => {
-            switch (e.key) {
-              case "Enter":
-                e.preventDefault();
-                submitChanges();
-                return;
-              case "Escape":
-                setValue(text);
-                setEditing(false);
-                return;
-              default:
-                return;
-            }
-          }}
-          style={{
-            height: "100%",
-            width: "100%",
-            overflow: "inherit",
-            fontSize: "inherit",
-            fontWeight: "inherit",
-            textAlign: "inherit",
-            whiteSpace: "inherit",
-            margin: "inherit",
-            padding: "0",
-            boxSizing: "inherit",
-            outline: "none",
-            border: "none",
-            appearance: "none",
-            display: editing ? undefined : "none",
-            resize: "none",
-            backgroundColor: "inherit",
-            color: "inherit",
-          }}
-        />
+        {value}
       </As>
     </div>
   );

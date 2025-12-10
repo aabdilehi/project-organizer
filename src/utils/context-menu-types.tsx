@@ -485,13 +485,13 @@ export const GroupContextMenu: ContextMenu = {
   canDelete: true,
   items: [
     {
-      label: "Move items into column?",
+      label: "Arrange as column",
       onClick: (dispatch, boardId) => {
         dispatch(createColumnThunk(boardId));
       },
     },
     {
-      label: "Move items into row?",
+      label: "Arrange as row",
       onClick: (dispatch, boardId) => {
         dispatch(createRowThunk(boardId));
       },

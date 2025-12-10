@@ -16,6 +16,8 @@ const previewStyle = {
   width: "100%",
   margin: "auto",
   borderRadius: "5px",
+  width: "100%",
+  margin: "0",
   outline: "2px solid transparent",
   border: "none",
   wordWrap: "break-word",
@@ -47,7 +49,7 @@ const TaskPreview = ({ id }) => {
       >
         <input
           type="checkbox"
-          style={{ gridArea: "checkbox", height: "20px", alignSelf: "center" }}
+          style={{ gridArea: "checkbox", alignSelf: "center" }}
           checked={status}
           readOnly
         />
@@ -82,7 +84,11 @@ const TaskPreview = ({ id }) => {
             }}
           >
             {Object.values(badges).map((badge) => (
-              <BadgePreview id={badge.id} text={badge.text} />
+              <BadgePreview
+                id={badge.id}
+                text={badge.text}
+                colour={badge.color}
+              />
             ))}
           </div>
         ) : undefined}

@@ -223,7 +223,7 @@ type Size = {
 
 export const SizeClassMap: { [type in DefinedBoardObjects]: Size } = {
   [BoardObjects.NOTE]: { min: { x: 75, y: 50 }, max: { x: 1200, y: 1200 } },
-  [BoardObjects.BOARD]: { min: { x: 75, y: 75 }, max: { x: 1000, y: 1000 } },
+  [BoardObjects.BOARD]: { min: { x: 65, y: 75 }, max: { x: 100, y: 1000 } },
   [BoardObjects.TASK]: { min: { x: 250 }, max: { x: 250 } },
   [BoardObjects.GROUP]: { min: { x: 100, y: 100 } },
   [BoardObjects.IMAGE]: { min: { x: 100, y: 100 } },

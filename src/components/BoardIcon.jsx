@@ -16,12 +16,14 @@ import { Modal } from "./Modular/Modal";
 import _ from "lodash";
 import { selectDraggedNodes } from "../utils/slices/selectors.ts";
 
+
 const previewStyle = {
   fontWeight: "800",
   width: "100%",
   margin: "auto",
   borderRadius: "5px",
 };
+
 function isEmpty(obj) {
   for (var prop in obj) {
     if (Object.hasOwn(obj, prop)) return false;
@@ -29,28 +31,45 @@ function isEmpty(obj) {
   return true;
 }
 
-const BoardIcon = ({ id, allowDrop, drop, onContextMenu }) => {
+const BoardIcon = ({ id, allowDrop, drop, onContextMenu, scale}) => {
+  if (!id) return;
   const dispatch = useDispatch();
 
   const { pX, pY, sX, sY, title, parent } = useSelector(
     (state) => state.boards[id]
   );
-  const selected = useSelector((state) => Object.hasOwn(state.selection, id));
-
   const draggedNodes = useSelector(selectDraggedNodes);
   const dragging = !isEmpty(draggedNodes) && !Object.hasOwn(draggedNodes, id);
   const navigate = useNavigate();
   const nodeRef = useRef();
 
   const [activeDropZone, setDropZoneActive] = useState(false);
-  const updateSizeFromElement = () =>
-    requestAnimationFrame(() => {
-      if (nodeRef.current != null) {
-        nodeRef.current.style.height = "fit-content";
-      }
-    });
+  const selected = useSelector((state) => Object.hasOwn(state.selection, id));
 
-  updateSizeFromElement();
+  const updateSizeFromElement = () =>{
+      if (nodeRef.current != null) {
+        nodeRef.current.style.width = "unset";
+        nodeRef.current.style.height = "unset";
+        const bounds = nodeRef.current.getBoundingClientRect();
+        if (
+          Math.abs(sY - bounds.height / scale) > 10 || // Padding is 10 on each side
+          Math.abs(sX - bounds.width / scale) > 10 
+        ) {
+          dispatch(
+            updateSize.action({
+              id,
+              type: BoardObjects.BOARD,
+              sX: bounds.width / scale,
+              sY: bounds.height / scale,
+            })
+          );
+        }
+        nodeRef.current.style.width = sX;
+        nodeRef.current.style.height = sY;
+      }
+    };
+
+  // updateSizeFromElement();
 
   // Really annoying as this event sucks at bubbling properly so i have to do this
 
@@ -108,13 +127,14 @@ const BoardIcon = ({ id, allowDrop, drop, onContextMenu }) => {
           allowDrop(event);
         }}
       >
-        <StarIcon pointerEvents={"none"} w={"100%"} h={"100%"} />
+        <StarIcon pointerEvents={"none"} />
       </div>
       <CustomEditablePreview
         as={"p"}
         canEdit={selected}
         text={title}
         textStyle={previewStyle}
+        changeOnSubmit
         onChange={(value) =>
           dispatch(
             updateTitle.action({

@@ -6,7 +6,14 @@ import {
   useState,
 } from "react";
 
-import { BoardObjects, DragSignature } from "../utils/enums/items";
+import {
+  BoardObjects,
+  DragAction,
+  DragOrigin,
+  DragRenderLayers,
+  DragSignature,
+  ResizeDirection,
+} from "../utils/enums/items";
 import React from "react";
 import {
   TbArrowLeft as IconArrowLeft,
@@ -25,15 +32,34 @@ import { useDispatch, useSelector } from "react-redux";
 import { clearDragData, setDragData } from "../utils/slices/dragSlice";
 import { formatData, NodeTypeMap } from "../utils/classes/new-classes";
 import { ExportButton, ImportButton } from "./Modular/ExportButton";
-import { Tooltip } from "./Modular/IconTooltip";
+import { Tooltip, TooltipWrapper } from "./Modular/IconTooltip";
 import { nanoid } from "@reduxjs/toolkit";
+import { DefinedBoardObjects } from "../utils/slices/types";
+import { IconType } from "react-icons";
 
-const Toolbar = ({ router, boardId, boardRef, scale, offset, parent }) => {
-  const sideBarRef = useRef();
+const Toolbar = ({
+  router,
+  boardId,
+  boardRef,
+  scale,
+  offset,
+  parent,
+}: {
+  router: any;
+  boardId: string;
+  boardRef: React.RefObject<HTMLDivElement>;
+  scale: number;
+  offset: { x: number; y: number };
+  parent: { id: string; type: BoardObjects };
+}) => {
+  const sideBarRef = useRef<HTMLDivElement>(null);
 
   const dispatch = useDispatch();
 
-  const createNodeDragPreview = (event, type) => {
+  const createNodeDragPreview = (
+    event: React.DragEvent<HTMLDivElement>,
+    type: DefinedBoardObjects
+  ) => {
     if (!boardRef.current) return;
     const boundingRect = boardRef.current.getBoundingClientRect();
     dispatch(clearDragData());
@@ -56,13 +82,28 @@ const Toolbar = ({ router, boardId, boardRef, scale, offset, parent }) => {
           y: event.clientY,
         },
         nodes: { [node.id]: node },
-        types: event.dataTransfer.types,
+        layers: {
+          [DragRenderLayers.BOTTOM]: [],
+          [DragRenderLayers.TOP]: [node.id],
+        },
+        types: event.dataTransfer!.types as (
+          | DragAction
+          | DragOrigin
+          | ResizeDirection
+        )[],
       })
     );
   };
 
   return (
-    <div ref={sideBarRef} className="toolbar">
+    <div
+      ref={sideBarRef}
+      className="toolbar"
+      onWheel={(e) => {
+        e.stopPropagation();
+      }}
+      // onDragStart={(e) => {e.stopPropagation(); e.preventDefault();}} 
+    >
       <div>
         <TooltipWrapper name="Home" placement="right">
           <button
@@ -73,17 +114,17 @@ const Toolbar = ({ router, boardId, boardRef, scale, offset, parent }) => {
             }}
             disabled={!scale || boardId === "root"}
           >
-            <IconHome size={18} />
+            <IconHome size={20} />
           </button>
         </TooltipWrapper>
         <TooltipWrapper name="Import" placement="right">
           <ImportButton className="toolbar-button">
-            <IconImport size={18} />
+            <IconImport size={20} />
           </ImportButton>
         </TooltipWrapper>
         <TooltipWrapper name="Export" placement="right">
           <ExportButton className="toolbar-button">
-            <IconExport size={18} />
+            <IconExport size={20} />
           </ExportButton>
         </TooltipWrapper>
 
@@ -102,7 +143,7 @@ const Toolbar = ({ router, boardId, boardRef, scale, offset, parent }) => {
             }}
             disabled={!parent}
           >
-            <IconArrowLeft size={18} />
+            <IconArrowLeft size={24} />
           </button>
         </TooltipWrapper>
       </div>
@@ -148,50 +189,31 @@ const Toolbar = ({ router, boardId, boardRef, scale, offset, parent }) => {
   );
 };
 
-const TooltipWrapper = ({
+const ToolbarObject = ({
   name,
-  children,
-  placement = "right",
-}: (
-  | React.HTMLAttributes<HTMLDivElement>
-  | React.ButtonHTMLAttributes<HTMLButtonElement>
-) & {
+  type,
+  icon: Icon,
+  onDragStart,
+}: {
   name: string;
-  placement: string;
+  type: DefinedBoardObjects;
+  icon: IconType;
+  onDragStart: (
+    event: React.DragEvent<HTMLDivElement>,
+    type: DefinedBoardObjects
+  ) => void;
 }) => {
-  const [tooltipVisible, setToolTopVisible] = useState(false);
-
-  return (
-    <div
-      style={{
-        margin: 0,
-        padding: 0,
-        position: "relative",
-        height: "fit-content",
-        width: "fit-content",
-      }}
-    >
-      <span
-        onMouseEnter={() => setToolTopVisible(true)}
-        onMouseLeave={() => setToolTopVisible(false)}
-      >
-        {children}
-      </span>
-      {tooltipVisible && <Tooltip text={name} placement={"right"} />}
-    </div>
-  );
-};
-
-const ToolbarObject = ({ name, type, icon: Icon, onDragStart }) => {
   const ref = useRef(null);
-  const handleDragStart = (event) => {
+  const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!event.dataTransfer) return;
     // remove or hide drag preview image
     const prev = document.createElement("span");
     prev.style.display = "none";
     event.dataTransfer.dropEffect = "move";
     event.dataTransfer.setDragImage(prev, 0, 0);
     event.dataTransfer.setData(DragSignature, "");
-    event.dataTransfer.setData("origin/toolbar", JSON.stringify({ type }));
+    event.dataTransfer.setData(DragOrigin.TOOLBAR, JSON.stringify({ type }));
+    event.dataTransfer.setData(DragAction.MOVE, "");
     onDragStart(event, type);
   };
 
@@ -203,7 +225,7 @@ const ToolbarObject = ({ name, type, icon: Icon, onDragStart }) => {
         onDragStart={handleDragStart}
         ref={ref}
       >
-        <Icon size={18} />
+        <Icon size={20} />
       </div>
     </TooltipWrapper>
   );

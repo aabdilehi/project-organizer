@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { RefObject, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   ContextMenuItem,
@@ -6,7 +6,6 @@ import {
   reduceContextMenu,
 } from "../context-menu-types";
 import React from "react";
-import ReactDOM from "react-dom";
 import {
   deleteSelection,
   copySelectionThunk,
@@ -14,6 +13,7 @@ import {
 } from "../slices/thunks";
 import { selectSelection } from "../slices/selectors";
 import { createSelector } from "@reduxjs/toolkit";
+import FloatingMenu from "../../components/Modular/FloatingMenu";
 
 const selectedNodeTypes = createSelector([selectSelection], (selectedNodes) =>
   reduceContextMenu(Object.values(selectedNodes).map((node) => node.type))
@@ -24,48 +24,33 @@ const ContextMenu = ({
   mousePosition,
   open,
   setOpen,
-  calculatePosition,
+}: {
+  boardId: string;
+  mousePosition: RefObject<{ x: number; y: number }>;
+  open: boolean;
+  setOpen: (open: boolean) => void;
 }) => {
-  const contextRef = useRef();
   const selectedNodes = useSelector(selectSelection);
   const contextMenu = useSelector(selectedNodeTypes);
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<any>();
 
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (
-        e.target != contextRef.current &&
-        e.target.parentNode != contextRef.current &&
-        e.target.parentNode.parentNode != contextRef.current
-      ) {
-        setOpen(false);
-      }
-    };
-    window.addEventListener("mousedown", handleClick);
-    return () => {
-      window.removeEventListener("mousedown", handleClick);
-    };
-  }, []);
-
-  return open
-    ? ReactDOM.createPortal(
-        <div
+  return  <FloatingMenu
           className="context-menu"
+          open={open}
+          setOpen={setOpen}
           style={{
-            left: `${mousePosition.current.x}px`,
-            top: `${mousePosition.current.y}px`,
-            transform: `translatex(0%)`, // reposition based on bounds
+            left:mousePosition.current?.x,
+            top: mousePosition.current?.y,
           }}
-          ref={contextRef}
         >
           {contextMenu.canCopy ||
           contextMenu.canCut ||
           contextMenu.canDelete ||
           contextMenu.canPaste ? (
             <div className="context-menu-group">
-              <p>Standard Node Actions</p>
+              <p>General actions</p>
               {contextMenu.canCut ? (
-                <div className="context-menu-item">Cut</div>
+                <div className="context-menu-item"><p>Cut</p></div>
               ) : null}
               {contextMenu.canCopy ? (
                 <div
@@ -77,7 +62,7 @@ const ContextMenu = ({
                     setOpen(false);
                   }}
                 >
-                  Copy
+                   <p>Copy</p>
                 </div>
               ) : null}
               {contextMenu.canDelete ? (
@@ -89,7 +74,7 @@ const ContextMenu = ({
                     setOpen(false);
                   }}
                 >
-                  Delete
+                   <p>Delete</p>
                 </div>
               ) : null}
               {contextMenu.canPaste ? (
@@ -106,14 +91,14 @@ const ContextMenu = ({
                     setOpen(false);
                   }}
                 >
-                  Paste
+                   <p>Paste</p>
                 </div>
               ) : null}
             </div>
           ) : null}
           {contextMenu.items.length > 0 && (
             <div className="context-menu-group">
-              <p>Exclusive Node Actions</p>
+              <p>Special actions</p>
               {contextMenu.items.map(
                 (item: ContextMenuItem | NewNodeMenuItem) => {
                   return (
@@ -130,7 +115,7 @@ const ContextMenu = ({
                         setOpen(false);
                       }}
                     >
-                      {item.label}
+                      <p>{item.label}</p>
                     </div>
                   );
                 }
@@ -139,7 +124,7 @@ const ContextMenu = ({
           )}
           {Object.values(selectedNodes).length > 1 && (
             <div className="context-menu-group">
-              <p>Multiple Node Actions</p>
+              <p>Group Actions</p>
               <div
                 className="context-menu-item"
                 onClick={() => {
@@ -148,14 +133,11 @@ const ContextMenu = ({
                   setOpen(false);
                 }}
               >
-                Group selected items
+                <p>Group selected items</p>
               </div>
             </div>
           )}
-        </div>,
-        document.querySelector("#root")
-      )
-    : undefined;
+        </FloatingMenu>
 };
 
 export default ContextMenu;

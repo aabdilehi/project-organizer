@@ -1,8 +1,8 @@
 .badge {
   padding: 7px 9px;
   border-radius: 13px;
-  background-color: var(--secondary-color);
-  color: var(--primary-color);
+  background-color: rgb(var(--secondary-color));
+  color: rgb(var(--primary-color));
   font-weight: 600;
   font-size: 0.9em;
   width: fit-content;

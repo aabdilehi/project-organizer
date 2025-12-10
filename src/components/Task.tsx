@@ -23,7 +23,13 @@ import {
 import { BadgeEdit, BadgePreview } from "./Modular/Badge.tsx";
 import AutoResizeTextArea from "./Modular/AutoResizeTextArea.tsx";
 import IconButton from "./Modular/IconButton.tsx";
-import { createBadge, createSubTask } from "../utils/classes/new-classes.ts";
+import {
+  BadgeType,
+  createBadge,
+  createSubTask,
+  SubTaskType,
+} from "../utils/classes/new-classes.ts";
+import { PlainRootState } from "../utils/slices/types.ts";
 
 const previewStyle = {
   fontWeight: "800",
@@ -38,7 +44,7 @@ const Task = ({
   scale,
   offset,
 }: {
-  id?: string;
+  id: string;
   onContextMenu: React.MouseEventHandler<HTMLDivElement>;
   scale: number;
   offset: { x: number; y: number };
@@ -46,7 +52,9 @@ const Task = ({
   const dispatch = useDispatch();
   const nodeRef = useRef<HTMLDivElement>(null);
   const checkBoxRef = useRef<HTMLInputElement>(null); // React does not seem to support the indeterminate property so we have to set it manually
-  const task = useSelector((state: any) => state.tasks[id]);
+  const task = useSelector((state: PlainRootState) => state.tasks[id]);
+
+  if (!task) return;
   const {
     pX,
     pY,
@@ -61,6 +69,7 @@ const Task = ({
     parent,
   } = task;
   if (!parent) return null;
+
   const updateSizeFromElement = () => {
     if (nodeRef.current != null) {
       nodeRef.current.style.height = "unset";
@@ -77,9 +86,7 @@ const Task = ({
           })
         );
       }
-      requestAnimationFrame(() => {
         nodeRef.current.style.height = sY + "px";
-      });
     }
   };
 
@@ -90,11 +97,16 @@ const Task = ({
   const [open, setOpen] = useState(false);
   const taskTitleRef = useRef(null);
   const taskSummaryRef = useRef(null);
-  const [tempBadges, setTempBadges] = useState(badges);
-  const [tempSubTasks, setTempSubTasks] = useState(subTasks);
+  const [tempBadges, setTempBadges] = useState<{
+    [badgeId: string]: BadgeType;
+  }>(badges);
+  const [tempSubTasks, setTempSubTasks] = useState<{
+    [subTaskId: string]: SubTaskType;
+  }>(subTasks);
 
-  const selected = useSelector((state) => Object.hasOwn(state.selection, id));
-  updateSizeFromElement();
+  const selected = useSelector((state: PlainRootState) =>
+    Object.hasOwn(state.selection, id)
+  );
   return (
     <>
       <NodeWrapper
@@ -116,7 +128,12 @@ const Task = ({
         <input
           type="checkbox"
           ref={checkBoxRef}
-          style={{ gridArea: "checkbox", height: "20px", alignSelf: "center" }}
+          style={{
+            gridArea: "checkbox",
+            height: "25px",
+            width: "25px",
+            alignSelf: "center",
+          }}
           checked={status}
           onChange={(e) => {
             dispatch(
@@ -175,7 +192,11 @@ const Task = ({
             }}
           >
             {Object.values(badges).map((badge) => (
-              <BadgePreview id={badge.id} text={badge.text} />
+              <BadgePreview
+                id={badge.id}
+                text={badge.text}
+                colour={badge.color}
+              />
             ))}
           </div>
         ) : undefined}
@@ -206,16 +227,6 @@ const Task = ({
               ref={taskTitleRef}
               type="text"
               defaultValue={title}
-              style={{
-                appearance: "none",
-                padding: "8px",
-                boxSizing: "border-box",
-                border: "1px grey",
-                lineHeight: "1.375",
-                borderRadius: "0.375rem",
-                fontSize: "inherit",
-                outline: "none",
-              }}
             />
           </div>
           <div
@@ -226,21 +237,19 @@ const Task = ({
               gap: "5px",
             }}
           >
-            <label htmlFor="task-summary">Summary:</label>
+            <label htmlFor="task-summary">
+              <p>Summary:</p>
+            </label>
 
             <AutoResizeTextArea
               ref={taskSummaryRef}
               name="task-summary"
               defaultValue={content}
               style={{
-                appearance: "none",
-                padding: "8px",
-                boxSizing: "border-box",
-                border: "1px grey",
                 lineHeight: "1.375",
-                borderRadius: "0.375rem",
-                fontSize: "inherit",
-                outline: "none",
+                maxHeight: "calc(1.375rem * 6 + 16px)",
+                resize: "none",
+                width: "100%",
               }}
             />
           </div>
@@ -259,18 +268,20 @@ const Task = ({
                     style={{
                       display: "flex",
                       flexDirection: "row",
+                      height: "fit-content",
                       padding: "10px",
-                      margin: "10px",
-                      border: "1px solid grey",
+                      backgroundColor: "var(--dark-main)",
                       borderRadius: "10px",
+                      alignContent: "center",
+                      gap: "10px",
                     }}
                   >
                     <input
                       type="checkbox"
                       style={{
                         gridArea: "checkbox",
-                        height: "20px",
-                        alignSelf: "center",
+                        translate: "0px -50%",
+                        marginTop: "calc(0.6875rem + 8px)",
                       }}
                       checked={subTask.status}
                       onChange={(e) => {
@@ -299,19 +310,37 @@ const Task = ({
                       }}
                       style={{
                         width: "70%",
+                        flex: "1 1",
                         padding: "8px",
                         appearance: "none",
                         boxSizing: "border-box",
                         border: "1px grey",
-                        lineHeight: "1.375",
+                        lineHeight: "1.375rem",
+                        minHeight: "calc(1.375rem + 16px)",
                         borderRadius: "0.375rem",
                         fontSize: "inherit",
-                        outline: "none",
+                        resize: "none",
+                        maxHeight: "calc(1.375rem * 4 + 16px)",
+                        backgroundColor: "rgb(var(--primary-color))",
+                        outline: " 1px solid rgba(255, 219, 128, 0.3)",
+                        boxShadow:
+                          "inset 0px 0px 12px -8px rgba(20, 20, 20, 0.4)",
+                        color: "rgb(var(--secondary-color))",
                       }}
                     />
                     <IconButton
-                      className="badge"
                       icon={TbX}
+                      iconProps={{ size: 18 }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "25px",
+                        height: "25px",
+                        borderRadius: "0.375rem",
+                        translate: "0px -50%",
+                        marginTop: "calc(0.6875rem + 8px)",
+                      }}
                       onClick={() => {
                         const copy = { ...tempSubTasks };
                         delete copy[subTask.id];
@@ -322,15 +351,32 @@ const Task = ({
                 ))
               : undefined}
             <IconButton
-              className="badge"
               icon={TbPlus}
+              iconProps={{ size: 18 }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "25px",
+                borderRadius: "0.375rem",
+              }}
               onClick={() => {
                 const subTask = createSubTask();
                 const copy = { ...tempSubTasks, [subTask.id]: subTask };
                 setTempSubTasks(copy);
               }}
-            />
+            >Add Subtask</IconButton>
           </div>
+          
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              gap: "5px",
+            }}
+          >
+            <p>Badges</p>
           <div
             style={{
               display: "flex",
@@ -345,10 +391,18 @@ const Task = ({
                   <BadgeEdit
                     id={badge.id}
                     text={badge.text}
-                    onChange={(text) => {
-                      const copy = { ...tempBadges };
-                      copy[badge.id].text = text;
-                      setTempBadges(copy);
+                    colour={badge.color}
+                    onValueChange={(text) => {
+                      setTempBadges({
+                        ...tempBadges,
+                        [badge.id]: { ...tempBadges[badge.id], text },
+                      });
+                    }}
+                    onColorChange={(color) => {
+                      setTempBadges({
+                        ...tempBadges,
+                        [badge.id]: { ...tempBadges[badge.id], color },
+                      });
                     }}
                     onDelete={() => {
                       const copy = { ...tempBadges };
@@ -369,18 +423,21 @@ const Task = ({
               }}
             />
           </div>
+          </div>
           <div
             style={{
               display: "flex",
               flexDirection: "row",
               justifyContent: "right",
+              gap: "5px",
             }}
           >
-            <button
-              type="button"
+            <IconButton
+              icon={TbCheck}
+              iconProps={{ size: 24 }}
               style={{
                 width: "40px",
-                height: "40px",
+                aspectRatio: 1,
                 borderRadius: "0.375rem",
               }}
               onClick={() => {
@@ -422,11 +479,10 @@ const Task = ({
                 updateSizeFromElement();
                 setOpen(false);
               }}
-            >
-              <TbCheck size={24} />
-            </button>
-            <button
-              type="button"
+            />
+            <IconButton
+              icon={TbX}
+              iconProps={{ size: 24 }}
               style={{
                 appearance: "none",
                 width: "40px",
@@ -438,9 +494,7 @@ const Task = ({
                 setTempSubTasks(subTasks);
                 setOpen(false);
               }}
-            >
-              <TbX size={24} />
-            </button>
+            />
           </div>
         </Modal>
       </NodeWrapper>

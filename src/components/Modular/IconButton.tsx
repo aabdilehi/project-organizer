@@ -1,9 +1,9 @@
 import React from "react";
 import { IconBaseProps, IconType } from "react-icons";
-
-export default ({
+const IconButton = ({
   icon: Icon,
   iconProps,
+  children,
   ...buttonProps
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   icon: IconType;
@@ -16,6 +16,9 @@ export default ({
         style={{ justifySelf: "center", alignSelf: "center" }}
         {...iconProps}
       />
+      {children}
     </button>
   );
 };
+
+export default IconButton;

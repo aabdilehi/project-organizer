@@ -1,4 +1,4 @@
-import React, { ReactElement, useRef } from "react";
+import React, { ReactElement, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
 
 export const Modal = ({
@@ -7,36 +7,44 @@ export const Modal = ({
   bodyStyle,
   modalStyle,
   ...props
-}: {
+}: React.HTMLAttributes<HTMLDivElement> & {
   open: boolean;
   setOpen: (open: boolean) => void;
-  children: ReactElement[];
   bodyStyle?: React.CSSProperties;
   modalStyle?: React.CSSProperties;
 }) => {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLSpanElement>(null);
-  const mouseDownRef = useRef<EventTarget>(); // really not sure why but cannot just use click and use stoppropagation on inner components
+
+  useEffect(() => {
+    const handleClick = (event: MouseEvent) => {
+      if (!event.target) return;
+      const target = event.target as HTMLElement;
+      const isTarget = target == innerRef.current;
+
+      const containsTarget =
+        innerRef.current && innerRef.current.contains(target);
+
+      if (!isTarget && !containsTarget) setOpen(false);
+    };
+    window.addEventListener("mouseup", handleClick);
+    return () => {
+      window.removeEventListener("mouseup", handleClick);
+    };
+  }, []);
+
+
   return open
     ? ReactDOM.createPortal(
         <div
           ref={outerRef}
           className="modal"
           style={modalStyle}
-          onClick={(e) => {
+          onWheel={(e) => {
             e.stopPropagation();
           }}
-          onMouseDown={(e) => {
+          onDragStart={(e) => {
             e.stopPropagation();
-            if (e.button == 0) {
-              mouseDownRef.current = e.target;
-            }
-          }}
-          onMouseUp={(e) => {
-            e.stopPropagation();
-            if (mouseDownRef.current == outerRef.current && e.button == 0) {
-              setOpen(false);
-            }
           }}
           onContextMenu={(e) => {
             e.stopPropagation();
@@ -45,7 +53,7 @@ export const Modal = ({
             e.stopPropagation();
           }}
         >
-          <span ref={innerRef} className="modal-body" style={bodyStyle}>
+          <span ref={innerRef} className="modal-body" style={bodyStyle} >
             {props.children}
           </span>
         </div>,

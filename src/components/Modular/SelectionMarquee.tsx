@@ -24,9 +24,10 @@ const SelectionMarquee = ({
   let nodeElementBounds: { [id: string]: DOMRect } = {}; // do not want to recalculate bounds every frame
   let boardBounds: DOMRect;
   const init = (e: DragEvent) => {
+    if (e.dataTransfer!.types.includes("text/plain")) return;
+    if (!e.dataTransfer!.types.includes(DragAction.SELECT)) return;
     if (!boardRef.current) return;
     boardBounds = boardRef.current.getBoundingClientRect();
-    if (!e.dataTransfer!.types.includes(DragAction.SELECT)) return;
     initX = e.clientX;
     initY = e.clientY;
 
@@ -41,11 +42,11 @@ const SelectionMarquee = ({
     });
   };
   const animate = (e: DragEvent) => {
+    if (e.dataTransfer!.types.includes("text/plain")) return;
     if (!e.dataTransfer!.types.includes(DragAction.SELECT)) return;
     if (!boardBounds && boardRef.current) {
       boardBounds = boardRef.current.getBoundingClientRect();
     }
-    requestAnimationFrame(() => {
       if (!!ref.current) {
         const sX = (e.clientX - initX) / scale;
         const sY = (e.clientY - initY) / scale;
@@ -103,7 +104,6 @@ const SelectionMarquee = ({
           element.classList.remove("selected");
         });
       }
-    });
   };
 
   useEffect(() => {

@@ -154,14 +154,15 @@ function copyRecursiveThunk(
 ): ThunkAction<void, PlainRootState, unknown, AnyAction> {
   return (dispatch, getState) => {
     const state = getState();
+    console.log(type);
     if (!type) return;
     const slice = NodeSliceMap[type];
     const node = state[slice][id];
     if (!node) return;
     if (Object.hasOwn(node, "childRefs")) {
-      (node as BoardType).childRefs.forEach(({ id, type }) =>
-        copyRecursiveThunk(id, type)
-      );
+      (node as BoardType).childRefs.forEach(({ id, type }) => {
+        dispatch(copyRecursiveThunk(id, type));
+      });
     }
     dispatch(copyNodeThunk(id, type));
   };
@@ -176,6 +177,7 @@ function copyNodeThunk(
     if (!type) return;
     const slice = NodeSliceMap[type];
     const node = state[slice][id];
+    console.log(node);
     if (!node) return;
     dispatch(addCopyNode(node));
   };

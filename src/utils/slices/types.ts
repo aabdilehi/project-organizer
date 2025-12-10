@@ -14,6 +14,7 @@ import {
   DragAction,
   DragOrigin,
   BoardObjects,
+  DragRenderLayers,
 } from "../enums/items";
 import { combineReducers, $CombinedState } from "redux";
 
@@ -29,7 +30,10 @@ export type ImageMapState = { [id: string]: string };
 
 export type DragState = {
   initialPosition: { x: number; y: number };
-  nodes: { [noteId: string]: NodeType };
+  nodes: { [noteId: string]: Pick<NodeType, "id" | "type" | "parent"> };
+  layers: {
+    [layer in DragRenderLayers]: NodeType["id"][];
+  };
   types: Array<ResizeDirection | DragAction | DragOrigin>;
 };
 

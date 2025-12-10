@@ -1,9 +1,14 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { DragState } from "./types";
+import { DragRenderLayers } from "../enums/items";
 
 export const initialState: DragState = {
   initialPosition: { x: 0, y: 0 },
   nodes: {},
+  layers: {
+    [DragRenderLayers.BOTTOM]: [],
+    [DragRenderLayers.TOP]: [],
+  },
   types: [],
 };
 
@@ -11,15 +16,19 @@ const dragSlice = createSlice({
   name: "drag",
   initialState,
   reducers: {
-    setDragData: (state, action) => {
-      const { initialPosition, nodes, types } = action.payload;
-      if (!initialPosition || !nodes || !types) return;
-      return { initialPosition, nodes, types };
+    setDragData: (state, action: PayloadAction<DragState>) => {
+      const { initialPosition, nodes, layers, types } = action.payload;
+      if (!initialPosition || !layers || !types) return;
+      return { initialPosition, nodes, layers, types };
     },
     clearDragData: () => {
       return {
         initialPosition: { x: 0, y: 0 },
         nodes: {},
+        layers: {
+          [DragRenderLayers.BOTTOM]: [],
+          [DragRenderLayers.TOP]: [],
+        },
         types: [],
       };
     },

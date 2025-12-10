@@ -18,9 +18,10 @@ const Group = ({ id, onContextMenu, scale, offset }) => {
   const nodeRef = useRef();
   const dispatch = useDispatch();
 
-  const { pX, pY, sX, sY, title, parent } = useSelector(
-    (state) => state.groups[id]
-  );
+  const group = useSelector((state) => state.groups[id]);
+
+  if (!group) return;
+  const { pX, pY, sX, sY, title, parent } = group;
 
   // make group "taller" by including the title within the bounds
   // big div that is a stack of two divs. Top div has pointer events, bottom doesn't

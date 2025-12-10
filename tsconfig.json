@@ -6,6 +6,7 @@
       "react": [ "./node_modules/@types/react" ]
     },
     "lib": ["ES2022", "DOM"],
+    "target": "ES2022",
     "allowJs": true,
     "allowImportingTsExtensions": true,
     "noEmit": true

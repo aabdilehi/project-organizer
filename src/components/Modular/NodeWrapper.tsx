@@ -132,6 +132,8 @@ export default forwardRef(
     const direction = useRef<string>("none");
     useImperativeHandle(ref, () => nodeRef.current!, []);
     const updatingSize = useRef(false);
+
+      
     if (nodeRef.current && updatingSize.current != false) {
       if (!preview && sX && sY) {
         const bounds = nodeRef.current.getBoundingClientRect();
@@ -149,6 +151,8 @@ export default forwardRef(
               sY: bounds.height / scale,
             })
           );
+          
+          updatingSize.current = false;
         }
       }
     }
@@ -161,7 +165,6 @@ export default forwardRef(
         id={id}
         data-selected={selected}
         onClick={(e) => {
-          e.stopPropagation();
           if (!selected) {
             handleSelect(e);
           }
@@ -177,7 +180,6 @@ export default forwardRef(
         }}
         tabIndex={-1}
         onContextMenu={(e) => {
-          e.stopPropagation();
           if (!selected) {
             handleSelect(e);
           }

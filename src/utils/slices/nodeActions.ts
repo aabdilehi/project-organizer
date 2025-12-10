@@ -86,7 +86,9 @@ function setSliceDataReducer<T extends NodeSliceKeys>(
     );
 
     // Construct new object containing only appropriate values
-    const newNodes: typeof nodes = {};
+    const newNodes: {
+      [id: string]: NodeType;
+    } = {};
     newKeys.forEach((key) => {
       if (!Object.hasOwn(nodes, key)) return; // Ensure it exists
 
@@ -96,25 +98,18 @@ function setSliceDataReducer<T extends NodeSliceKeys>(
       if (newNode.type !== SliceNodeMap[nodeType]) return;
 
       if (key == "root") {
-        Object.defineProperty(newNodes, key, formatRoot(newNode));
+        newNodes[key] = formatRoot(newNode);
         return;
       }
 
-      Object.defineProperty(
-        newNodes,
-        key,
-        formatData(newNode, NodeTypeMap[newNode.type])
-      );
+      newNodes[key] = formatData(newNode, NodeTypeMap[newNode.type]);
     });
 
     // Might be redundant but I want to make sure things are proper before potentially breaking the state
-    if (!newNodes) return;
+    console.log(newNodes);
     if (Object.keys(newNodes).length <= 0) return;
 
-    if (merge) {
-      return { ...state, ...newNodes };
-    }
-    return { ...newNodes } as any;
+    return { ...newNodes };
   };
 }
 function addNodeReducer<T extends NodeSliceKeys>(

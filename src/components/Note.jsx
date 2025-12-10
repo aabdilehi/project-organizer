@@ -18,6 +18,8 @@ import { updateContent } from "../utils/slices/nodeActions";
 import NodeWrapper from "./Modular/NodeWrapper.tsx";
 import { debounce } from "lodash";
 import { listItem } from "@tiptap/pm/schema-list";
+import FloatingMenu from "./Modular/FloatingMenu.tsx";
+import { MenuBar } from "./Modular/Editor.jsx";
 
 const updateNoteContent = (dispatch, id, editor) => {
   dispatch(
@@ -36,9 +38,10 @@ const debouncedUpdate = debounce(updateNoteContent, 250, { maxWait: 1000 });
 const Note = ({ id, onContextMenu, offset, scale, ...props }) => {
   const nodeRef = useRef();
 
-  const { pX, pY, sX, sY, content, parent } = useSelector(
-    (state) => state.notes[id]
-  );
+  const note = useSelector((state) => state.notes[id]);
+
+  if (!note) return;
+  const { pX, pY, sX, sY, content, parent } = note;
 
   const selected = useSelector((state) => state.selection.hasOwnProperty(id));
   const dispatch = useDispatch();
@@ -114,13 +117,29 @@ const Note = ({ id, onContextMenu, offset, scale, ...props }) => {
           width: "100%",
           height: "100%",
           minHeight: sY + "px",
-          overflow: "none",
+          overflow: "auto",
           border: "none",
+        }}
+        onWheel={(e) => {
+          if(!e.ctrlKey) e.stopPropagation();
         }}
         editor={editor}
         // onMouseUp={(e) => e.preventDefault()}
         onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key == "Escape") editor.setEditable(false);
+        }}
       />
+      {/* <FloatingMenu
+        className="context-menu"
+        open={editor?.isEditable}
+        setOpen={() => {}}
+        style={{
+          position: "relative",
+          transform: "translate(0%, calc(-100% + -5px))",         
+          top: "-100%" 
+        }}
+      ><MenuBar editor={editor} /></FloatingMenu> */}
     </NodeWrapper>
   );
 };

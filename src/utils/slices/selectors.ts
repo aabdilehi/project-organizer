@@ -1,68 +1,37 @@
 import { createSelector, Selector } from "@reduxjs/toolkit";
 import { BoardType, NodeType } from "../classes/new-classes";
-import { DefinedBoardObjects, PlainRootState, SelectionState } from "./types";
-import { ResizeDirection, DragAction, DragOrigin } from "../enums/items";
-
-const selectBoards = (state: PlainRootState) => state.boards;
-const selectNotes = (state: PlainRootState) => state.notes;
-const selectImages = (state: PlainRootState) => state.images;
-const selectTasks = (state: PlainRootState) => state.tasks;
-const selectDocuments = (state: PlainRootState) => state.documents;
-const selectGroups = (state: PlainRootState) => state.groups;
-
-// This is such an ugly selector but it is annoyingly necessary
-export const selectNodes = createSelector(
-  [
-    selectBoards,
-    selectNotes,
-    selectImages,
-    selectTasks,
-    selectDocuments,
-    selectGroups,
-  ],
-  (boards, notes, images, tasks, documents, groups) => {
-    return {
-      ...boards,
-      ...notes,
-      ...images,
-      ...tasks,
-      ...documents,
-      ...groups,
-    };
-  }
-);
+import {
+  DefinedBoardObjects,
+  DragState,
+  PlainRootState,
+  SelectionState,
+} from "./types";
+import {
+  ResizeDirection,
+  DragAction,
+  DragOrigin,
+  DragRenderLayers,
+} from "../enums/items";
 
 //#endregion
 
-export const selectBoardOffset: Selector<
-  PlainRootState,
-  {
-    x: number;
-    y: number;
-  }
-> = (state, id: string) => state.boards[id].offset;
-export const selectBoardParent: Selector<
-  PlainRootState,
-  {
-    id: string;
-    type: DefinedBoardObjects;
-  }
-> = (state, id: string) => (state.boards[id] as BoardType).parent;
-export const selectBoardChildren: Selector<
-  PlainRootState,
-  {
-    id: string;
-    type: DefinedBoardObjects;
-  }[]
-> = (state, id: string) => state.boards[id].childRefs;
-
 //#region Drag properties
-export const selectDraggedNodes: Selector<
-  PlainRootState,
-  {
-    [noteId: string]: NodeType;
-  }
-> = (state) => state.drag.nodes;
+
+const selectDrag = (state: PlainRootState) => state.drag;
+const selectLayer = (state: PlainRootState, layer: DragRenderLayers) => layer;
+
+export const selectDraggedNodes: Selector<PlainRootState, DragState["nodes"]> =
+  createSelector([selectDrag, selectLayer], (drag, layer) => {
+    if (layer == null) return {};
+    const ids: string[] = drag.layers[layer];
+    const nodes: { [id: string]: Pick<NodeType, "id" | "type" | "parent"> } =
+      {};
+    ids.forEach((id) => {
+      nodes[id] = drag.nodes[id];
+    });
+
+    return nodes;
+  });
 
 export const selectInitialPosition: Selector<
   PlainRootState,

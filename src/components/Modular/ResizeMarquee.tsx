@@ -45,12 +45,14 @@ const selectDragging = createSelector(
 export default forwardRef(
   (
     {
+      active = false,
       preview = false,
       scale,
       offset,
       getNodeSize,
       ...props
     }: {
+      active: boolean;
       preview?: boolean;
       scale?: any;
       offset?: any;
@@ -81,12 +83,10 @@ export default forwardRef(
     sizeY = endY - startY + padding;
 
     const animateResize = (e: DragEvent) => {
-      requestAnimationFrame(() => {
         if (!nodeRef.current) return;
         const { x, y } = getNodeSize(e.clientX, e.clientY, sizeX, sizeY);
         nodeRef.current.style.width = `${x}px`;
         nodeRef.current.style.height = `${y}px`;
-      });
     };
     useEffect(() => {
       if (preview) {
@@ -98,7 +98,8 @@ export default forwardRef(
         }
       };
     }, [preview, nodes]);
-    return nodes.length <= 0 ? null : (
+    return (active && preview && draggedNodes.length > 0) ||
+      (active && !preview && selectedNodes.length > 0) ? (
       <div
         ref={nodeRef}
         className={`resize-wrapper${dragging && !preview ? " dragging" : ""}`}
@@ -203,6 +204,6 @@ export default forwardRef(
           }}
         />
       </div>
-    );
+    ) : null;
   }
 );

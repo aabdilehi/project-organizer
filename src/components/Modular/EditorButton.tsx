@@ -10,6 +10,7 @@ import { forwardRef, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { IconType } from "react-icons";
 import IconButton from "./IconButton";
+import { TooltipWrapper } from "./IconTooltip";
 
 export const Tooltip = forwardRef(
   (
@@ -60,10 +61,8 @@ export const EditorButton = ({
   backgroundColor?: string;
   iconColor?: string;
 }) => {
-  const [tooltipVisible, setTooltipVisible] = useState(false);
-  const tooltipRef = useRef<HTMLDivElement>(null);
   return (
-    <>
+    <TooltipWrapper name={label} placement="bottom">
       <IconButton
         className={`editor-button${disabled ? ` disabled` : ""}${
           active ? ` active` : ""
@@ -71,8 +70,6 @@ export const EditorButton = ({
         onClick={onClick}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
-        onMouseEnter={() => setTooltipVisible(true)}
-        onMouseLeave={() => setTooltipVisible(false)}
         aria-label={ariaLabel ?? label}
         disabled={disabled}
         style={{ backgroundColor }}
@@ -83,15 +80,6 @@ export const EditorButton = ({
           color: iconColor,
         }}
       />
-      {ReactDOM.createPortal(
-        <Tooltip
-          ref={tooltipRef}
-          text={label}
-          placement="bottom"
-          visible={tooltipVisible}
-        />,
-        document.body
-      )}
-    </>
+    </TooltipWrapper>
   );
 };

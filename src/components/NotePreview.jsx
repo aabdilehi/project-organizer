@@ -11,13 +11,14 @@ const NotePreview = ({ id, resize, getNodeSize }) => {
   const { pX, pY, sX, sY, content, parent } = storedNode ?? draggedNode; // dragged node is used if the item does not exist yet, e.g. dragging from sidebar
   const nodeRef = useRef(null);
   const sizeRef = useRef({ x: sX, y: sY });
+
+  console.log(`PREVIEW NOTE: ${pX}`);
+
   const animateResize = (e) => {
-    requestAnimationFrame(() => {
       if (!nodeRef.current) return;
       sizeRef.current = getNodeSize(e.clientX, e.clientY, sX, sY);
       nodeRef.current.style.width = `${sizeRef.current.x}px`;
       nodeRef.current.style.height = `${sizeRef.current.y}px`;
-    });
   };
   useEffect(() => {
     if (resize) {

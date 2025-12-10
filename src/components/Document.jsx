@@ -57,11 +57,10 @@ const previewStyle = {
 
 const Document = ({ id, onContextMenu, scale, offset }) => {
   const dispatch = useDispatch();
-  const { pX, pY, sX, sY, title, content, parent } = useSelector(
-    (state) => state.documents[id]
-  );
+  const document = useSelector((state) => state.documents[id]);
 
-  const selection = useRef(null);
+  if (!document) return;
+  const { pX, pY, sX, sY, title, content, parent } = document;
 
   const [open, setOpen] = useState(false);
   const nodeRef = useRef();
@@ -93,8 +92,7 @@ const Document = ({ id, onContextMenu, scale, offset }) => {
     onUpdate: ({ editor }) => debouncedUpdate(dispatch, id, editor),
   });
 
-  const updateSizeFromElement = () =>
-    requestAnimationFrame(() => {
+  const updateSizeFromElement = () =>{
       if (nodeRef.current != null) {
         nodeRef.current.style.height = "unset";
         const bounds = nodeRef.current.getBoundingClientRect();
@@ -112,9 +110,9 @@ const Document = ({ id, onContextMenu, scale, offset }) => {
         }
         nodeRef.current.style.height = sY;
       }
-    });
+    };
 
-  updateSizeFromElement();
+  // updateSizeFromElement();
 
   return (
     <>

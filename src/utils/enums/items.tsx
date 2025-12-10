@@ -31,3 +31,8 @@ export enum ResizeDirection {
   BOTTOMLEFT = "bottomleft",
   BOTTOMRIGHT = "bottomright",
 }
+
+export const enum DragRenderLayers {
+  BOTTOM,
+  TOP,
+}

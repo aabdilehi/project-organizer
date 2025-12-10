@@ -6,16 +6,10 @@ import {
   BoardObjects,
   DragAction,
   DragOrigin,
+  DragRenderLayers,
   DragSignature,
 } from "../utils/enums/items.tsx";
 import Note from "./Note.jsx";
-
-import {
-  addChild,
-  addNode,
-  removeChild,
-  removeNode,
-} from "../utils/slices/nodeActions.ts";
 
 import { useDrop } from "../utils/hooks/useDrop.jsx";
 import { Router, withRouter } from "./Modular/ComponentWithRouterProp.jsx";
@@ -23,129 +17,28 @@ import { clearSelectNode } from "../utils/slices/selectionSlice.ts";
 import BoardIcon from "./BoardIcon.jsx";
 import Document from "./Document.jsx";
 import Task from "./Task";
-import DragLayer from "./DragLayer";
+import { PreviewRenderLayer, useDragLogic } from "./DragLayer";
 import { updateOffset, updateScale } from "../utils/slices/boardSlice.ts";
-import {
-  addCopyNode,
-  clearCopiedNodes,
-  setPosition,
-} from "../utils/slices/copiedSlice.ts";
 import ContextMenu from "../utils/hooks/ContextMenu.tsx";
 import Group from "./Group.jsx";
-import {
-  selectCopiedNodes,
-  selectCopiedPosition,
-  selectNodes,
-  selectSelection,
-} from "../utils/slices/selectors.ts";
 import { RootState } from "../store.ts";
 import ResizeMarquee from "./Modular/ResizeMarquee.tsx";
 import Toolbar from "./Toolbar.tsx";
 import Image from "./Image.js";
 import { BoardType } from "../utils/classes/new-classes.ts";
+import useBackground, {
+  backgroundMap,
+  Backgrounds,
+  originalBackground,
+} from "../utils/hooks/useBackground.ts";
+import useTheme, { ThemeIcons, Themes } from "../utils/hooks/useTheme.ts";
+import FloatingMenu from "./Modular/FloatingMenu.tsx";
+import IconButton from "./Modular/IconButton.tsx";
+import { TbSettings } from "react-icons/tb";
+import { Modal } from "./Modular/Modal.tsx";
+import AutoResizeTextArea from "./Modular/AutoResizeTextArea.tsx";
+import { TooltipWrapper } from "./Modular/IconTooltip.tsx";
 //#endregion
-
-const setOriginalBackground = (
-  element: HTMLDivElement,
-  position: { x: number; y: number },
-  scale: number
-) => {
-  element.style.background = originalBackground;
-  element.style.backgroundPosition = originalBackgroundPosition(
-    position,
-    scale
-  );
-  element.style.backgroundSize = originalBackgroundSize(scale);
-};
-
-const originalBackground = `radial-gradient(
-    circle,
-    var(--secondary-background-color) 1px,
-    var(--primary-background-color) 2px
-  )`;
-const originalBackgroundSize = (scale: number) => {
-  return `${50 * scale}px ${50 * scale}px`;
-};
-const originalBackgroundPosition = (
-  position: { x: number; y: number },
-  scale: number
-) => {
-  return `${position.x}px ${position.y}px`;
-};
-
-const setCrossBackground = (
-  element: HTMLDivElement,
-  position: { x: number; y: number },
-  scale: number
-) => {
-  element.style.background = crossBackground;
-  element.style.backgroundPosition = crossBackgroundPosition(position, scale);
-  element.style.backgroundSize = crossBackgroundSize(scale);
-};
-
-const crossBackground = `radial-gradient(circle, transparent 20%, slategray 20%,
-    slategray 80%, transparent 80%, transparent),
-  radial-gradient(circle, transparent 20%, slategray 20%,
-    slategray 80%, transparent 80%, transparent) 50px 50px,
-  linear-gradient(#A8B1BB 8px, transparent 8px) 0 -4px,
-  linear-gradient(90deg, #A8B1BB 8px, transparent 8px) -4px 0`;
-const crossBackgroundPosition = (
-  position: { x: number; y: number },
-  scale: number
-) => {
-  return `${position.x}px ${position.y}px,${position.x + 50 * scale}px ${
-    position.y + 50 * scale
-  }px,${position.x}px ${position.y - 4 * scale}px,${position.x - 4 * scale}px ${
-    position.y
-  }px`;
-};
-
-const crossBackgroundSize = (scale: number) => {
-  const size1 = 100 * scale;
-  const size2 = 50 * scale;
-  return `${size1}px ${size1}px, ${size1}px ${size1}px, ${size2}px ${size2}px, ${size2}px ${size2}px`;
-};
-
-const setWaveBackground = (
-  element: HTMLDivElement,
-  position: { x: number; y: number },
-  scale: number
-) => {
-  element.style.background = waveBackground;
-  element.style.backgroundSize = waveBackgroundSize(scale);
-  element.style.backgroundPosition = waveBackgroundPosition(position, scale);
-};
-
-const waveBackground = `radial-gradient(
-      circle at 100% 50%,
-      transparent 20%,
-      var(--secondary-background-color) 21%,
-      var(--secondary-background-color) 34%,
-      transparent 35%,
-      transparent
-    ),
-    radial-gradient(
-        circle at 0% 50%,
-        transparent 20%,
-        var(--secondary-background-color) 21%,
-        var(--secondary-background-color) 34%,
-        transparent 35%,
-        transparent
-      )
-      `;
-
-const waveBackgroundSize = (scale: number) => {
-  return `${75 * scale}px ${100 * scale}px`;
-};
-
-const waveBackgroundPosition = (
-  position: { x: number; y: number },
-  scale: number
-) => {
-  return `${position.x}px ${position.y}px, ${position.x}px ${
-    position.y - 50 * scale
-  }px`;
-};
 
 const Board = ({
   validBoard,
@@ -172,16 +65,11 @@ const Board = ({
     boardId == "root" ? undefined : (state.boards[boardId] as BoardType).parent
   );
 
-  const shouldAnimateResizeMarquee = useRef(false);
-
-  const nodes = useSelector(selectNodes);
-
   if (!scale || !offset) return;
 
-  const selectedNodes = useSelector(selectSelection);
-  const copiedNodes = useSelector(selectCopiedNodes);
-  const copiedPosition = useSelector(selectCopiedPosition);
-
+  const { theme, setTheme } = useTheme();
+  const { background, setBackground, updateBackground } = useBackground(offset, scale);
+  const [open, setOpen] = useState(false);
   //#endregion
 
   //#region References
@@ -191,14 +79,25 @@ const Board = ({
   let currentScale = scale;
   const currentMousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [contextMenuOpen, setContextMenuOpen] = useState<boolean>(false);
+
+  const [customBackground, setCustomBackground] = useState<string>("");
   //#endregion
 
   //#region Dispatch actions
 
   const dispatch = useDispatch();
 
+  useDragLogic({
+    boardId,
+    boardRef: ref,
+    transformRef,
+    scale,
+    offset,
+  });
+
   useEffect(() => {
     dispatch(clearSelectNode());
+    setBackground(originalBackground);
   }, [boardId]);
 
   //#endregion
@@ -209,7 +108,6 @@ const Board = ({
 
   const handleTwoFingerPan = (event: React.WheelEvent<HTMLDivElement>) => {
     if (twoFingerPanTimeout == null) {
-      shouldAnimateResizeMarquee.current = true;
     } else clearTimeout(twoFingerPanTimeout);
 
     if (transformRef.current != null && currentPosition != null) {
@@ -219,11 +117,10 @@ const Board = ({
       };
 
       requestAnimationFrame(() => {
-        transformRef.current!.style.transform = `scale(${currentScale}) translate(${
-          currentPosition.x / currentScale
-        }px, ${currentPosition.y / currentScale}px)`;
+        transformRef.current!.style.transform = `scale(${currentScale}) translate(${currentPosition.x / currentScale
+          }px, ${currentPosition.y / currentScale}px)`;
 
-        setOriginalBackground(ref.current!, currentPosition, currentScale);
+        updateBackground(currentPosition, currentScale);
       });
     }
 
@@ -236,7 +133,6 @@ const Board = ({
         })
       );
       twoFingerPanTimeout = null;
-      shouldAnimateResizeMarquee.current = false;
     }, 250);
   };
 
@@ -245,7 +141,6 @@ const Board = ({
   const handleTwoFingerZoom = (event: React.WheelEvent<HTMLDivElement>) => {
     if (twoFingerZoomTimeout == null) {
       currentScale = scale;
-      shouldAnimateResizeMarquee.current = true;
     } else clearTimeout(twoFingerZoomTimeout);
     console.log(event.deltaY);
     if (transformRef.current != null && currentPosition != null) {
@@ -256,11 +151,10 @@ const Board = ({
       currentScale += (newScale - currentScale) * 0.2;
 
       requestAnimationFrame(() => {
-        transformRef.current!.style.transform = `scale(${currentScale}) translate(${
-          currentPosition.x / currentScale
-        }px, ${currentPosition.y / currentScale}px)`;
+        transformRef.current!.style.transform = `scale(${currentScale}) translate(${currentPosition.x / currentScale
+          }px, ${currentPosition.y / currentScale}px)`;
 
-        setOriginalBackground(ref.current!, currentPosition, currentScale);
+        updateBackground(currentPosition, currentScale);
         // This should be changed as you cannot pan and scale at the same time rn
       });
     }
@@ -312,7 +206,6 @@ const Board = ({
         event.preventDefault();
         const startX = event.pageX - offset.x;
         const startY = event.pageY - offset.y;
-        shouldAnimateResizeMarquee.current = true;
         const handleMouseMove = (event: MouseEvent) => {
           event.preventDefault();
           if (transformRef.current !== null && currentPosition !== null) {
@@ -322,22 +215,15 @@ const Board = ({
             };
 
             requestAnimationFrame(() => {
-              transformRef.current!.style.transform = `scale(${currentScale}) translate(${
-                currentPosition.x / currentScale
-              }px, ${currentPosition.y / currentScale}px)`;
-
-              setOriginalBackground(
-                ref.current!,
-                currentPosition,
-                currentScale
-              );
+              transformRef.current!.style.transform = `scale(${currentScale}) translate(${currentPosition.x / currentScale
+                }px, ${currentPosition.y / currentScale}px)`;
+            updateBackground(currentPosition, currentScale);
             });
           }
         };
 
         const handleMouseUp = (event: MouseEvent) => {
           // Clear selection if user left clicks on board
-          shouldAnimateResizeMarquee.current = false;
           // if (event.button === 0) {
           //   dispatch(clearSelectNode());
           // }
@@ -385,19 +271,24 @@ const Board = ({
     setContextMenuOpen(open);
   }
 
+  const [customBackgroundModalOpen, setCustomBackgroundModalOpen] = useState(false);
+
   //#region Render board
   return (
     <>
+      <PreviewRenderLayer
+        layer={DragRenderLayers.BOTTOM}
+        boardId={boardId}
+        boardRef={ref}
+        transformRef={transformRef}
+        scale={currentScale}
+        offset={currentPosition}
+      />
       <div
         ref={ref}
         draggable={true}
         className="actualboard"
         onMouseDown={(event) => handleMouseDown(event)}
-        style={{
-          background: originalBackground,
-          backgroundSize: originalBackgroundSize(scale),
-          backgroundPosition: originalBackgroundPosition(offset, scale),
-        }}
         onWheel={(event) => handleWheel(event)}
         onClick={(e) => {
           if (
@@ -435,31 +326,93 @@ const Board = ({
           offset={currentPosition}
           parent={parent}
         />
-        <DragLayer
-          boardId={boardId}
-          boardRef={ref}
-          transformRef={transformRef}
-          scale={currentScale}
-          offset={currentPosition}
-        />
         <ContextMenu
           boardId={boardId}
           open={contextMenuOpen}
           setOpen={openContextMenu}
           mousePosition={currentMousePos}
-          calculatePosition={calculateRelativePosition}
         />
-        {/* <ResizeMarquee scale={currentScale} offset={currentPosition} /> */}
+
+        <div
+          style={{
+            position: "absolute",
+            zIndex: 3,
+            right: "12px",
+            top: "12px",
+          }}
+        >
+          <TooltipWrapper name="Change theme" placement="left">
+            <IconButton
+              id="theme-button"
+              icon={ThemeIcons[theme]}
+              iconProps={{ size: 20 }}
+              onClick={() => {
+                setOpen(true);
+              }}
+              style={{
+                height: "30px",
+                width: "30px",
+                borderRadius: "6px",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            />
+          </TooltipWrapper>
+          <FloatingMenu className="context-menu" open={open} setOpen={setOpen} style={{
+            position: "absolute",
+            transform: "translate(-100%, 5px)",
+            left: "100%",
+
+          }}>
+            {/* Theme picker */}
+            <div className="context-menu-group">
+              <p>Themes</p>
+              {Object.keys(Themes).map((key) => <div
+                className={`context-menu-item${Themes[key] == theme ? " selected" : ""}`}
+                onClick={(event) => {
+                  setTheme(Themes[key])
+                  setOpen(false);
+                }}
+              >
+                <p>{key}</p>
+              </div>)}
+            </div>
+            {/* Background patterns */}
+            <div className="context-menu-group">
+              <p>Backgrounds</p>
+              {Object.keys(Backgrounds).map(key => <div
+                className={`context-menu-item${backgroundMap[Backgrounds[key]] == background ? " selected" : ""}`}
+                onClick={(event) => {
+                  setBackground(Backgrounds[key] == Backgrounds.CUSTOM ? customBackground : backgroundMap[Backgrounds[key]])
+                  setOpen(false);
+                }}
+              >
+                <p>{key}</p>
+                {Backgrounds[key] == Backgrounds.CUSTOM ? <IconButton icon={TbSettings} style={{padding: "1px", borderRadius: "0.175rem"}} iconProps={{ size: 18 }} onClick={(event) => { event.stopPropagation(); setCustomBackgroundModalOpen(true); }} /> : null}
+              </div>)}
+            </div>
+            {/* Colour pickers */}
+          </FloatingMenu>
+        </div>
+
+        <Modal open={customBackgroundModalOpen} setOpen={setCustomBackgroundModalOpen}>
+            <label htmlFor="background-image">Pattern:</label>
+            <AutoResizeTextArea name="background-image" />
+        </Modal>
+
         <div
           ref={transformRef}
           className="board-transform"
           style={{
-            transform: `scale(${currentScale}) translate(${
-              currentPosition.x / currentScale
-            }px, ${currentPosition.y / currentScale}px)`,
+            transform: `scale(${currentScale}) translate(${currentPosition.x / currentScale
+              }px, ${currentPosition.y / currentScale}px)`,
           }}
         >
-          <ResizeMarquee scale={currentScale} offset={currentPosition} />
+          <ResizeMarquee
+            active={true}
+            scale={currentScale}
+            offset={currentPosition}
+          />
           {childRefs.map(({ id, type }) => {
             switch (type) {
               case BoardObjects.NOTE:
@@ -500,6 +453,8 @@ const Board = ({
                     drop={dropOnBoard}
                     allowDrop={allowDropOnBoard}
                     onContextMenu={handleRightClick}
+                    scale={currentScale}
+                    offset={currentPosition}
                   />
                 );
               case BoardObjects.DOCUMENT:
@@ -522,6 +477,14 @@ const Board = ({
           })}
         </div>
       </div>
+      <PreviewRenderLayer
+        layer={DragRenderLayers.TOP}
+        boardId={boardId}
+        boardRef={ref}
+        transformRef={transformRef}
+        scale={currentScale}
+        offset={currentPosition}
+      />
     </>
   );
 

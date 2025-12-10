@@ -1,7 +1,11 @@
-import { BoardObjects, DragAction, ResizeDirection } from "../enums/items";
+import {
+  BoardObjects,
+  DragAction,
+  DragOrigin,
+  ResizeDirection,
+} from "../enums/items";
 
 import {
-  addNode,
   addChild,
   removeChild,
   updateParent,
@@ -12,10 +16,8 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { createNodeThunk } from "../slices/thunks";
 
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { useRef } from "react";
-import { formatData, NodeTypeMap } from "../classes/new-classes";
-import { selectNodes } from "../slices/selectors";
 
 const boardAcceptedTypes = [
   BoardObjects.BOARD,
@@ -28,7 +30,6 @@ const boardAcceptedTypes = [
 
 export function useDrop({ boardRef, scale, offset }) {
   const dispatch = useDispatch();
-  const nodes = useSelector(selectNodes);
   const handledNodes = useRef([]);
 
   function allowDropOnBoard(event) {
@@ -42,10 +43,9 @@ export function useDrop({ boardRef, scale, offset }) {
     event.preventDefault();
 
     const boardId = id ?? "root";
-    console.log(event.dataTransfer.types);
     //#region Drop from toolbar
-    if (event.dataTransfer.types.includes("origin/toolbar")) {
-      let data = JSON.parse(event.dataTransfer.getData("origin/toolbar"));
+    if (event.dataTransfer.types.includes(DragOrigin.TOOLBAR)) {
+      let data = JSON.parse(event.dataTransfer.getData(DragOrigin.TOOLBAR));
       if (!boardAcceptedTypes.includes(data.type)) return;
       createNode(event, data, boardId, BoardObjects.BOARD, offset, scale);
       return;
@@ -160,8 +160,7 @@ export function useDrop({ boardRef, scale, offset }) {
   }
   function setNodePosition(event, data, initial) {
     const boundingRect = boardRef.current.getBoundingClientRect();
-    const node = nodes[data.id];
-    if (!node || !data.offset) {
+    if (!Object.hasOwn(data, "id") || !data.offset) {
       const xCoord = (event.clientX - boundingRect.left) / scale;
       const yCoord = (event.clientY - boundingRect.top) / scale;
 

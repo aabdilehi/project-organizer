@@ -15,14 +15,12 @@ const GroupPreview = ({ id, resize, getNodeSize }) => {
   let sizeX = sX;
   let sizeY = sY;
   const animateResize = (e) => {
-    requestAnimationFrame(() => {
       if (!nodeRef.current) return;
       const { x, y } = getNodeSize(e.clientX, e.clientY, sX, sY);
       sizeX = x;
       sizeY = y;
       nodeRef.current.style.width = `${sizeX}px`;
       nodeRef.current.style.height = `${sizeY}px`;
-    });
   };
   useEffect(() => {
     if (resize) {
